@@ -1,0 +1,144 @@
+<!-- ============================================================
+     PRESIDENT'S HOMEPAGE — 60-90 Second Executive Scan
+     pages/home.html
+     ============================================================ -->
+
+<!-- Welcome Banner -->
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#f5c518,#e8a900); display:flex; align-items:center; justify-content:center; font-size:1.3rem; box-shadow:0 0 20px rgba(245,197,24,0.35);">⚡</div>
+      <div>
+        <h1 class="page-module-title" style="font-size:1.35rem;">Good <span id="home-greeting">Morning</span>, <span id="home-role-name">President Sahab</span></h1>
+        <p class="page-module-subtitle" id="home-date-str">Loading…</p>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.75rem;">
+    <div class="live-indicator"><span class="live-dot"></span>LIVE INTEL</div>
+    <button class="btn btn-primary btn-sm" onclick="navigateTo('war-room')">🚨 War Room</button>
+    <button class="btn btn-ghost btn-sm" onclick="navigateTo('speech-intelligence')">🎙 Speech Brief</button>
+  </div>
+</div>
+
+<!-- PRIORITY STRIP: 3 Things Requiring Attention Today -->
+<div class="card card-red" style="margin-bottom:1rem; padding:1rem 1.25rem;">
+  <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.75rem;">
+    <span style="font-family:'Outfit',sans-serif; font-size:0.85rem; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.06em;">🔴 3 Things Requiring Attention Today</span>
+  </div>
+  <div id="home-top3" style="display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem;"></div>
+</div>
+
+<!-- 6 EXECUTIVE CARDS -->
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:1rem;">
+
+  <!-- Card 1: Trending -->
+  <div class="card card-shine" style="border-color:rgba(74,158,255,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">📈 What Is Trending</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('media-pulse')">View All →</button>
+    </div>
+    <div id="home-trending" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+  </div>
+
+  <!-- Card 2: Activity Map -->
+  <div class="card card-shine" style="border-color:rgba(38,222,129,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">🗺 Where Activity Is Happening</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('political-map')">Map →</button>
+    </div>
+    <div id="home-activity-mini" style="display:flex; flex-direction:column; gap:0.3rem;"></div>
+  </div>
+
+  <!-- Card 3: Opposition Watch -->
+  <div class="card card-shine" style="border-color:rgba(230,57,70,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">🔍 Opposition Watch</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('opposition')">Details →</button>
+    </div>
+    <div id="home-opposition-snap" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+  </div>
+
+  <!-- Card 4: Organisation Activity -->
+  <div class="card card-shine" style="border-color:rgba(245,197,24,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">🏛️ Organisation Activity</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('leadership')">Leaders →</button>
+    </div>
+    <div id="home-org-activity" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+  </div>
+
+  <!-- Card 5: PK Watch -->
+  <div class="card card-shine" style="border-color:rgba(255,159,67,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">🎯 PK Watch</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('pk-tracker')">Full Intel →</button>
+    </div>
+    <div id="home-pk-snap" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+  </div>
+
+  <!-- Card 6: Speech/Comms -->
+  <div class="card card-shine" style="border-color:rgba(168,85,247,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+      <div class="card-title">🎙 Speech / Comms Inputs</div>
+      <button class="btn btn-ghost btn-sm" style="font-size:0.68rem;" onclick="navigateTo('speech-intelligence')">Prepare →</button>
+    </div>
+    <div id="home-speech-snap" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+  </div>
+
+</div>
+
+<!-- DISTRICT INTEL MAP + QUICK STATS -->
+<div style="display:grid; grid-template-columns:1fr 320px; gap:1rem;">
+
+  <!-- District 360° Map -->
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div class="card-title">🗺 Bihar District Intelligence Map <span style="font-size:0.7rem; color:var(--text-muted); font-weight:400;">— Click any district for 360° view</span></div>
+      <div class="legend" style="gap:0.75rem;">
+        <div class="legend-item"><div class="legend-dot" style="background:#e63946;"></div>High Alert</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff9f43;"></div>Active</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#26de81;"></div>Stable</div>
+      </div>
+    </div>
+    <div id="home-map" style="height:400px;"></div>
+  </div>
+
+  <!-- Right: Quick Stats + Issues -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <!-- Alert Summary -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">⚡ Alert Summary</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;" id="home-alert-summary"></div>
+    </div>
+
+    <!-- Active Issues Ticker -->
+    <div class="card" style="flex:1;">
+      <div class="card-title" style="margin-bottom:0.75rem;">📋 Top Open Issues</div>
+      <div id="home-top-issues" style="display:flex; flex-direction:column; gap:0.5rem; overflow-y:auto; max-height:220px;"></div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">⚡ Quick Actions</div>
+      <div style="display:flex; flex-direction:column; gap:0.4rem;">
+        <button class="btn btn-primary btn-sm w-full" onclick="navigateTo('war-room')" style="justify-content:flex-start;">🚨 Open War Room</button>
+        <button class="btn btn-ghost btn-sm w-full" onclick="navigateTo('speech-intelligence')" style="justify-content:flex-start;">🎙 Generate Speech Brief</button>
+        <button class="btn btn-ghost btn-sm w-full" onclick="navigateTo('issues')" style="justify-content:flex-start;">📋 Review Issues</button>
+        <button class="btn btn-ghost btn-sm w-full" onclick="navigateTo('pk-tracker')" style="justify-content:flex-start;">🎯 Check PK Activity</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- District 360° Modal -->
+<div id="district360-modal" class="modal-overlay" onclick="if(event.target===this)closeDistrict360()">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="d360-title">District 360°</h3>
+      <button class="btn btn-ghost btn-icon btn-sm" onclick="closeDistrict360()">✕</button>
+    </div>
+    <div id="d360-body"></div>
+  </div>
+</div>

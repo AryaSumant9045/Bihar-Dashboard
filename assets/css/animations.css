@@ -1,0 +1,209 @@
+/* ============================================================
+   BIHAR COMMAND CENTER — ANIMATIONS
+   animations.css: Keyframes, micro-animations, transitions
+   ============================================================ */
+
+/* ── Keyframes ──────────────────────────────────────────────── */
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 197, 24, 0.3); }
+  50%       { box-shadow: 0 0 24px rgba(245, 197, 24, 0.6); }
+}
+
+@keyframes glowRed {
+  0%, 100% { box-shadow: 0 0 8px rgba(230, 57, 70, 0.3); }
+  50%       { box-shadow: 0 0 24px rgba(230, 57, 70, 0.6); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.6; }
+  50%       { transform: scale(1.05); opacity: 1;   }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(245,197,24,0.2); }
+  50%       { border-color: rgba(245,197,24,0.6); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+}
+
+/* ── Page Transition ────────────────────────────────────────── */
+.page-enter {
+  animation: slideInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.page-fade {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+/* ── Hover Effects ──────────────────────────────────────────── */
+.hover-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-fast);
+}
+.hover-glow:hover {
+  box-shadow: var(--gold-glow);
+}
+
+.hover-bright {
+  transition: filter var(--transition-fast);
+}
+.hover-bright:hover {
+  filter: brightness(1.15);
+}
+
+/* ── Loading Spinner ────────────────────────────────────────── */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-normal);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+/* ── Pulsing Live Badge ──────────────────────────────────────── */
+.pulse-ring {
+  position: relative;
+  display: inline-flex;
+}
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--red);
+  animation: breathe 2s ease infinite;
+  pointer-events: none;
+}
+
+/* ── Card Shine Effect ──────────────────────────────────────── */
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  transform: skewX(-15deg);
+  transition: left 0.6s ease;
+}
+.card-shine:hover::after {
+  left: 140%;
+}
+
+/* ── Number Count Animation ─────────────────────────────────── */
+.count-animated {
+  animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Progress Bar Animation ─────────────────────────────────── */
+.progress-animated .progress-fill {
+  animation: progressFill 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Stagger Delay Utilities ────────────────────────────────── */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+
+/* ── Glow Animations ────────────────────────────────────────── */
+.glow-gold { animation: glow 3s ease-in-out infinite; }
+.glow-red  { animation: glowRed 2s ease-in-out infinite; }
+
+/* ── Alert Card Pulse ───────────────────────────────────────── */
+.alert-pulse {
+  animation: glowRed 2s ease-in-out infinite;
+}
+
+/* ── Live Radar ─────────────────────────────────────────────── */
+@keyframes radar {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.radar-sweep {
+  animation: radar 3s linear infinite;
+  transform-origin: center;
+}

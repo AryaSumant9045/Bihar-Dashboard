@@ -1,0 +1,93 @@
+<!-- ============================================================
+     ISSUES & GRIEVANCES PAGE
+     ============================================================ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-module-title">📋 Issues &amp; Grievances</h1>
+    <p class="page-module-subtitle">Track, assign &amp; resolve political and civic issues</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn btn-primary btn-sm" onclick="showToast('New Issue','Issue submission form opening…','info')">+ Add Issue</button>
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Export','Generating issues report…','info')">📤 Export</button>
+  </div>
+</div>
+
+<!-- Stat Row -->
+<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+  <div class="stat-card card-shine" style="--stat-accent:var(--text-muted);">
+    <div class="stat-label">📋 Total Issues</div>
+    <div class="stat-value" id="is-total">8</div>
+    <div class="stat-change">All categories</div>
+    <div class="stat-icon">📋</div>
+  </div>
+  <div class="stat-card stat-card-red card-shine">
+    <div class="stat-label">🔴 Urgent</div>
+    <div class="stat-value" id="is-urgent">3</div>
+    <div class="stat-change down">↑ Needs action</div>
+    <div class="stat-icon">🚨</div>
+  </div>
+  <div class="stat-card stat-card-amber card-shine">
+    <div class="stat-label">🟠 In Progress</div>
+    <div class="stat-value" id="is-inprogress">3</div>
+    <div class="stat-change">Being handled</div>
+    <div class="stat-icon">⚙️</div>
+  </div>
+  <div class="stat-card stat-card-green card-shine">
+    <div class="stat-label">🟢 Open</div>
+    <div class="stat-value" id="is-open">2</div>
+    <div class="stat-change">Awaiting assignment</div>
+    <div class="stat-icon">📭</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar" style="margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+  <span style="font-size:0.75rem; color:var(--text-muted);">Priority:</span>
+  <div class="filter-group" id="is-priority-filter">
+    <span class="filter-pill active" data-priority="all">All</span>
+    <span class="filter-pill" data-priority="urgent" style="color:var(--red);">🔴 Urgent</span>
+    <span class="filter-pill" data-priority="high" style="color:var(--amber);">🟠 High</span>
+    <span class="filter-pill" data-priority="medium" style="color:var(--gold);">🟡 Medium</span>
+    <span class="filter-pill" data-priority="low" style="color:var(--green);">🟢 Low</span>
+  </div>
+  <span style="font-size:0.75rem; color:var(--text-muted);">Status:</span>
+  <div class="filter-group" id="is-status-filter">
+    <span class="filter-pill active" data-status="all">All</span>
+    <span class="filter-pill" data-status="open">Open</span>
+    <span class="filter-pill" data-status="in-progress">In Progress</span>
+    <span class="filter-pill" data-status="escalated">Escalated</span>
+  </div>
+  <select class="select-dropdown" id="is-district-select" style="margin-left:auto;">
+    <option value="all">All Districts</option>
+    <option value="Patna">Patna</option>
+    <option value="Gaya">Gaya</option>
+    <option value="Supaul">Supaul</option>
+    <option value="Muzaffarpur">Muzaffarpur</option>
+    <option value="Nawada">Nawada</option>
+    <option value="Siwan">Siwan</option>
+  </select>
+</div>
+
+<!-- Main: List + Analytics -->
+<div style="display:grid; grid-template-columns:1fr 340px; gap:1rem; align-items:start;">
+
+  <!-- Issues List -->
+  <div id="is-list" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+
+  <!-- Right: Detail + Charts -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <div id="is-detail">
+      <!-- detail renders here -->
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📊 Issues by Category</div>
+      <canvas id="is-category-chart" height="200"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📍 By District</div>
+      <div id="is-district-breakdown" style="display:flex; flex-direction:column; gap:0.3rem;"></div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,146 @@
+<!-- ============================================================
+     SPEECH INTELLIGENCE PAGE — Full Briefing Engine
+     ============================================================ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-module-title">🎙 Speech Intelligence Engine</h1>
+    <p class="page-module-subtitle">Pre-event briefing builder — Select context to generate intelligence brief</p>
+  </div>
+  <div class="page-header-actions">
+    <div class="search-input">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search speeches…" id="si-search" />
+    </div>
+    <button class="btn btn-ghost btn-sm" id="si-view-toggle" onclick="toggleSIView()">📚 Past Speeches</button>
+  </div>
+</div>
+
+<!-- BRIEFING BUILDER (default view) -->
+<div id="si-builder-view">
+
+  <!-- Stat Row -->
+  <div class="stat-row stat-row-3" style="margin-bottom:1rem;">
+    <div class="stat-card stat-card-gold card-shine">
+      <div class="stat-label">🎙 Speeches Logged</div>
+      <div class="stat-value">3</div>
+      <div class="stat-change">Last 30 days</div>
+      <div class="stat-icon">🎙</div>
+    </div>
+    <div class="stat-card stat-card-amber card-shine">
+      <div class="stat-label">⚡ Avg Intensity</div>
+      <div class="stat-value">79</div>
+      <div class="stat-change up">High energy</div>
+      <div class="stat-icon">📊</div>
+    </div>
+    <div class="stat-card stat-card-blue card-shine">
+      <div class="stat-label">📋 Promises Tracked</div>
+      <div class="stat-value">8</div>
+      <div class="stat-change">Across all speeches</div>
+      <div class="stat-icon">✅</div>
+    </div>
+  </div>
+
+  <!-- Brief Builder Card -->
+  <div class="card card-gold" style="margin-bottom:1rem; padding:1.5rem;">
+    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1.25rem;">
+      <div style="width:36px;height:36px;border-radius:var(--radius-md);background:linear-gradient(135deg,#f5c518,#e8a900);display:flex;align-items:center;justify-content:center;font-size:1rem;">🎙</div>
+      <div>
+        <div style="font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;color:var(--text-primary);">Generate Speech Brief</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">Select event context → AI-style brief auto-generates below</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+      <div>
+        <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.35rem;">📍 District</label>
+        <select class="select-dropdown" id="si-district-sel" style="width:100%;">
+          <option value="">Select District…</option>
+          <option>Patna</option><option>Gaya</option><option>Muzaffarpur</option>
+          <option>Darbhanga</option><option>Bhagalpur</option><option>Nalanda</option>
+          <option>Vaishali</option><option>Siwan</option><option>Nawada</option>
+          <option>Kishanganj</option><option>Supaul</option><option>Madhubani</option>
+          <option>Samastipur</option><option>Munger</option><option>Purnia</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.35rem;">📅 Event Type</label>
+        <select class="select-dropdown" id="si-event-sel" style="width:100%;">
+          <option value="">Select Event…</option>
+          <option>Public Rally</option><option>Press Conference</option>
+          <option>Party Meeting</option><option>District Visit</option>
+          <option>Booth Sammelan</option><option>Karyakarta Meeting</option>
+          <option>Village Outreach</option><option>University Program</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.35rem;">👥 Audience</label>
+        <select class="select-dropdown" id="si-audience-sel" style="width:100%;">
+          <option value="">Select Audience…</option>
+          <option>General Public</option><option>Youth</option>
+          <option>Farmers</option><option>Women</option><option>OBC Community</option>
+          <option>SC/ST Community</option><option>Businessmen</option>
+          <option>Karyakartas</option><option>Mixed</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.35rem;">📌 Primary Topic</label>
+        <select class="select-dropdown" id="si-topic-sel" style="width:100%;">
+          <option value="">Select Topic…</option>
+          <option>Development & Infrastructure</option><option>Employment & Youth</option>
+          <option>Agriculture & Floods</option><option>Education</option>
+          <option>Women Safety</option><option>NDA Achievements</option>
+          <option>Counter-Opposition</option><option>BJP Mission 2025</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="si-generate-btn" onclick="generateSpeechBrief()" style="width:100%;justify-content:center;font-size:0.95rem;padding:0.75rem;">
+      ⚡ Generate Intelligence Brief
+    </button>
+  </div>
+
+  <!-- Generated Brief Output -->
+  <div id="si-brief-output" style="display:none;"></div>
+
+  <!-- Divider -->
+  <div style="display:flex;align-items:center;gap:1rem;margin:1.5rem 0;">
+    <div style="flex:1;height:1px;background:var(--border-subtle);"></div>
+    <span style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">Recent Speeches</span>
+    <div style="flex:1;height:1px;background:var(--border-subtle);"></div>
+  </div>
+
+  <!-- Recent Speeches Mini List -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;" id="si-recent-cards"></div>
+
+</div>
+
+<!-- PAST SPEECHES VIEW (toggled) -->
+<div id="si-library-view" style="display:none;">
+  <!-- Stat Row -->
+  <div class="stat-row stat-row-3" style="margin-bottom:1rem;">
+    <div class="stat-card stat-card-gold card-shine">
+      <div class="stat-label">🎙 Total Speeches</div>
+      <div class="stat-value">3</div><div class="stat-change">Last 30 days</div>
+    </div>
+    <div class="stat-card stat-card-amber card-shine">
+      <div class="stat-label">⚡ Avg Intensity</div>
+      <div class="stat-value">79</div><div class="stat-change up">High energy</div>
+    </div>
+    <div class="stat-card stat-card-blue card-shine">
+      <div class="stat-label">📋 Promises</div>
+      <div class="stat-value">8</div><div class="stat-change">Tracked</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:380px 1fr;gap:1rem;align-items:start;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+        <div class="card-title">📚 Speech Library</div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem;" id="si-count">3 speeches</div>
+      </div>
+      <div id="si-speech-list" style="max-height:calc(100vh - 320px);overflow-y:auto;"></div>
+    </div>
+    <div id="si-detail" style="display:flex;flex-direction:column;gap:1rem;"></div>
+  </div>
+</div>

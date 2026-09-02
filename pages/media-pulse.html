@@ -1,0 +1,97 @@
+<!-- ============================================================
+     MEDIA & SOCIAL PULSE PAGE
+     ============================================================ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-module-title">📱 Media &amp; Social Pulse</h1>
+    <p class="page-module-subtitle">Real-time social media &amp; news coverage monitoring</p>
+  </div>
+  <div class="page-header-actions">
+    <div class="filter-group" id="mp-platform-filter">
+      <span class="filter-pill active" data-platform="all">All</span>
+      <span class="filter-pill" data-platform="twitter">🐦 Twitter</span>
+      <span class="filter-pill" data-platform="facebook">📘 Facebook</span>
+      <span class="filter-pill" data-platform="youtube">▶ YouTube</span>
+      <span class="filter-pill" data-platform="tv">📺 TV</span>
+    </div>
+  </div>
+</div>
+
+<!-- Stat Row -->
+<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+  <div class="stat-card stat-card-blue card-shine">
+    <div class="stat-label">📊 Total Mentions</div>
+    <div class="stat-value">6.8M</div>
+    <div class="stat-change up">↑ 34% this week</div>
+    <div class="stat-icon">📡</div>
+  </div>
+  <div class="stat-card card-shine" style="--stat-accent:#1da1f2;">
+    <div class="stat-label">🐦 Twitter</div>
+    <div class="stat-value">3.2M</div>
+    <div class="stat-change up">↑ 45%</div>
+    <div class="stat-icon">🐦</div>
+  </div>
+  <div class="stat-card stat-card-amber card-shine">
+    <div class="stat-label">📺 TV Coverage</div>
+    <div class="stat-value">24.4h</div>
+    <div class="stat-change">Across 6 channels</div>
+    <div class="stat-icon">📺</div>
+  </div>
+  <div class="stat-card stat-card-red card-shine">
+    <div class="stat-label">😠 Negative Sent.</div>
+    <div class="stat-value">37%</div>
+    <div class="stat-change down">↑ Up 8pts</div>
+    <div class="stat-icon">📉</div>
+  </div>
+</div>
+
+<!-- Trending Hashtags -->
+<div class="card" style="margin-bottom:1rem; padding:1rem 1.25rem;">
+  <div class="card-title" style="margin-bottom:0.75rem;">🔥 Trending Now</div>
+  <div id="mp-trending" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
+</div>
+
+<!-- 3-column Grid -->
+<div style="display:grid; grid-template-columns:1fr 1fr 0.85fr; gap:1rem;">
+
+  <!-- Column 1: Weekly chart + Platform chart -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📈 Weekly Mentions Trend</div>
+      <canvas id="mp-weekly-chart" height="160"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📺 TV Channel Coverage</div>
+      <table class="data-table" id="mp-tv-table">
+        <thead><tr><th>Channel</th><th>Hours</th><th>Tone</th></tr></thead>
+        <tbody id="mp-tv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Column 2: Sentiment + -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">😊 Sentiment Analysis</div>
+      <canvas id="mp-sentiment-chart" height="200"></canvas>
+      <div id="mp-sentiment-legend" style="display:flex; justify-content:center; gap:1.5rem; margin-top:0.75rem;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📊 Platform Share</div>
+      <canvas id="mp-platform-chart" height="150"></canvas>
+    </div>
+  </div>
+
+  <!-- Column 3: Live Feed -->
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div style="padding:0.75rem 1rem; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:space-between;">
+      <div class="card-title">⚡ Live Feed</div>
+      <div class="live-indicator" style="font-size:0.62rem; padding:0.15rem 0.5rem;">
+        <span class="live-dot"></span>LIVE
+      </div>
+    </div>
+    <div id="mp-feed" style="overflow-y:auto; max-height:580px; display:flex; flex-direction:column; gap:0; padding:0.75rem; gap:0.6rem;"></div>
+  </div>
+
+</div>

@@ -1,0 +1,130 @@
+<!-- ============================================================
+     OPPOSITION TRACKER PAGE — with Intel Cards
+     ============================================================ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-module-title">🔍 Opposition Tracker</h1>
+    <p class="page-module-subtitle">Monitor opposition parties, attack narratives &amp; intelligence cards</p>
+  </div>
+  <div class="page-header-actions">
+    <div class="filter-group" id="opp-view-tabs">
+      <span class="filter-pill active" data-view="intel" onclick="switchOppView('intel')">🎯 Intel Cards</span>
+      <span class="filter-pill" data-view="analysis" onclick="switchOppView('analysis')">📊 Analysis</span>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="showToast('Alert','Opposition activity spike — War Room notified!','error')">⚡ Alert Team</button>
+  </div>
+</div>
+
+<!-- Stat Row -->
+<div class="stat-row stat-row-3" style="margin-bottom:1rem;">
+  <div class="stat-card stat-card-red card-shine">
+    <div class="stat-label">🏛️ Opposition Parties</div>
+    <div class="stat-value">3</div>
+    <div class="stat-change up">RJD, INC, Left</div>
+    <div class="stat-icon">⚔️</div>
+  </div>
+  <div class="stat-card stat-card-amber card-shine">
+    <div class="stat-label">📢 Intel Cards</div>
+    <div class="stat-value">5</div>
+    <div class="stat-change up">↑ 2 Critical/Developing</div>
+    <div class="stat-icon">🎯</div>
+  </div>
+  <div class="stat-card stat-card-gold card-shine">
+    <div class="stat-label">🗺 Threat Districts</div>
+    <div class="stat-value">8</div>
+    <div class="stat-change down">High activity zones</div>
+    <div class="stat-icon">⚠️</div>
+  </div>
+</div>
+
+<!-- INTEL CARDS VIEW -->
+<div id="opp-intel-view">
+  <!-- Status filter -->
+  <div class="filter-bar" style="margin-bottom:1rem;">
+    <span style="font-size:0.75rem;color:var(--text-muted);">Filter:</span>
+    <div class="filter-group" id="opp-intel-filter">
+      <span class="filter-pill active" data-status="all">All</span>
+      <span class="filter-pill" data-status="critical" style="color:var(--red);">🔴 Critical</span>
+      <span class="filter-pill" data-status="developing" style="color:var(--amber);">🟠 Developing</span>
+      <span class="filter-pill" data-status="watch" style="color:var(--gold);">🟡 Watch</span>
+      <span class="filter-pill" data-status="routine" style="color:var(--green);">🟢 Routine</span>
+    </div>
+    <select class="select-dropdown" id="opp-party-filter-sel" style="margin-left:auto;" onchange="filterIntelCards()">
+      <option value="all">All Parties</option>
+      <option value="RJD">RJD</option>
+      <option value="INC">INC</option>
+      <option value="Jan Suraaj">Jan Suraaj</option>
+      <option value="Left">Left</option>
+    </select>
+  </div>
+
+  <!-- Intel format legend -->
+  <div class="card" style="padding:0.6rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+    <span style="font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Intel Format:</span>
+    ${['WHO', 'WHERE', 'EVENT', 'ISSUE', 'STATEMENT', 'REACH', 'CONTEXT', 'STATUS'].map(f=>`<span style="font-size:0.68rem;font-weight:600;color:var(--gold);">${f}</span>`).join('<span style="color:var(--border-subtle);font-size:0.7rem;">→</span>')}
+  </div>
+
+  <div id="opp-intel-cards" style="display:flex;flex-direction:column;gap:1rem;"></div>
+</div>
+
+<!-- ANALYSIS VIEW (hidden by default) -->
+<div id="opp-analysis-view" style="display:none;">
+
+  <!-- Main 3-column grid -->
+  <div style="display:grid;grid-template-columns:1.5fr 1fr 0.9fr;gap:1rem;">
+
+    <!-- Column 1: Party Cards + Narratives -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+          <div class="card-title">🏛️ Opposition Party Cards</div>
+        </div>
+        <div id="opp-party-cards" style="padding:1rem;display:flex;flex-direction:column;gap:0.75rem;"></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+          <div class="card-title">📢 Attack Narratives</div>
+        </div>
+        <div id="opp-narratives" style="padding:1rem;display:flex;flex-direction:column;gap:0.6rem;"></div>
+      </div>
+    </div>
+
+    <!-- Column 2: Heatmap + Sentiment -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+          <div class="card-title">🗺 District Activity</div>
+        </div>
+        <div id="opp-heatmap" style="padding:0.75rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0.3rem;"></div>
+        <div style="padding:0.5rem 0.75rem;border-top:1px solid var(--border-subtle);" class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#7f1d1d;"></div>Very High</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e63946;"></div>High</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff9f43;"></div>Medium</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#26de8144;"></div>Low</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:0.75rem;">📈 Opposition Sentiment</div>
+        <canvas id="opp-sentiment-chart" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- Column 3: Counter Strategy + Weakness -->
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+          <div class="card-title">🛡 Counter Strategy</div>
+        </div>
+        <div id="opp-strategy" style="padding:1rem;display:flex;flex-direction:column;gap:0.6rem;"></div>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+          <div class="card-title">🔎 Weakness Analysis</div>
+        </div>
+        <div id="opp-weakness" style="padding:1rem;display:flex;flex-direction:column;gap:0.6rem;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>

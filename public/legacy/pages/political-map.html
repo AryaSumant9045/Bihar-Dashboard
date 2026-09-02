@@ -1,0 +1,70 @@
+<style>
+  .pm-layout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:1rem; align-items:start; }
+  .pm-map-shell { min-height:510px; position:relative; overflow:hidden; }
+  .pm-map { height:510px; width:100%; background:radial-gradient(circle at 50% 40%,#1a2a46 0,#0b1425 70%); }
+  .pm-map .leaflet-container { background:transparent !important; }
+  .pm-map-tooltip { background:#0f1829 !important; border:1px solid rgba(74,158,255,.65) !important; border-radius:8px !important; color:#e8edf8 !important; box-shadow:0 8px 24px rgba(0,0,0,.4) !important; font:700 .72rem Inter,sans-serif !important; line-height:1.55 !important; padding:.45rem .6rem !important; }
+  .pm-map-tooltip:before { border-top-color:#0f1829 !important; }
+  .pm-toolbar { display:flex; gap:.55rem; align-items:center; flex-wrap:wrap; margin-bottom:.7rem; }
+  .pm-toolbar .select-dropdown { margin-left:auto; min-width:185px; }
+  .pm-chip { border:1px solid var(--border-subtle); border-radius:999px; background:transparent; color:var(--text-secondary); cursor:pointer; padding:.38rem .7rem; font:700 .72rem Inter,sans-serif; }
+  .pm-chip.active { color:var(--gold); border-color:rgba(245,197,24,.65); background:var(--gold-dim); }
+  .pm-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:.55rem; margin:1rem 0; }
+  .pm-summary div { background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:9px; padding:.65rem; }
+  .pm-summary span,.pm-summary strong { display:block; }.pm-summary span { font-size:.65rem; color:var(--text-muted); }.pm-summary strong { margin-top:.18rem; font-size:1.1rem; }
+  .pm-headlines { display:flex; flex-direction:column; gap:.55rem; margin-top:.8rem; }.pm-headline { padding:.6rem; border-radius:8px; background:var(--bg-elevated); border:1px solid var(--border-subtle); font-size:.75rem; line-height:1.45; }.pm-headline small { display:block; color:var(--text-muted); margin-top:.25rem; }
+  .pm-fallback { display:grid; grid-template-columns:repeat(auto-fill,minmax(115px,1fr)); gap:.45rem; padding:1rem; }.pm-fallback button { min-height:52px; border:1px solid var(--border-subtle); border-left:4px solid var(--blue); border-radius:7px; background:#101a2e; color:var(--text-primary); cursor:pointer; font:700 .72rem Inter,sans-serif; text-align:left; padding:.45rem; }.pm-fallback small { display:block; margin-top:.2rem; color:var(--text-muted); font-weight:500; }
+  .pm-legend { display:flex; gap:.75rem; flex-wrap:wrap; padding:.7rem 1rem; border-top:1px solid var(--border-subtle); font-size:.7rem; color:var(--text-muted); }.pm-legend i { width:9px; height:9px; display:inline-block; border-radius:50%; margin-right:.25rem; }
+  .pm-table td { cursor:pointer; }.pm-table tr:hover td { background:rgba(74,158,255,.07); }
+  .pm-filter-bar { display:flex; gap:.55rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+  .pm-search { min-width:210px; flex:1; max-width:330px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-elevated); color:var(--text-primary); padding:.55rem .7rem; font:500 .76rem Inter,sans-serif; }
+  .pm-search:focus { outline:2px solid rgba(74,158,255,.55); border-color:var(--blue); }.pm-filter-label,.pm-visible-count { font:700 .68rem Inter,sans-serif; color:var(--text-muted); letter-spacing:.04em; }.pm-visible-count { margin-left:auto; }
+  .pm-reset { border:1px solid var(--border-subtle); background:var(--bg-elevated); color:var(--text-secondary); border-radius:7px; padding:.48rem .65rem; cursor:pointer; font:700 .7rem Inter,sans-serif; }.pm-reset:hover { color:var(--text-primary); border-color:var(--blue); }
+  .pm-detail-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; }.pm-detail-heading strong,.pm-kicker { display:block; }.pm-detail-heading strong { font-size:1.12rem; margin-top:.12rem; }.pm-kicker { font-size:.6rem; letter-spacing:.1em; color:var(--text-muted); font-weight:700; }.pm-risk,.pm-table-signal { display:inline-block; border-radius:999px; padding:.22rem .45rem; font-size:.6rem; font-weight:800; text-transform:uppercase; }.pm-risk.critical,.pm-table-signal.critical { background:rgba(230,57,70,.15); color:#ff7882; }.pm-risk.developing,.pm-table-signal.developing { background:rgba(255,159,67,.15); color:#ffb365; }.pm-risk.watch,.pm-table-signal.watch { background:rgba(245,197,24,.14); color:#f5d665; }.pm-risk.clear,.pm-table-signal.clear { background:rgba(38,222,129,.13); color:#62e6a0; }
+  .pm-signal { margin:.2rem 0 .85rem; }.pm-signal>div:first-child { display:flex; justify-content:space-between; font-size:.67rem; color:var(--text-muted); margin-bottom:.35rem; }.pm-signal b { color:var(--text-secondary); }.pm-signal-track { height:6px; overflow:hidden; border-radius:999px; background:var(--bg-elevated); display:flex; }.pm-signal-track i { height:100%; display:block; }.pm-context { display:grid; grid-template-columns:auto 1fr; gap:.42rem .65rem; font-size:.69rem; margin:.8rem 0; }.pm-context span { color:var(--text-muted); }.pm-context b { color:var(--text-secondary); text-align:right; }.pm-detail-actions { display:flex; gap:.45rem; margin:.8rem 0; }.pm-detail-actions button { border:1px solid var(--border-subtle); background:var(--bg-elevated); color:var(--text-secondary); border-radius:6px; padding:.42rem .55rem; cursor:pointer; font:700 .66rem Inter,sans-serif; }.pm-detail-actions button:hover { border-color:var(--blue); color:var(--text-primary); }.pm-row-selected td { background:rgba(74,158,255,.11); }.pm-table-signal { display:block; width:max-content; margin-top:.25rem; }.pm-empty { color:var(--text-muted); text-align:center; padding:1.2rem; }
+  .pm-operating-grid { display:grid; grid-template-columns:1fr 1fr; gap:.45rem; margin:.15rem 0 .85rem; }.pm-operating-grid div { border:1px solid var(--border-subtle); background:var(--bg-elevated); padding:.48rem; border-radius:7px; min-height:58px; }.pm-operating-grid span,.pm-operating-grid b { display:block; }.pm-operating-grid span { color:var(--text-muted); font-size:.6rem; margin-bottom:.23rem; }.pm-operating-grid b { color:var(--text-secondary); font-size:.65rem; line-height:1.35; font-weight:600; }
+  .pm-purpose { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; margin-bottom:1rem; }.pm-purpose div { border:1px solid var(--border-subtle); border-radius:9px; padding:.7rem .8rem; background:rgba(16,26,46,.72); }.pm-purpose strong { display:block; color:var(--gold); font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; margin-bottom:.24rem; }.pm-purpose span { color:var(--text-secondary); font-size:.72rem; line-height:1.45; }
+  @media(max-width:900px){.pm-layout{grid-template-columns:1fr}.pm-map-shell,.pm-map{min-height:420px;height:420px}.pm-toolbar .select-dropdown{margin-left:0}}@media(max-width:620px){.pm-summary,.pm-purpose,.pm-operating-grid{grid-template-columns:1fr}.pm-visible-count{width:100%;margin-left:0}.pm-search{max-width:none}}
+</style>
+
+<div class="page-header">
+  <div class="page-header-left"><h1 class="page-module-title">🗺 Bihar Political Map</h1><p class="page-module-subtitle">Live district intelligence · seat context · alerts · headlines</p></div>
+  <div class="live-indicator"><span class="live-dot"></span><span id="pm-live-status">LIVE DISTRICT FEED</span></div>
+</div>
+
+<div class="pm-purpose">
+  <div><strong>Purpose</strong><span>District and constituency-level political activity, issue signals and field readiness ko ek jagah monitor karna.</span></div>
+  <div><strong>Output</strong><span>Hover/click par actionable snapshot: hotspots, emerging issues, organisational activity aur upcoming events.</span></div>
+</div>
+
+<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+  <div class="stat-card card-shine"><div class="stat-label">🗺 Districts monitored</div><div class="stat-value" id="pm-district-count">38</div><div class="stat-change">All Bihar districts</div><div class="stat-icon">📍</div></div>
+  <div class="stat-card card-shine" style="--stat-accent:var(--blue);"><div class="stat-label">📰 Live district news</div><div class="stat-value" id="pm-news-total">0</div><div class="stat-change">Tagged NewsDashboard records</div><div class="stat-icon">📡</div></div>
+  <div class="stat-card card-shine" style="--stat-accent:var(--red);"><div class="stat-label">🔴 Critical districts</div><div class="stat-value" id="pm-critical-districts">0</div><div class="stat-change down">Needs immediate attention</div><div class="stat-icon">🚨</div></div>
+  <div class="stat-card card-shine" style="--stat-accent:var(--gold);"><div class="stat-label">🟡 Watch districts</div><div class="stat-value" id="pm-watch-districts">0</div><div class="stat-change">Active early signals</div><div class="stat-icon">👁</div></div>
+</div>
+
+<div class="pm-toolbar card" style="padding:.75rem 1rem;">
+  <span style="font-size:.72rem;color:var(--text-muted);font-weight:700;">Map layer:</span>
+  <button class="pm-chip active" data-pm-mode="news">Live news heat</button><button class="pm-chip" data-pm-mode="party">Party seat context</button>
+  <span style="font-size:.72rem;color:var(--text-muted);font-weight:700;margin-left:.5rem;">Party:</span>
+  <button class="pm-chip active" data-pm-party="all">All</button><button class="pm-chip" data-pm-party="bjp">BJP</button><button class="pm-chip" data-pm-party="jdu">JDU</button><button class="pm-chip" data-pm-party="rjd">RJD</button><button class="pm-chip" data-pm-party="inc">INC</button>
+  <select class="select-dropdown" id="pm-district-select" aria-label="Select Bihar district"></select>
+</div>
+
+<div class="pm-filter-bar card" style="padding:.65rem .8rem;">
+  <input class="pm-search" id="pm-district-search" type="search" placeholder="Search a district…" aria-label="Search Bihar districts" autocomplete="off" />
+  <span class="pm-filter-label">Signal:</span>
+  <button class="pm-chip active" data-pm-risk="all">All</button><button class="pm-chip" data-pm-risk="critical">Critical</button><button class="pm-chip" data-pm-risk="developing">Developing</button><button class="pm-chip" data-pm-risk="watch">Watch</button>
+  <button class="pm-reset" id="pm-reset-map" type="button">↺ Reset view</button><span class="pm-visible-count" id="pm-visible-count">38 of 38 districts visible</span>
+</div>
+
+<div class="pm-layout">
+  <section class="card pm-map-shell" style="padding:0;"><div id="bihar-map" class="pm-map"></div><div class="pm-legend"><span><i style="background:#e63946"></i>Critical</span><span><i style="background:#ff9f43"></i>Developing</span><span><i style="background:#f5c518"></i>Watch</span><span><i style="background:#26de81"></i>No current alert</span><span style="margin-left:auto;">Click a district marker to inspect</span></div></section>
+  <aside style="display:flex;flex-direction:column;gap:1rem;">
+    <section class="card"><div class="card-title">📍 District intelligence</div><div id="pm-district-detail"><p style="font-size:.78rem;color:var(--text-muted);">Select a district marker or dropdown.</p></div></section>
+    <section class="card"><div class="card-title" style="margin-bottom:.65rem;">🍩 Party seat share</div><canvas id="map-party-chart" height="175"></canvas></section>
+  </aside>
+</div>
+
+<section class="card" style="padding:0;margin-top:1rem;overflow:hidden;"><div style="padding:.85rem 1rem;border-bottom:1px solid var(--border-subtle);"><div class="card-title">📋 All-district live breakdown</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">News volume, alert severity and seat context — click any row for details</div></div><div style="overflow:auto;max-height:420px;"><table class="data-table pm-table" style="width:100%;"><thead><tr><th>District</th><th>Live news</th><th style="color:var(--red);">Critical</th><th style="color:#ff9f43;">Developing</th><th style="color:var(--gold);">Watch</th><th>BJP</th><th>JDU</th><th>RJD</th><th>Seats</th></tr></thead><tbody id="pm-district-tbody"></tbody></table></div></section>

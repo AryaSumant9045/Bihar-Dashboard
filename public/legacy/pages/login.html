@@ -1,0 +1,245 @@
+<!-- ============================================================
+     LOGIN / ROLE SELECTOR PAGE
+     pages/login.html (standalone, not SPA fragment)
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bihar Command Center — Access Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #080d1a;
+      color: #e8edf8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    /* Animated bg */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(245,197,24,0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 60% at 80% 80%, rgba(230,57,70,0.06) 0%, transparent 60%);
+      pointer-events:none;
+    }
+    .grid-bg {
+      position:fixed; inset:0;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events:none;
+    }
+    .container {
+      width: 100%; max-width: 900px;
+      padding: 2rem;
+      position:relative; z-index:1;
+    }
+    /* Header */
+    .login-header { text-align:center; margin-bottom: 3rem; }
+    .logo-badge {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:72px; height:72px; border-radius:18px;
+      background: linear-gradient(135deg, #f5c518, #e8a900);
+      font-size:2rem; margin-bottom:1.25rem;
+      box-shadow: 0 0 40px rgba(245,197,24,0.35);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+    @keyframes logoPulse {
+      0%,100%{box-shadow:0 0 30px rgba(245,197,24,0.35);}
+      50%{box-shadow:0 0 60px rgba(245,197,24,0.6);}
+    }
+    .login-title {
+      font-family:'Outfit',sans-serif; font-size:2rem; font-weight:800;
+      background: linear-gradient(135deg, #f5c518, #e8edf8);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      margin-bottom:0.4rem;
+    }
+    .login-sub { font-size:0.85rem; color:#5a6a84; letter-spacing:0.1em; text-transform:uppercase; }
+
+    /* Role Cards Grid */
+    .roles-grid {
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem;
+      margin-bottom:2rem;
+    }
+    .role-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius:16px; padding:1.5rem 1.25rem;
+      cursor:pointer; text-align:center;
+      transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+      position:relative; overflow:hidden;
+    }
+    .role-card::before {
+      content:'';
+      position:absolute; inset:0; opacity:0;
+      background: radial-gradient(circle at 50% 0%, var(--role-color, rgba(245,197,24,0.15)), transparent 70%);
+      transition: opacity 0.3s;
+    }
+    .role-card:hover { transform:translateY(-4px); border-color: rgba(255,255,255,0.15); }
+    .role-card:hover::before { opacity:1; }
+    .role-card.selected {
+      border-color: var(--role-border, rgba(245,197,24,0.6));
+      background: var(--role-bg, rgba(245,197,24,0.06));
+      box-shadow: 0 0 30px var(--role-glow, rgba(245,197,24,0.15));
+    }
+    .role-card.selected::before { opacity:1; }
+    .role-icon { font-size:2.2rem; margin-bottom:0.75rem; }
+    .role-name {
+      font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:700;
+      color:#e8edf8; margin-bottom:0.3rem;
+    }
+    .role-desc { font-size:0.72rem; color:#5a6a84; line-height:1.5; }
+    .role-badge {
+      display:inline-block; font-size:0.6rem; font-weight:700;
+      padding:0.15rem 0.5rem; border-radius:99px; margin-top:0.5rem;
+      text-transform:uppercase; letter-spacing:0.1em;
+    }
+
+    /* Enter Button */
+    .enter-btn {
+      width:100%; padding:1rem;
+      background: linear-gradient(135deg, #f5c518, #e8a900);
+      border:none; border-radius:12px;
+      font-family:'Outfit',sans-serif; font-size:1rem; font-weight:700;
+      color:#080d1a; cursor:pointer; letter-spacing:0.04em;
+      transition: all 0.2s; box-shadow:0 4px 20px rgba(245,197,24,0.3);
+    }
+    .enter-btn:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(245,197,24,0.5); }
+    .enter-btn:active { transform:translateY(0); }
+
+    /* Footer */
+    .login-footer {
+      text-align:center; margin-top:1.5rem;
+      font-size:0.7rem; color:#2a3450;
+      text-transform:uppercase; letter-spacing:0.12em;
+    }
+    .security-badge {
+      display:inline-flex; align-items:center; gap:0.4rem;
+      padding:0.3rem 0.75rem; border:1px solid rgba(255,255,255,0.05);
+      border-radius:99px; color:#3a4a64; font-size:0.68rem; margin-bottom:0.75rem;
+    }
+    @keyframes fadeSlideUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .container { animation: fadeSlideUp 0.5s ease forwards; }
+  </style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+  <div class="login-header">
+    <div class="logo-badge">⚡</div>
+    <h1 class="login-title">Bihar Command Center</h1>
+    <p class="login-sub">BJP Bihar — Political Intelligence Dashboard</p>
+  </div>
+
+  <div class="roles-grid">
+
+    <div class="role-card" data-role="president"
+      style="--role-color:rgba(245,197,24,0.15); --role-border:rgba(245,197,24,0.6); --role-bg:rgba(245,197,24,0.06); --role-glow:rgba(245,197,24,0.2);"
+      onclick="selectRole(this,'president')">
+      <div class="role-icon">👑</div>
+      <div class="role-name">President View</div>
+      <div class="role-desc">Full dashboard access. Executive scan, all modules, action centre.</div>
+      <span class="role-badge" style="background:rgba(245,197,24,0.15); color:#f5c518;">Full Access</span>
+    </div>
+
+    <div class="role-card" data-role="warroom"
+      style="--role-color:rgba(230,57,70,0.15); --role-border:rgba(230,57,70,0.6); --role-bg:rgba(230,57,70,0.06); --role-glow:rgba(230,57,70,0.2);"
+      onclick="selectRole(this,'warroom')">
+      <div class="role-icon">🚨</div>
+      <div class="role-name">War Room / Admin</div>
+      <div class="role-desc">Breaking news, alerts, PK tracker, media pulse. Real-time monitoring.</div>
+      <span class="role-badge" style="background:rgba(230,57,70,0.15); color:#e63946;">Intelligence</span>
+    </div>
+
+    <div class="role-card" data-role="district"
+      style="--role-color:rgba(38,222,129,0.15); --role-border:rgba(38,222,129,0.6); --role-bg:rgba(38,222,129,0.06); --role-glow:rgba(38,222,129,0.2);"
+      onclick="selectRole(this,'district')">
+      <div class="role-icon">🗺</div>
+      <div class="role-name">District Update</div>
+      <div class="role-desc">Submit and view district-level issues, activities and field reports.</div>
+      <span class="role-badge" style="background:rgba(38,222,129,0.15); color:#26de81;">Field</span>
+    </div>
+
+    <div class="role-card" data-role="comms"
+      style="--role-color:rgba(74,158,255,0.15); --role-border:rgba(74,158,255,0.6); --role-bg:rgba(74,158,255,0.06); --role-glow:rgba(74,158,255,0.2);"
+      onclick="selectRole(this,'comms')">
+      <div class="role-icon">🎙</div>
+      <div class="role-name">Communication Team</div>
+      <div class="role-desc">Speech intelligence, media briefs, talking points and communication prep.</div>
+      <span class="role-badge" style="background:rgba(74,158,255,0.15); color:#4a9eff;">Comms</span>
+    </div>
+
+    <div class="role-card" data-role="readonly"
+      style="--role-color:rgba(168,85,247,0.15); --role-border:rgba(168,85,247,0.6); --role-bg:rgba(168,85,247,0.06); --role-glow:rgba(168,85,247,0.2);"
+      onclick="selectRole(this,'readonly')">
+      <div class="role-icon">👁</div>
+      <div class="role-name">Read-Only Leadership</div>
+      <div class="role-desc">View-only access to all dashboards. No editing or alert management.</div>
+      <span class="role-badge" style="background:rgba(168,85,247,0.15); color:#a855f7;">View Only</span>
+    </div>
+
+    <div class="role-card" data-role="it"
+      style="--role-color:rgba(255,159,67,0.15); --role-border:rgba(255,159,67,0.6); --role-bg:rgba(255,159,67,0.06); --role-glow:rgba(255,159,67,0.2);"
+      onclick="selectRole(this,'it')">
+      <div class="role-icon">💻</div>
+      <div class="role-name">IT Cell / Social</div>
+      <div class="role-desc">Media pulse, social monitoring, trending topics and counter-narrative tools.</div>
+      <span class="role-badge" style="background:rgba(255,159,67,0.15); color:#ff9f43;">Social</span>
+    </div>
+
+  </div>
+
+  <button class="enter-btn" id="enter-btn" onclick="enterDashboard()">
+    ⚡ &nbsp; Enter Command Center
+  </button>
+
+  <div class="login-footer">
+    <div class="security-badge">🔒 Secure Access &nbsp;•&nbsp; Role-Based &nbsp;•&nbsp; Audit Logged</div>
+    <div>BJP Bihar Political Intelligence • Confidential • Authorised Personnel Only</div>
+  </div>
+</div>
+
+<script>
+  let selectedRole = 'president';
+
+  // Auto-select president on load
+  document.querySelector('[data-role="president"]').classList.add('selected');
+
+  function selectRole(el, role) {
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedRole = role;
+  }
+
+  function enterDashboard() {
+    const btn = document.getElementById('enter-btn');
+    btn.textContent = '⏳  Loading Command Center…';
+    btn.style.opacity = '0.7';
+    sessionStorage.setItem('bcc_role', selectedRole);
+    
+    const roleRoutes = {
+      president: '#/home',
+      warroom: '#/war-room',
+      district: '#/issues',
+      comms: '#/speech-intelligence',
+      readonly: '#/home',
+      it: '#/media-pulse'
+    };
+    const route = roleRoutes[selectedRole] || '#/home';
+
+    setTimeout(() => { window.location.href = '../index.html' + route; }, 600);
+  }
+</script>
+</body>
+</html>

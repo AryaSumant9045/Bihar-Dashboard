@@ -1,0 +1,155 @@
+<!-- ============================================================
+     WAR ROOM PAGE — 4-Level Alert System
+     ============================================================ -->
+
+<!-- Ticker -->
+<div class="breaking-ticker">
+  <div class="ticker-label">🔴 LIVE</div>
+  <div class="ticker-wrapper">
+    <div class="ticker-content" id="wr-ticker-content"></div>
+  </div>
+</div>
+
+<div class="page-header" style="margin-top:1rem;">
+  <div class="page-header-left">
+    <h1 class="page-module-title">🚨 Breaking News &amp; War Room</h1>
+    <p class="page-module-subtitle">Real-time political intelligence — Prioritised alerts for immediate action</p>
+  </div>
+  <div class="page-header-actions">
+    <div class="search-input">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search alerts…" id="wr-search" />
+    </div>
+    <div class="live-indicator"><span class="live-dot"></span>LIVE MONITORING</div>
+  </div>
+</div>
+
+<!-- 4-Level Alert Stat Row -->
+<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+  <div class="stat-card card-shine" id="wr-level-critical" style="cursor:pointer; border-color:rgba(230,57,70,0.35);" onclick="filterByLevel('critical')">
+    <div class="stat-label">🔴 Critical</div>
+    <div class="stat-value" id="wr-count-critical" style="color:var(--red);">0</div>
+    <div class="stat-change down">Immediate attention</div>
+    <div class="stat-icon">🚨</div>
+  </div>
+  <div class="stat-card card-shine" id="wr-level-developing" style="cursor:pointer; border-color:rgba(255,159,67,0.35);" onclick="filterByLevel('developing')">
+    <div class="stat-label">🟠 Developing</div>
+    <div class="stat-value" id="wr-count-developing" style="color:var(--amber);">0</div>
+    <div class="stat-change">Gaining momentum</div>
+    <div class="stat-icon">⚡</div>
+  </div>
+  <div class="stat-card card-shine" id="wr-level-watch" style="cursor:pointer; border-color:rgba(245,197,24,0.35);" onclick="filterByLevel('watch')">
+    <div class="stat-label">🟡 Watch</div>
+    <div class="stat-value" id="wr-count-watch" style="color:var(--gold);">0</div>
+    <div class="stat-change">Early signals</div>
+    <div class="stat-icon">👁</div>
+  </div>
+  <div class="stat-card card-shine" id="wr-level-routine" style="cursor:pointer; border-color:rgba(38,222,129,0.2);" onclick="filterByLevel('all')">
+    <div class="stat-label">🟢 Routine</div>
+    <div class="stat-value" id="wr-count-routine" style="color:var(--green);">0</div>
+    <div class="stat-change">Normal activity</div>
+    <div class="stat-icon">✅</div>
+  </div>
+</div>
+
+<!-- Alert Level Legend -->
+<div class="card" style="padding:0.6rem 1.25rem; margin-bottom:1rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap;">
+  <span style="font-size:0.68rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">Alert Level:</span>
+  <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem;">
+    <span style="color:var(--red);">🔴</span>
+    <div>
+      <span style="font-weight:700; color:var(--text-primary);">CRITICAL</span>
+      <span style="color:var(--text-muted);"> — Rapidly developing; immediate leadership attention required</span>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem;">
+    <span style="color:var(--amber);">🟠</span>
+    <div>
+      <span style="font-weight:700; color:var(--text-primary);">DEVELOPING</span>
+      <span style="color:var(--text-muted);"> — Meaningful momentum; monitor and prepare inputs</span>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem;">
+    <span style="color:var(--gold);">🟡</span>
+    <div>
+      <span style="font-weight:700; color:var(--text-primary);">WATCH</span>
+      <span style="color:var(--text-muted);"> — Early signal; keep on monitoring list</span>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.75rem;">
+    <span style="color:var(--green);">🟢</span>
+    <div>
+      <span style="font-weight:700; color:var(--text-primary);">ROUTINE</span>
+      <span style="color:var(--text-muted);"> — Normal activity; no escalation</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main Layout: Alerts Grid + Right Panel -->
+<div style="display:grid; grid-template-columns:1fr 300px; gap:1rem;">
+
+  <!-- Alert Cards -->
+  <div>
+    <!-- Filter bar -->
+    <div class="filter-bar" style="margin-bottom:0.75rem;">
+      <div class="filter-group" id="wr-filter-group">
+        <span class="filter-pill active" data-level="all" onclick="filterByLevel('all')">All</span>
+        <span class="filter-pill" data-level="critical" style="color:var(--red);" onclick="filterByLevel('critical')">🔴 Critical</span>
+        <span class="filter-pill" data-level="developing" style="color:var(--amber);" onclick="filterByLevel('developing')">🟠 Developing</span>
+        <span class="filter-pill" data-level="watch" style="color:var(--gold);" onclick="filterByLevel('watch')">🟡 Watch</span>
+        <span class="filter-pill" data-level="routine" style="color:var(--green);" onclick="filterByLevel('routine')">🟢 Routine</span>
+      </div>
+      <select class="select-dropdown" id="wr-category-filter" style="margin-left:auto;" onchange="filterByCategory()">
+        <option value="all">All Categories</option>
+        <option value="Political">Political</option>
+        <option value="Law & Order">Law &amp; Order</option>
+        <option value="Opposition">Opposition</option>
+        <option value="Flood & Disaster">Flood &amp; Disaster</option>
+        <option value="Economy">Economy</option>
+        <option value="Media">Media</option>
+      </select>
+      <select class="select-dropdown" id="wr-district-filter" onchange="filterByDistrict()" aria-label="Filter by district">
+        <option value="all">All Districts</option>
+      </select>
+    </div>
+
+    <div id="wr-alerts-grid" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+  </div>
+
+  <!-- Right Panel -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+
+    <!-- Threat Gauge -->
+    <div class="card" style="text-align:center;">
+      <div class="card-title" style="margin-bottom:0.5rem;">⚡ Threat Gauge</div>
+      <canvas id="wr-threat-chart" width="160" height="90"></canvas>
+      <div style="font-family:'Outfit',sans-serif; font-size:1.75rem; font-weight:800; color:var(--red); margin-top:-1.5rem;">HIGH</div>
+      <div style="font-size:0.72rem; color:var(--text-muted);">75/100 — Elevated</div>
+    </div>
+
+    <!-- Alert Sources -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.5rem;">📡 Source Status</div>
+      <div id="wr-sources"></div>
+    </div>
+
+    <!-- Category Chart -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📊 Alerts by Category</div>
+      <canvas id="wr-category-chart" height="160"></canvas>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">⚡ Quick Actions</div>
+      <div style="display:flex; flex-direction:column; gap:0.4rem;">
+        <button class="btn btn-danger btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Briefing Sent','Morning intelligence brief dispatched','success')">📋 Send Morning Brief</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Escalated','All critical alerts escalated to leadership','error')">🔴 Escalate All Critical</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="navigateTo('opposition')">🔍 Open Opposition Intel</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="navigateTo('speech-intelligence')">🎙 Generate Speech Brief</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>

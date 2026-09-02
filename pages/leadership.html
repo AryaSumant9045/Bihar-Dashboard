@@ -1,0 +1,64 @@
+<!-- ============================================================
+     LEADERSHIP TRACKER PAGE
+     ============================================================ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-module-title">👥 Leadership Tracker</h1>
+    <p class="page-module-subtitle">Monitor key political leaders, influence scores &amp; activity</p>
+  </div>
+  <div class="page-header-actions">
+    <div class="search-input">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search leaders…" id="ls-search" />
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Export','Exporting leader report…','info')">↓ Export</button>
+  </div>
+</div>
+
+<!-- Featured Leaders -->
+<div id="ls-featured-cards" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem;"></div>
+
+<!-- Filter Bar -->
+<div class="filter-bar" style="margin-bottom:1rem;">
+  <span style="font-size:0.75rem; color:var(--text-muted);">Party:</span>
+  <div class="filter-group" id="ls-party-filter">
+    <span class="filter-pill active" data-party="all">All</span>
+    <span class="filter-pill" data-party="BJP" style="color:var(--bjp-color);">BJP</span>
+    <span class="filter-pill" data-party="JDU" style="color:var(--jdu-color);">JDU</span>
+    <span class="filter-pill" data-party="RJD" style="color:var(--rjd-color);">RJD</span>
+    <span class="filter-pill" data-party="INC" style="color:var(--inc-color);">INC</span>
+  </div>
+  <span style="font-size:0.75rem; color:var(--text-muted); margin-left:0.5rem;">Sentiment:</span>
+  <div class="filter-group" id="ls-sentiment-filter">
+    <span class="filter-pill active" data-sentiment="all">All</span>
+    <span class="filter-pill" data-sentiment="positive" style="color:var(--green);">Positive</span>
+    <span class="filter-pill" data-sentiment="neutral" style="color:var(--blue);">Neutral</span>
+    <span class="filter-pill" data-sentiment="negative" style="color:var(--red);">Negative</span>
+  </div>
+</div>
+
+<!-- Main: Leaders Grid + Timeline -->
+<div style="display:grid; grid-template-columns:1fr 320px; gap:1rem;">
+
+  <!-- Leaders Grid -->
+  <div id="ls-leader-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1rem; align-content:start;"></div>
+
+  <!-- Activity Timeline -->
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <div class="card" style="position:sticky; top:0;">
+      <div class="card-header" style="margin-bottom:0.75rem;">
+        <div class="card-title">📅 Activity Timeline</div>
+        <span id="ls-timeline-name" class="tag tag-gold">Nitish Kumar</span>
+      </div>
+      <div class="timeline" id="ls-timeline"></div>
+    </div>
+
+    <!-- Influence Chart -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:0.75rem;">📊 Influence Comparison</div>
+      <canvas id="ls-influence-chart" height="160"></canvas>
+    </div>
+  </div>
+
+</div>
