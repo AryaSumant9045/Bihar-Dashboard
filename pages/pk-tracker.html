@@ -8,8 +8,10 @@
     <p class="page-module-subtitle">Real-time intelligence on PK's movements, strategy &amp; alliances</p>
   </div>
   <div class="page-header-actions">
-    <span class="alert-badge high glow-red" style="padding:0.3rem 0.75rem; font-size:0.7rem;">🔴 MONITORING ACTIVE</span>
-    <button class="btn btn-ghost btn-sm" onclick="showToast('Report','PK Intelligence brief generated','info')">📄 Brief</button>
+    <span class="alert-badge high glow-red" style="padding:0.3rem 0.75rem; font-size:0.7rem;">🔴 MONITORING
+      ACTIVE</span>
+    <button class="btn btn-ghost btn-sm" onclick="showToast('Report','PK Intelligence brief generated','info')">📄
+      Brief</button>
   </div>
 </div>
 
@@ -65,3 +67,34 @@
   </div>
 
 </div>
+
+<!-- Live news feed -->
+<section class="card card-blue pk-live-news" aria-labelledby="pk-live-news-title">
+  <div class="card-header">
+    <div>
+      <div class="card-title" id="pk-live-news-title">📰 Live News Feed</div>
+      <div style="font-size:0.7rem; color:var(--text-muted);">Curated Jan Suraaj and Prashant Kishor updates</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.65rem;">
+      <span class="tag tag-green"><span class="pk-live-dot"></span> LIVE</span>
+      <a href="https://curator.io" target="_blank" rel="noopener noreferrer" class="pk-curator-credit">Curator.io</a>
+    </div>
+  </div>
+  <div id="curator-feed-default-feed-layout" class="pk-news-grid" aria-live="polite">
+    <div class="pk-news-loading"><span class="spinner"></span> Fetching live updates...</div>
+  </div>
+</section>
+
+<section class="card card-purple pk-instagram-feed" aria-labelledby="pk-instagram-title">
+  <div class="card-header">
+    <div>
+      <div class="card-title" id="pk-instagram-title">📸 Instagram Monitor</div>
+      <div style="font-size:0.7rem; color:var(--text-muted);">Latest posts from @jansuraajofficial</div>
+    </div>
+    <a href="https://www.instagram.com/jansuraajofficial/" target="_blank" rel="noopener noreferrer"
+      class="pk-curator-credit">Open Instagram ↗</a>
+  </div>
+  <div id="pk-instagram-grid" class="pk-instagram-grid" aria-live="polite">
+    <div class="pk-news-loading"><span class="spinner"></span> Loading Instagram posts...</div>
+  </div>
+</section>

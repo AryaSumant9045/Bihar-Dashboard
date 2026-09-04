@@ -50,6 +50,50 @@
 .card-amber { border-color: rgba(255,159,67,0.3);  box-shadow: 0 0 20px rgba(255,159,67,0.08); }
 .card-green { border-color: rgba(38,222,129,0.3);  box-shadow: 0 0 20px rgba(38,222,129,0.08); }
 .card-blue  { border-color: rgba(74,158,255,0.3);  box-shadow: 0 0 20px rgba(74,158,255,0.08); }
+.card-purple { border-color: rgba(168,85,247,0.3); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
+
+.pk-live-news { margin-top: 1rem; }
+.pk-live-news .card-header { margin-bottom: 0.75rem; }
+.pk-live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 0.25rem;
+  border-radius: 50%;
+  background: var(--green);
+  animation: livePulse 1.2s infinite;
+}
+.pk-live-news #curator-feed-default-feed-layout { min-height: 180px; }
+.pk-curator-credit { color: var(--text-muted); font-size: 0.65rem; text-decoration: none; }
+.pk-curator-credit:hover { color: var(--gold); }
+.pk-news-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.pk-news-source { grid-column: 1 / -1; }
+.pk-news-source + .pk-news-source { margin-top: 0.5rem; }
+.pk-news-source-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; color: var(--text-primary); font-size: 0.72rem; font-weight: 700; }
+.pk-news-source-header span:last-child { color: var(--text-muted); font-size: 0.62rem; font-weight: 500; }
+.pk-news-source-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.pk-news-item { min-width: 0; overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-secondary); }
+.pk-news-image { display: block; width: 100%; height: 110px; object-fit: cover; background: var(--bg-elevated); }
+.pk-news-placeholder { display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 1.6rem; }
+.pk-news-body { padding: 0.7rem; }
+.pk-news-meta { display: flex; justify-content: space-between; gap: 0.4rem; color: var(--text-muted); font-size: 0.62rem; white-space: nowrap; overflow: hidden; }
+.pk-news-meta span:first-child { color: var(--amber); overflow: hidden; text-overflow: ellipsis; }
+.pk-news-body h3 { display: -webkit-box; overflow: hidden; margin: 0.45rem 0 0.65rem; color: var(--text-primary); font-size: 0.78rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.pk-news-body a { color: var(--blue); font-size: 0.68rem; font-weight: 600; text-decoration: none; }
+.pk-news-body a:hover { color: var(--gold); }
+.pk-news-loading, .pk-news-empty { display: flex; min-height: 150px; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.78rem; }
+.pk-instagram-feed { margin-top: 1rem; }
+.pk-instagram-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+.pk-instagram-item { overflow: hidden; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-secondary); }
+.pk-instagram-item > img, .pk-instagram-placeholder { display: block; width: 100%; height: 145px; object-fit: cover; background: var(--bg-elevated); }
+.pk-instagram-placeholder { display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 1.7rem; }
+.pk-instagram-body { padding: 0.65rem; }
+.pk-instagram-body p { display: -webkit-box; overflow: hidden; min-height: 2.7rem; margin: 0.45rem 0 0.6rem; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.pk-instagram-body a { color: var(--blue); font-size: 0.68rem; font-weight: 600; text-decoration: none; }
+@media (max-width: 900px) { .pk-instagram-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pk-instagram-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .pk-news-source-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pk-news-source-grid { grid-template-columns: 1fr; } }
 
 /* ── Stat Card ──────────────────────────────────────────────── */
 .stat-card {

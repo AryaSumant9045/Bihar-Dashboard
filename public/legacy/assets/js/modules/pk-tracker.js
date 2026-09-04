@@ -13,6 +13,112 @@ function initPKTracker() {
   renderPKThreatChart();
   renderPKAlliance();
   renderPKReachChart();
+  loadPKCuratorFeed();
+  loadPKInstagramFeed();
+}
+
+function loadPKInstagramFeed() {
+  const grid = document.getElementById('pk-instagram-grid');
+  if (!grid) return;
+  fetch('/api/instagram', { cache: 'no-store' })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.posts || !data.posts.length) {
+        grid.innerHTML = '<div class="pk-news-empty">Instagram feed is not synced yet. Run the Instagram fetch worker.</div>';
+        return;
+      }
+      grid.innerHTML = data.posts.map(post => `
+        <article class="pk-instagram-item">
+          ${post.media ? `<img src="${escapePKNewsValue(post.media)}" alt="" loading="lazy">` : '<div class="pk-instagram-placeholder">📸</div>'}
+          <div class="pk-instagram-body">
+            <div class="pk-news-meta"><span>@jansuraajofficial</span><span>${new Date(post.published_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span></div>
+            <p>${escapePKNewsValue(post.caption || 'Latest Instagram update')}</p>
+            <a href="${escapePKNewsValue(post.url)}" target="_blank" rel="noopener noreferrer">Open post ↗</a>
+          </div>
+        </article>`).join('');
+    })
+    .catch(() => { grid.innerHTML = '<div class="pk-news-empty">Instagram feed is temporarily unavailable.</div>'; });
+}
+
+function loadPKCuratorFeed() {
+  const feed = document.getElementById('curator-feed-default-feed-layout');
+  if (!feed) return;
+
+  fetch('https://api.curator.io/v1/feeds/8142f8b4-aa98-4bf4-a731-28615d6b0cac/posts?limit=100')
+    .then(response => {
+      if (!response.ok) throw new Error('News feed unavailable');
+      return response.json();
+    })
+    .then(data => renderPKNewsFeed(feed, data.posts || []))
+    .catch(() => {
+      feed.innerHTML = '<div class="pk-news-empty">Loading Curator live feed...</div>';
+      loadPKCuratorEmbedFallback(feed);
+    });
+
+  clearInterval(window.pkNewsRefresh);
+  window.pkNewsRefresh = setInterval(() => {
+    if (document.getElementById('curator-feed-default-feed-layout')) loadPKCuratorFeed();
+  }, 60000);
+}
+
+function renderPKNewsFeed(feed, posts) {
+  if (!posts.length) {
+    feed.innerHTML = '<div class="pk-news-empty">No live updates are available yet.</div>';
+    return;
+  }
+
+  const sourceOrder = ['Twitter', 'YouTube', 'RSS'];
+  const groupedPosts = sourceOrder.map(source => ({
+    source,
+    posts: posts
+      .filter(post => post.network_name === source && (source !== 'Twitter' || /^(?:@)?jansuraajonline$/i.test(post.user_screen_name || '')))
+      .sort((a, b) => new Date(b.source_created_at || 0) - new Date(a.source_created_at || 0))
+      .slice(0, source === 'Twitter' || source === 'YouTube' ? 6 : 4)
+  })).filter(group => group.posts.length || group.source === 'Twitter');
+
+  feed.innerHTML = groupedPosts.map(group => `
+    <div class="pk-news-source">
+      <div class="pk-news-source-header">
+        <span>${group.source === 'Twitter' ? '𝕏 @jansuraajonline' : group.source === 'YouTube' ? '▶ YouTube' : '◉ RSS'}</span>
+        <span>${group.posts.length} latest</span>
+      </div>
+      <div class="pk-news-source-grid">${group.posts.length ? group.posts.map(post => {
+    const title = post.text || 'Latest Prashant Kishor update';
+    const image = post.image_large || post.image || post.image_xlarge;
+    const date = post.source_created_at ? new Date(post.source_created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Just now';
+    const twitterStatusId = group.source === 'Twitter' ? (post.url || '').match(/(?:status|statuses)\/(\d+)/)?.[1] : null;
+    const postUrl = group.source === 'Twitter'
+      ? `https://x.com/jansuraajonline/status/${twitterStatusId}`
+      : (post.url || '#');
+    const author = group.source === 'Twitter' ? '@jansuraajonline' : (post.user_full_name || post.user_screen_name || group.source);
+    return `
+      <article class="pk-news-item">
+        ${image ? `<img class="pk-news-image" src="${escapePKNewsValue(image)}" alt="" loading="lazy">` : '<div class="pk-news-image pk-news-placeholder">📰</div>'}
+        <div class="pk-news-body">
+          <div class="pk-news-meta"><span>${escapePKNewsValue(author)}</span><span>${date}</span></div>
+          <h3>${escapePKNewsValue(title)}</h3>
+          <a href="${postUrl}" target="_blank" rel="noopener noreferrer">Open ${group.source === 'Twitter' ? '@jansuraajonline' : 'update'} <span aria-hidden="true">↗</span></a>
+        </div>
+      </article>`;
+  }).join('') : '<div class="pk-news-empty">No verified @jansuraajonline posts are synced in Curator yet.</div>'}</div>
+    </div>`).join('');
+}
+
+function loadPKCuratorEmbedFallback(feed) {
+  if (feed.dataset.curatorFallbackLoaded === 'true') return;
+  feed.dataset.curatorFallbackLoaded = 'true';
+  feed.innerHTML = '<a href="https://curator.io" target="_blank" rel="noopener noreferrer" class="crt-logo crt-tag">Powered by Curator.io</a>';
+  const script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.async = true;
+  script.charset = 'UTF-8';
+  script.src = 'https://cdn.curator.io/published/8142f8b4-aa98-4bf4-a731-28615d6b0cac.js';
+  const firstScript = document.getElementsByTagName('script')[0];
+  firstScript.parentNode.insertBefore(script, firstScript);
+}
+
+function escapePKNewsValue(value) {
+  return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 }
 
 function renderPKProfile() {
@@ -94,7 +200,7 @@ function renderPKStrategy() {
   const el = document.getElementById('pk-strategy');
   if (!el) return;
   el.innerHTML = PK_DATA.strategyCards.map((s, i) => `
-    <div style="padding:0.7rem 0.9rem; border-radius:var(--radius-md); background:var(--glass-bg); border-left:3px solid ${s.focus === 'high' ? 'var(--red)' : 'var(--amber)'}; animation:slideInUp 0.3s ease both; animation-delay:${i*0.06}s;">
+    <div style="padding:0.7rem 0.9rem; border-radius:var(--radius-md); background:var(--glass-bg); border-left:3px solid ${s.focus === 'high' ? 'var(--red)' : 'var(--amber)'}; animation:slideInUp 0.3s ease both; animation-delay:${i * 0.06}s;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
         <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${s.title}</span>
         <span class="tag ${s.focus === 'high' ? 'tag-red' : 'tag-amber'}" style="font-size:0.6rem;">${s.focus.toUpperCase()}</span>
@@ -108,10 +214,10 @@ function renderPKSocial() {
   const el = document.getElementById('pk-social');
   if (!el) return;
   const data = [
-    { platform: '🐦 Twitter',    mentions: '2.1M', change: '+45%', color: 'var(--blue)'  },
-    { platform: '▶ YouTube',     mentions: '980K', change: '+65%', color: 'var(--red)'   },
-    { platform: '💬 WhatsApp',   mentions: '450K', change: '+120%',color: 'var(--green)' },
-    { platform: '📘 Facebook',   mentions: '310K', change: '+28%', color: 'var(--blue)'  },
+    { platform: '🐦 Twitter', mentions: '2.1M', change: '+45%', color: 'var(--blue)' },
+    { platform: '▶ YouTube', mentions: '980K', change: '+65%', color: 'var(--red)' },
+    { platform: '💬 WhatsApp', mentions: '450K', change: '+120%', color: 'var(--green)' },
+    { platform: '📘 Facebook', mentions: '310K', change: '+28%', color: 'var(--blue)' },
   ];
   el.innerHTML = data.map(d => `
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid var(--border-subtle);">
@@ -156,10 +262,10 @@ function renderPKAlliance() {
   const el = document.getElementById('pk-alliance');
   if (!el) return;
   const alliances = [
-    { party: 'INC (Congress)', status: 'Active Talks',    level: 'high',   color: 'var(--blue)'  },
-    { party: 'RJD',            status: 'Indirect Support', level: 'medium', color: 'var(--red)'   },
-    { party: 'Left Parties',   status: 'Coordination',    level: 'medium', color: 'var(--amber)' },
-    { party: 'JD(U) defectors',status: 'Intelligence',    level: 'low',    color: 'var(--green)' },
+    { party: 'INC (Congress)', status: 'Active Talks', level: 'high', color: 'var(--blue)' },
+    { party: 'RJD', status: 'Indirect Support', level: 'medium', color: 'var(--red)' },
+    { party: 'Left Parties', status: 'Coordination', level: 'medium', color: 'var(--amber)' },
+    { party: 'JD(U) defectors', status: 'Intelligence', level: 'low', color: 'var(--green)' },
   ];
   el.innerHTML = alliances.map(a => `
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border-subtle);">
@@ -181,7 +287,7 @@ function renderPKReachChart() {
       labels: ['Patna', 'Gaya', 'Muz.', 'Darb.', 'Bhagal.'],
       datasets: [{
         data: [85, 72, 68, 60, 55],
-        backgroundColor: ['rgba(255,159,67,0.8)','rgba(255,159,67,0.6)','rgba(255,159,67,0.5)','rgba(255,159,67,0.4)','rgba(255,159,67,0.3)'],
+        backgroundColor: ['rgba(255,159,67,0.8)', 'rgba(255,159,67,0.6)', 'rgba(255,159,67,0.5)', 'rgba(255,159,67,0.4)', 'rgba(255,159,67,0.3)'],
         borderRadius: 4, borderWidth: 0
       }]
     },

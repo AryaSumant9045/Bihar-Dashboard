@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 node_modules/
 .next/
+.instaloader-*.session
+public/instagram/
+public/instagram-feed.json
