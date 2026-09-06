@@ -15,6 +15,30 @@ function initPKTracker() {
   renderPKReachChart();
   loadPKCuratorFeed();
   loadPKInstagramFeed();
+  loadPKFetchRssFeed();
+}
+
+function loadPKFetchRssFeed() {
+  const grid = document.getElementById('pk-fetchrss-grid');
+  if (!grid) return;
+  fetch('/api/fetchrss', { cache: 'no-store' })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.items || !data.items.length) {
+        grid.innerHTML = `<div class="pk-news-empty">${escapePKNewsValue(data.message || 'No Facebook RSS updates are available yet.')}</div>`;
+        return;
+      }
+      grid.innerHTML = data.items.map(item => `
+        <article class="pk-instagram-item">
+          ${item.image ? `<img src="${escapePKNewsValue(item.image)}" alt="" loading="lazy">` : '<div class="pk-instagram-placeholder">📡</div>'}
+          <div class="pk-instagram-body">
+            <div class="pk-news-meta"><span>${escapePKNewsValue(item.author || 'Jan Suraaj')}</span><span>${item.published_at ? new Date(item.published_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Latest'}</span></div>
+            <p>${escapePKNewsValue(item.title)}</p>
+            <a href="${escapePKNewsValue(item.link)}" target="_blank" rel="noopener noreferrer">Open Facebook post ↗</a>
+          </div>
+        </article>`).join('');
+    })
+    .catch(() => { grid.innerHTML = '<div class="pk-news-empty">Facebook RSS feed is temporarily unavailable.</div>'; });
 }
 
 function loadPKInstagramFeed() {
