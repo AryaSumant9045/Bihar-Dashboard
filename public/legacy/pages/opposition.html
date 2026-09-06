@@ -12,7 +12,8 @@
       <span class="filter-pill active" data-view="intel" onclick="switchOppView('intel')">🎯 Intel Cards</span>
       <span class="filter-pill" data-view="analysis" onclick="switchOppView('analysis')">📊 Analysis</span>
     </div>
-    <button class="btn btn-danger btn-sm" onclick="showToast('Alert','Opposition activity spike — War Room notified!','error')">⚡ Alert Team</button>
+    <button class="btn btn-danger btn-sm"
+      onclick="showToast('Alert','Opposition activity spike — War Room notified!','error')">⚡ Alert Team</button>
   </div>
 </div>
 
@@ -60,9 +61,26 @@
   </div>
 
   <!-- Intel format legend -->
-  <div class="card" style="padding:0.6rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
-    <span style="font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Intel Format:</span>
-    ${['WHO', 'WHERE', 'EVENT', 'ISSUE', 'STATEMENT', 'REACH', 'CONTEXT', 'STATUS'].map(f=>`<span style="font-size:0.68rem;font-weight:600;color:var(--gold);">${f}</span>`).join('<span style="color:var(--border-subtle);font-size:0.7rem;">→</span>')}
+  <div class="card"
+    style="padding:0.6rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+    <span
+      style="font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Intel
+      Format:</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">WHO</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">WHERE</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">EVENT</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">ISSUE</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">STATEMENT</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">REACH</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">CONTEXT</span><span
+      style="color:var(--border-subtle);font-size:0.7rem;">→</span>
+    <span style="font-size:0.68rem;font-weight:600;color:var(--gold);">STATUS</span>
   </div>
 
   <div id="opp-intel-cards" style="display:flex;flex-direction:column;gap:1rem;"></div>
@@ -96,12 +114,21 @@
         <div style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
           <div class="card-title">🗺 District Activity</div>
         </div>
-        <div id="opp-heatmap" style="padding:0.75rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0.3rem;"></div>
+        <div id="opp-heatmap" style="padding:0.75rem;display:grid;grid-template-columns:repeat(4,1fr);gap:0.3rem;">
+        </div>
         <div style="padding:0.5rem 0.75rem;border-top:1px solid var(--border-subtle);" class="legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#7f1d1d;"></div>Very High</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#e63946;"></div>High</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#ff9f43;"></div>Medium</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#26de8144;"></div>Low</div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#7f1d1d;"></div>Very High
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#e63946;"></div>High
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#ff9f43;"></div>Medium
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#26de8144;"></div>Low
+          </div>
         </div>
       </div>
       <div class="card">
