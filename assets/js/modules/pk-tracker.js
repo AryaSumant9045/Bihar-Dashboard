@@ -14,30 +14,30 @@ function initPKTracker() {
   renderPKAlliance();
   renderPKReachChart();
   loadPKCuratorFeed();
-  loadPKInstagramFeed();
+  loadPKRssFeed();
 }
 
-function loadPKInstagramFeed() {
-  const grid = document.getElementById('pk-instagram-grid');
+function loadPKRssFeed() {
+  const grid = document.getElementById('pk-rss-grid');
   if (!grid) return;
-  fetch('/api/instagram', { cache: 'no-store' })
+  fetch('/api/fetchrss', { cache: 'no-store' })
     .then(response => response.json())
     .then(data => {
-      if (!data.posts || !data.posts.length) {
-        grid.innerHTML = '<div class="pk-news-empty">Instagram feed is not synced yet. Run the Instagram fetch worker.</div>';
+      if (!data.items || !data.items.length) {
+        grid.innerHTML = `<div class="pk-news-empty">${escapePKNewsValue(data.message || 'No RSS updates are available yet.')}</div>`;
         return;
       }
-      grid.innerHTML = data.posts.map(post => `
+      grid.innerHTML = data.items.map(item => `
         <article class="pk-instagram-item">
-          ${post.media ? `<img src="${escapePKNewsValue(post.media)}" alt="" loading="lazy">` : '<div class="pk-instagram-placeholder">📸</div>'}
+          ${item.image ? `<img src="${escapePKNewsValue(item.image)}" alt="" loading="lazy">` : '<div class="pk-instagram-placeholder">📡</div>'}
           <div class="pk-instagram-body">
-            <div class="pk-news-meta"><span>@jansuraajofficial</span><span>${new Date(post.published_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span></div>
-            <p>${escapePKNewsValue(post.caption || 'Latest Instagram update')}</p>
-            <a href="${escapePKNewsValue(post.url)}" target="_blank" rel="noopener noreferrer">Open post ↗</a>
+            <div class="pk-news-meta"><span>${escapePKNewsValue(item.author || 'FetchRSS')}</span><span>${item.published_at ? new Date(item.published_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'Latest'}</span></div>
+            <p>${escapePKNewsValue(item.title)}</p>
+            <a href="${escapePKNewsValue(item.link)}" target="_blank" rel="noopener noreferrer">Open update ↗</a>
           </div>
         </article>`).join('');
     })
-    .catch(() => { grid.innerHTML = '<div class="pk-news-empty">Instagram feed is temporarily unavailable.</div>'; });
+    .catch(() => { grid.innerHTML = '<div class="pk-news-empty">FetchRSS feed is temporarily unavailable.</div>'; });
 }
 
 function loadPKCuratorFeed() {
