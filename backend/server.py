@@ -8,7 +8,7 @@ import sys
 
 # Add current directory to path if running directly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from fetchers import get_all_live_news
+from fetchers import get_all_live_news, save_raw_items_to_db
 
 app = FastAPI()
 
@@ -44,8 +44,31 @@ LIVEHINDUSTAN_FEEDS = {
 
 @app.get("/api/live-news")
 def live_news():
-    news = get_all_live_news()
+    """Fetch live news from all sources (also saves to DB)."""
+    news = get_all_live_news(save_to_db=True)
     return {"status": "success", "data": news}
+
+@app.get("/api/fetch-and-save")
+def fetch_and_save():
+    """Fetch news and save raw items to Supabase. Returns save count."""
+    news = get_all_live_news(save_to_db=True)
+    return {
+        "status": "success",
+        "message": f"Fetched {len(news)} items and saved new ones to database",
+        "total_fetched": len(news),
+    }
+
+@app.get("/api/trigger-analysis")
+def trigger_analysis(limit: int = Query(20, ge=1, le=100)):
+    """Run Gemini AI analysis on unprocessed raw_items."""
+    try:
+        from gemini_analyzer import run_analysis
+        summary = run_analysis(limit=limit)
+        return {"status": "success", **summary}
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"Gemini analyzer not available: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/rss-news")
 def rss_news(source: str = Query(...)):
@@ -75,3 +98,4 @@ app.mount("/", StaticFiles(directory=base_dir, html=True), name="static")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+

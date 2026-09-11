@@ -28,6 +28,66 @@
   </div>
 </div>
 
+<!-- Executive priority scan -->
+<section id="wr-top-attention" class="card" style="margin-bottom:1rem;border-color:rgba(230,57,70,0.25);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;">
+    <div>
+      <div class="card-title" style="margin:0;">🚨 Top 3 Requiring Attention</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Highest-priority developments for the
+        President's review</div>
+    </div>
+    <span class="tag tag-red">EXECUTIVE SCAN</span>
+  </div>
+  <div id="wr-top-attention-list" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;">
+    <div class="empty-state" style="grid-column:1/-1;padding:1rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text">Preparing priority scan…</p>
+    </div>
+  </div>
+</section>
+
+<!-- Presidential action centre -->
+<section id="wr-action-centre" class="card" style="margin-bottom:1rem;border-color:rgba(74,158,255,0.25);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.65rem;">
+    <div class="card-title" style="margin:0;">⚡ President Action Centre</div>
+    <span id="wr-action-summary-count" class="tag tag-blue">0 open</span>
+  </div>
+  <div id="wr-action-summary" style="display:flex;flex-wrap:wrap;gap:.45rem;color:var(--text-muted);font-size:.75rem;">
+    No open actions.</div>
+</section>
+
+<!-- AI Executive Summary Feed (replaces Gemini control box) -->
+<section id="wr-summary-feed" class="card" style="margin-bottom:1rem;border-color:rgba(168,85,247,0.3);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;">
+    <div>
+      <div class="card-title" style="margin:0;">🧠 AI Executive Summaries</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Gemini-analyzed intelligence — auto-updated after each analysis cycle</div>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+      <span id="wr-summary-count" class="tag" style="border-color:rgba(168,85,247,0.35);color:#c084fc;">Loading…</span>
+      <span id="wr-gemini-pending" class="tag" style="border-color:rgba(168,85,247,0.2);color:var(--text-muted);font-size:.65rem;"></span>
+      <button id="wr-gemini-trigger" class="btn btn-ghost btn-sm" type="button" onclick="triggerGeminiAnalysis()" title="Run Gemini Analysis">
+        ⚡ Analyse
+      </button>
+    </div>
+  </div>
+  <div id="wr-gemini-status" style="display:none;"></div>
+  <span id="wr-gemini-result" class="tag" style="display:none;margin-bottom:.5rem;"></span>
+
+  <!-- Summary Cards List -->
+  <div id="wr-summary-list" style="display:flex;flex-direction:column;gap:.5rem;max-height:320px;overflow-y:auto;padding-right:.25rem;">
+    <div class="empty-state" style="padding:.75rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text" style="margin-top:.5rem;">Loading analyzed summaries…</p>
+    </div>
+  </div>
+
+  <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.6rem;" onclick="loadAnalyzedSummaries(true)">
+    ↻ Refresh Summaries
+  </button>
+</section>
+
+
 <!-- 4-Level Alert Stat Row -->
 <div class="stat-row stat-row-4" style="margin-bottom:1rem;">
   <div class="stat-card card-shine" id="wr-level-critical" style="cursor:pointer; border-color:rgba(230,57,70,0.35);"

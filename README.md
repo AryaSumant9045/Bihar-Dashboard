@@ -1,3 +1,17 @@
+# Automated Gemini analysis
+
+Gemini processing runs in bounded batches without a dashboard click. The worker claims up to `ANALYSIS_BATCH_SIZE` (default 20, maximum 30) unprocessed `raw_items`, waits 1.5 seconds between calls, retries transient Gemini 429/5xx responses with exponential backoff, and records every cycle in `processing_logs`. When Gemini is unavailable, it sends the same structured prompt to the OpenAI-compatible PlugSky endpoint configured by `PLUGSKY_API_URL` and authenticates with `PLUGSKY_API_KEY`.
+
+1. Apply `supabase/migrations/004_automated_gemini_analysis.sql` in Supabase SQL Editor.
+2. For Vercel, deploy with `CRON_SECRET` set if the cron endpoint should be protected. `vercel.json` invokes `/api/cron/analyze` every 15 minutes.
+3. For a local always-running Next.js server, set `ANALYSIS_SCHEDULER_ENABLED=true` and start `npm run dev`. Set `ANALYSIS_INTERVAL_MINUTES=1` temporarily for a quick smoke test, then restore 15.
+4. Open the War Room. Its pending count and last completed cycle refresh every 30 seconds. `/api/analysis-status` exposes the same status.
+
+For existing analyzed rows, set `SUMMARY_REPROCESS_SECRET` and run `node scripts/regenerate-summaries.mjs`. This updates only `summary` and `summary_needs_review`.
+
+For existing raw-item duplicates, run `node scripts/cleanup-duplicate-raw-items.mjs` first as a dry-run. Set the server-only `SUPABASE_SERVICE_ROLE_KEY`, then run with `--apply` after reviewing the reported groups. Apply migration `006_raw_item_dedup_index.sql` afterward; never expose the service-role key to the browser.
+
+The old `POST /api/analyze-news` endpoint remains only as an emergency force-refresh endpoint and uses the same locked worker.
 # ⚡ Bihar Political Command Center
 ### BJP Bihar — President's Intelligence Dashboard
 

@@ -26,14 +26,14 @@ function setGreeting() {
   if (el) el.textContent = hr < 12 ? 'Morning' : hr < 17 ? 'Afternoon' : 'Evening';
 
   const role = sessionStorage.getItem('bcc_role') || 'president';
-  const roleNames = { president:'President Sahab', warroom:'War Room Team', district:'District Officer', comms:'Comms Team', readonly:'Leadership', it:'IT Cell' };
+  const roleNames = { president: 'President Sahab', warroom: 'War Room Team', district: 'District Officer', comms: 'Comms Team', readonly: 'Leadership', it: 'IT Cell' };
   const nameEl = document.getElementById('home-role-name');
   if (nameEl) nameEl.textContent = roleNames[role] || 'President Sahab';
 
   const dateEl = document.getElementById('home-date-str');
   if (dateEl) {
     const now = new Date();
-    dateEl.textContent = now.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Kolkata' }) + ' — Command Center Live';
+    dateEl.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' }) + ' — Command Center Live';
   }
 }
 
@@ -47,7 +47,7 @@ function renderTop3() {
       onmouseover="this.style.background='rgba(230,57,70,0.14)'" onmouseout="this.style.background='rgba(230,57,70,0.08)'"
       onclick="navigateTo('war-room')">
       <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem;">
-        <span style="font-family:'Outfit',sans-serif; font-size:1rem; font-weight:800; color:rgba(230,57,70,0.5);">${i+1}</span>
+        <span style="font-family:'Outfit',sans-serif; font-size:1rem; font-weight:800; color:rgba(230,57,70,0.5);">${i + 1}</span>
         <span class="tag tag-red" style="font-size:0.6rem;">${n.category}</span>
         <span style="font-size:0.65rem; color:var(--text-muted);">📍 ${n.district}</span>
       </div>
@@ -64,7 +64,7 @@ function renderTrendingSnap() {
   el.innerHTML = MEDIA_DATA.trending.slice(0, 4).map(t => `
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0; border-bottom:1px solid var(--border-subtle);">
       <div style="display:flex; align-items:center; gap:0.5rem;">
-        <span class="tag ${t.sentiment==='negative'?'tag-red':t.sentiment==='positive'?'tag-green':'tag-blue'}" style="font-size:0.6rem; padding:0.1rem 0.35rem;">${t.platform}</span>
+        <span class="tag ${t.sentiment === 'negative' ? 'tag-red' : t.sentiment === 'positive' ? 'tag-green' : 'tag-blue'}" style="font-size:0.6rem; padding:0.1rem 0.35rem;">${t.platform}</span>
         <span style="font-size:0.8rem; font-weight:500; color:var(--text-primary);">${t.tag}</span>
       </div>
       <span style="font-size:0.7rem; color:var(--red); font-weight:600;">${t.change}</span>
@@ -77,15 +77,15 @@ function renderActivityMini() {
   const el = document.getElementById('home-activity-mini');
   if (!el) return;
   const hotDistricts = Object.entries(OPPOSITION_DATA.districtActivity)
-    .filter(([,v]) => v === 'very-high' || v === 'high').slice(0, 5);
-  const colorMap = { 'very-high':'var(--red)', 'high':'var(--amber)' };
+    .filter(([, v]) => v === 'very-high' || v === 'high').slice(0, 5);
+  const colorMap = { 'very-high': 'var(--red)', 'high': 'var(--amber)' };
   el.innerHTML = hotDistricts.map(([d, level]) => `
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid var(--border-subtle);">
       <div style="display:flex; align-items:center; gap:0.5rem;">
-        <div style="width:8px; height:8px; border-radius:50%; background:${colorMap[level]||'var(--text-muted)'}; ${level==='very-high'?'animation:livePulse 1.5s ease infinite;':''}"></div>
+        <div style="width:8px; height:8px; border-radius:50%; background:${colorMap[level] || 'var(--text-muted)'}; ${level === 'very-high' ? 'animation:livePulse 1.5s ease infinite;' : ''}"></div>
         <span style="font-size:0.82rem; color:var(--text-secondary);">📍 ${d}</span>
       </div>
-      <span class="tag ${level==='very-high'?'tag-red':'tag-amber'}" style="font-size:0.62rem;">${level==='very-high'?'Very High':'High'}</span>
+      <span class="tag ${level === 'very-high' ? 'tag-red' : 'tag-amber'}" style="font-size:0.62rem;">${level === 'very-high' ? 'Very High' : 'High'}</span>
     </div>
   `).join('');
 }
@@ -99,7 +99,7 @@ function renderOppositionSnap() {
       <div style="display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid var(--border-subtle);">
         <div style="font-size:0.82rem; color:var(--text-secondary);">${p.name} <span style="color:var(--text-muted); font-size:0.72rem;">• ${p.leader}</span></div>
         <div style="display:flex; align-items:center; gap:0.4rem;">
-          <span class="tag ${p.activityLevel==='high'?'tag-red':p.activityLevel==='medium'?'tag-amber':'tag-green'}" style="font-size:0.6rem;">${p.activityLevel}</span>
+          <span class="tag ${p.activityLevel === 'high' ? 'tag-red' : p.activityLevel === 'medium' ? 'tag-amber' : 'tag-green'}" style="font-size:0.6rem;">${p.activityLevel}</span>
           <span style="font-size:0.75rem; font-weight:600; color:var(--text-primary);">${p.strength}%</span>
         </div>
       </div>
@@ -116,13 +116,13 @@ function renderOrgActivity() {
   el.innerHTML = activeLeaders.map(l => `
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid var(--border-subtle);">
       <div style="display:flex; align-items:center; gap:0.5rem;">
-        <div style="width:26px; height:26px; border-radius:50%; background:${l.party==='BJP'?'linear-gradient(135deg,#ff6b2b,#d4500f)':'linear-gradient(135deg,#22c55e,#16a34a)'}; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; color:white; flex-shrink:0;">${l.initials}</div>
+        <div style="width:26px; height:26px; border-radius:50%; background:${l.party === 'BJP' ? 'linear-gradient(135deg,#ff6b2b,#d4500f)' : 'linear-gradient(135deg,#22c55e,#16a34a)'}; display:flex; align-items:center; justify-content:center; font-size:0.65rem; font-weight:700; color:white; flex-shrink:0;">${l.initials}</div>
         <div>
           <div style="font-size:0.78rem; font-weight:600; color:var(--text-primary);">${l.name}</div>
           <div style="font-size:0.66rem; color:var(--text-muted);">${l.lastActivityTime}</div>
         </div>
       </div>
-      <span class="sentiment-badge sentiment-${l.sentiment}" style="font-size:0.6rem;">${l.sentiment==='positive'?'↑':'↓'}</span>
+      <span class="sentiment-badge sentiment-${l.sentiment}" style="font-size:0.6rem;">${l.sentiment === 'positive' ? '↑' : '↓'}</span>
     </div>
   `).join('');
 }
@@ -155,10 +155,10 @@ function renderSpeechSnap() {
   el.innerHTML = `
     <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.5rem; line-height:1.5;">Generate a pre-event intelligence brief before any rally, press interaction or district visit.</div>
     <div style="display:flex; flex-direction:column; gap:0.35rem;">
-      ${SPEECHES_DATA.slice(0,2).map(s=>`
+      ${SPEECHES_DATA.slice(0, 2).map(s => `
         <div style="padding:0.4rem 0.6rem; background:var(--glass-bg); border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
           <div style="font-size:0.77rem; font-weight:600; color:var(--text-primary);">${s.speaker}</div>
-          <div style="font-size:0.68rem; color:var(--text-muted);">${s.title.substring(0,45)}… • ${s.date}</div>
+          <div style="font-size:0.68rem; color:var(--text-muted);">${s.title.substring(0, 45)}… • ${s.date}</div>
         </div>
       `).join('')}
     </div>
@@ -170,20 +170,20 @@ function renderSpeechSnap() {
 function renderAlertSummary() {
   const el = document.getElementById('home-alert-summary');
   if (!el) return;
-  const counts = { critical:0, developing:0, watch:0, routine:0 };
+  const counts = { critical: 0, developing: 0, watch: 0, routine: 0 };
   NEWS_DATA.forEach(n => {
-    if (n.severity==='high') counts.critical++;
-    else if (n.severity==='medium') counts.developing++;
+    if (n.severity === 'high') counts.critical++;
+    else if (n.severity === 'medium') counts.developing++;
     else counts.watch++;
   });
   counts.routine = 2;
   const items = [
-    { label:'🔴 Critical', val: counts.critical, c:'var(--red)', bg:'var(--red-dim)' },
-    { label:'🟠 Developing', val: counts.developing, c:'var(--amber)', bg:'var(--amber-dim)' },
-    { label:'🟡 Watch', val: counts.watch, c:'var(--gold)', bg:'var(--gold-dim)' },
-    { label:'🟢 Routine', val: counts.routine, c:'var(--green)', bg:'var(--green-dim)' },
+    { label: '🔴 Critical', val: counts.critical, c: 'var(--red)', bg: 'var(--red-dim)' },
+    { label: '🟠 Developing', val: counts.developing, c: 'var(--amber)', bg: 'var(--amber-dim)' },
+    { label: '🟡 Watch', val: counts.watch, c: 'var(--gold)', bg: 'var(--gold-dim)' },
+    { label: '🟢 Routine', val: counts.routine, c: 'var(--green)', bg: 'var(--green-dim)' },
   ];
-  el.innerHTML = items.map(i=>`
+  el.innerHTML = items.map(i => `
     <div style="padding:0.6rem 0.75rem; background:${i.bg}; border-radius:var(--radius-md); text-align:center; cursor:pointer;" onclick="navigateTo('war-room')">
       <div style="font-size:0.65rem; color:var(--text-muted); margin-bottom:0.2rem;">${i.label}</div>
       <div style="font-family:'Outfit',sans-serif; font-size:1.5rem; font-weight:800; color:${i.c};">${i.val}</div>
@@ -217,34 +217,34 @@ function initHomeMap() {
   if (!mapEl) return;
   if (homeMap) { homeMap.remove(); homeMap = null; }
 
-  homeMap = L.map('home-map', { center:[25.65,85.90], zoom:7, zoomControl:true, attributionControl:false });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity:0.25 }).addTo(homeMap);
+  homeMap = L.map('home-map', { center: [25.65, 85.90], zoom: 7, zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.25 }).addTo(homeMap);
 
   const distCoords = {
-    'Patna':[25.59,85.14],'Nalanda':[25.11,85.44],'Gaya':[24.79,85.00],
-    'Muzaffarpur':[26.12,85.39],'Darbhanga':[26.15,85.89],'Madhubani':[26.36,86.07],
-    'Bhagalpur':[25.24,86.98],'Nawada':[24.89,85.54],'Vaishali':[25.69,85.20],
-    'Begusarai':[25.42,86.13],'Siwan':[26.22,84.35],'Samastipur':[25.88,85.78],
-    'Rohtas':[24.99,83.78],'Supaul':[26.12,86.61],'Kishanganj':[26.09,87.94],
-    'Purnia':[25.78,87.48],'Saran':[25.92,84.74],'Bhojpur':[25.56,84.46],
-    'East Champaran':[26.78,84.92],'West Champaran':[27.16,84.38]
+    'Patna': [25.59, 85.14], 'Nalanda': [25.11, 85.44], 'Gaya': [24.79, 85.00],
+    'Muzaffarpur': [26.12, 85.39], 'Darbhanga': [26.15, 85.89], 'Madhubani': [26.36, 86.07],
+    'Bhagalpur': [25.24, 86.98], 'Nawada': [24.89, 85.54], 'Vaishali': [25.69, 85.20],
+    'Begusarai': [25.42, 86.13], 'Siwan': [26.22, 84.35], 'Samastipur': [25.88, 85.78],
+    'Rohtas': [24.99, 83.78], 'Supaul': [26.12, 86.61], 'Kishanganj': [26.09, 87.94],
+    'Purnia': [25.78, 87.48], 'Saran': [25.92, 84.74], 'Bhojpur': [25.56, 84.46],
+    'East Champaran': [26.78, 84.92], 'West Champaran': [27.16, 84.38]
   };
 
   const oppActivity = OPPOSITION_DATA.districtActivity;
-  const colorMap = { 'very-high':'#e63946', 'high':'#ff9f43', 'medium':'#f5c518', 'low':'#26de81' };
+  const colorMap = { 'very-high': '#e63946', 'high': '#ff9f43', 'medium': '#f5c518', 'low': '#26de81' };
 
   Object.entries(distCoords).forEach(([dist, coords]) => {
     const level = oppActivity[dist] || 'low';
     const color = colorMap[level] || '#26de81';
-    const radius = level==='very-high'?14:level==='high'?11:level==='medium'?9:7;
+    const radius = level === 'very-high' ? 14 : level === 'high' ? 11 : level === 'medium' ? 9 : 7;
 
     const marker = L.circleMarker(coords, {
-      radius, fillColor:color, color:'rgba(255,255,255,0.25)',
-      weight:1.5, opacity:1, fillOpacity:0.85
+      radius, fillColor: color, color: 'rgba(255,255,255,0.25)',
+      weight: 1.5, opacity: 1, fillOpacity: 0.85
     }).addTo(homeMap);
 
     marker.on('click', () => openDistrict360(dist));
-    marker.bindTooltip(`<b>${dist}</b><br/>${level} opposition activity`, { className:'dark-tooltip' });
+    marker.bindTooltip(`<b>${dist}</b><br/>${level} opposition activity`, { className: 'dark-tooltip' });
   });
 }
 
@@ -260,7 +260,7 @@ function openDistrict360(district) {
   const distIssues = ISSUES_DATA.filter(i => i.district === district);
   const distLeaders = LEADERS_DATA.filter(l => l.district === district);
   const distNews = NEWS_DATA.filter(n => n.district === district);
-  const colorMap = { 'very-high':'var(--red)','high':'var(--amber)','medium':'var(--gold)','low':'var(--green)' };
+  const colorMap = { 'very-high': 'var(--red)', 'high': 'var(--amber)', 'medium': 'var(--gold)', 'low': 'var(--green)' };
 
   if (title) title.textContent = `📍 ${district} — District 360° View`;
 
@@ -289,8 +289,8 @@ function openDistrict360(district) {
 
     <!-- Opp Activity -->
     <div style="display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.9rem; background:${colorMap[oppLevel]}22; border:1px solid ${colorMap[oppLevel]}44; border-radius:var(--radius-md); margin-bottom:1rem;">
-      <div style="width:10px; height:10px; border-radius:50%; background:${colorMap[oppLevel]}; ${oppLevel==='very-high'?'animation:livePulse 1.2s ease infinite;':''}"></div>
-      <span style="font-size:0.82rem; font-weight:600; color:var(--text-primary);">Opposition Activity: <span style="color:${colorMap[oppLevel]}; text-transform:capitalize;">${oppLevel.replace('-',' ')}</span></span>
+      <div style="width:10px; height:10px; border-radius:50%; background:${colorMap[oppLevel]}; ${oppLevel === 'very-high' ? 'animation:livePulse 1.2s ease infinite;' : ''}"></div>
+      <span style="font-size:0.82rem; font-weight:600; color:var(--text-primary);">Opposition Activity: <span style="color:${colorMap[oppLevel]}; text-transform:capitalize;">${oppLevel.replace('-', ' ')}</span></span>
     </div>
 
     <!-- 3-col grid: Leaders | Issues | News -->
@@ -299,7 +299,7 @@ function openDistrict360(district) {
       <!-- BJP/NDA Leaders -->
       <div>
         <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:0.5rem;">🏛️ Active Leaders</div>
-        ${distLeaders.length > 0 ? distLeaders.map(l=>`
+        ${distLeaders.length > 0 ? distLeaders.map(l => `
           <div style="display:flex; align-items:center; gap:0.5rem; padding:0.35rem 0; border-bottom:1px solid var(--border-subtle);">
             <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#ff6b2b,#d4500f);display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:white;flex-shrink:0;">${l.initials}</div>
             <div>
@@ -312,8 +312,8 @@ function openDistrict360(district) {
         <div style="margin-top:0.75rem; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:0.5rem;">📊 District Activity</div>
         ${distData ? `
           <div style="font-size:0.78rem; color:var(--text-secondary);">
-            <div style="padding:0.2rem 0;">Activity: <span style="color:${distData.activity==='very-high'?'var(--red)':distData.activity==='high'?'var(--amber)':'var(--text-muted)'}; font-weight:600;">${distData.activity}</span></div>
-            <div style="padding:0.2rem 0;">Total Votes: ${(distData.totalVotes/100000).toFixed(1)}L</div>
+            <div style="padding:0.2rem 0;">Activity: <span style="color:${distData.activity === 'very-high' ? 'var(--red)' : distData.activity === 'high' ? 'var(--amber)' : 'var(--text-muted)'}; font-weight:600;">${distData.activity}</span></div>
+            <div style="padding:0.2rem 0;">Total Votes: ${(distData.totalVotes / 100000).toFixed(1)}L</div>
           </div>
         ` : ''}
       </div>
@@ -321,24 +321,24 @@ function openDistrict360(district) {
       <!-- Issues -->
       <div>
         <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:0.5rem;">📋 Open Issues (${distIssues.length})</div>
-        ${distIssues.length > 0 ? distIssues.slice(0,4).map(i=>{
-          const p = i.priority==='urgent'?'var(--red)':i.priority==='high'?'var(--amber)':'var(--gold)';
-          return `<div style="padding:0.4rem 0; border-bottom:1px solid var(--border-subtle); display:flex;gap:0.4rem;">
+        ${distIssues.length > 0 ? distIssues.slice(0, 4).map(i => {
+    const p = i.priority === 'urgent' ? 'var(--red)' : i.priority === 'high' ? 'var(--amber)' : 'var(--gold)';
+    return `<div style="padding:0.4rem 0; border-bottom:1px solid var(--border-subtle); display:flex;gap:0.4rem;">
             <div style="width:7px;height:7px;border-radius:50%;background:${p};margin-top:4px;flex-shrink:0;"></div>
             <div>
-              <div style="font-size:0.76rem;color:var(--text-primary);line-height:1.3;">${i.title.substring(0,50)}${i.title.length>50?'…':''}</div>
+              <div style="font-size:0.76rem;color:var(--text-primary);line-height:1.3;">${i.title.substring(0, 50)}${i.title.length > 50 ? '…' : ''}</div>
               <div style="font-size:0.66rem;color:var(--text-muted);">${i.category} • ${i.status}</div>
             </div>
           </div>`;
-        }).join('') : `<div style="font-size:0.78rem; color:var(--green); padding:0.5rem 0;">✓ No active issues</div>`}
+  }).join('') : `<div style="font-size:0.78rem; color:var(--green); padding:0.5rem 0;">✓ No active issues</div>`}
       </div>
 
       <!-- News -->
       <div>
         <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:0.5rem;">📰 Recent News</div>
-        ${distNews.length > 0 ? distNews.slice(0,3).map(n=>`
+        ${distNews.length > 0 ? distNews.slice(0, 3).map(n => `
           <div style="padding:0.4rem 0; border-bottom:1px solid var(--border-subtle);">
-            <div style="font-size:0.76rem;font-weight:500;color:var(--text-primary);line-height:1.3;">${n.title.substring(0,55)}…</div>
+            <div style="font-size:0.76rem;font-weight:500;color:var(--text-primary);line-height:1.3;">${n.title.substring(0, 55)}…</div>
             <div style="font-size:0.66rem;color:var(--text-muted);">📡 ${n.source} • ${n.time}</div>
           </div>
         `).join('') : `
@@ -362,6 +362,31 @@ function openDistrict360(district) {
   `;
 
   modal.classList.add('open');
+  loadDistrict360Data(district, body);
+}
+
+function d360Escape(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
+}
+
+async function loadDistrict360Data(district, body) {
+  try {
+    const response = await fetch(`/api/district360?district=${encodeURIComponent(district)}`, { cache: 'no-store' });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'District intelligence unavailable');
+    const priority = result.breakdown?.priority || {};
+    const analyzed = (result.analyzed_items || []).slice(0, 5);
+    const alerts = (result.alerts || []).slice(0, 5);
+    const news = (result.recent_news || []).slice(0, 5);
+    const section = document.createElement('section');
+    section.style.cssText = 'margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);';
+    section.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:.65rem;"><div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);">Live District Intelligence</div><span style="font-size:.68rem;color:var(--text-muted);">${result.summary.analyzed_items} analyzed · ${result.summary.alerts} alerts</span></div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem;"><span class="tag tag-red">Critical: ${priority.Critical || 0}</span><span class="tag">Developing: ${priority.Developing || 0}</span><span class="tag">Watch: ${priority.Watch || 0}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;"><div><b style="font-size:.7rem;color:var(--text-muted);">AI ANALYSIS</b>${analyzed.map(item => `<div style="padding:.45rem 0;border-bottom:1px solid var(--border-subtle);font-size:.72rem;"><strong>${d360Escape(item.priority)}:</strong> ${d360Escape(item.summary || item.issue || 'No summary')}</div>`).join('') || '<div style="font-size:.72rem;color:var(--text-muted);padding-top:.4rem;">No analyzed items</div>'}</div><div><b style="font-size:.7rem;color:var(--text-muted);">ALERTS</b>${alerts.map(item => `<div style="padding:.45rem 0;border-bottom:1px solid var(--border-subtle);font-size:.72rem;">${d360Escape(item.title)}</div>`).join('') || '<div style="font-size:.72rem;color:var(--text-muted);padding-top:.4rem;">No alerts</div>'}</div><div><b style="font-size:.7rem;color:var(--text-muted);">RECENT NEWS</b>${news.map(item => `<a href="${d360Escape(item.url || '#')}" target="_blank" rel="noopener noreferrer" style="display:block;padding:.45rem 0;border-bottom:1px solid var(--border-subtle);font-size:.72rem;color:var(--text-primary);text-decoration:none;">${d360Escape(item.title)}</a>`).join('') || '<div style="font-size:.72rem;color:var(--text-muted);padding-top:.4rem;">No recent news</div>'}</div></div>`;
+    body.prepend(section);
+  } catch (error) {
+    console.warn('District 360 live data unavailable:', error.message);
+  }
 }
 
 function closeDistrict360() {

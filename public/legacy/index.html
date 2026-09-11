@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="hi">
+
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Bihar Political Command Center — Real-time political intelligence dashboard for Bihar elections 2025. Breaking news, leadership tracking, opposition monitoring." />
+  <meta name="description"
+    content="Bihar Political Command Center — Real-time political intelligence dashboard for Bihar elections 2025. Breaking news, leadership tracking, opposition monitoring." />
   <meta name="theme-color" content="#080d1a" />
   <title>Bihar Command Center — Political Intelligence Dashboard</title>
 
@@ -30,148 +33,164 @@
 
   <style>
     /* Inline critical styles to prevent FOUC */
-    body { background: #080d1a; }
-    #app { display: flex; height: 100vh; overflow: hidden; }
+    body {
+      background: #080d1a;
+    }
+
+    #app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
 
     /* Custom Leaflet dark theme */
     .leaflet-container {
       background: #0d1426 !important;
       font-family: 'Inter', sans-serif !important;
     }
-    .leaflet-tile-pane { filter: brightness(0.6) saturate(0.5); }
+
+    .leaflet-tile-pane {
+      filter: brightness(0.6) saturate(0.5);
+    }
+
     .leaflet-popup-content-wrapper {
       background: #0f1829 !important;
-      border: 1px solid rgba(255,255,255,0.1) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
       border-radius: 10px !important;
       color: #e8edf8 !important;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
     }
-    .leaflet-popup-tip { background: #0f1829 !important; }
+
+    .leaflet-popup-tip {
+      background: #0f1829 !important;
+    }
   </style>
 </head>
 
 <body>
-<div id="app">
+  <div id="app">
 
-  <!-- ── Sidebar ────────────────────────────────────────── -->
-  <nav id="sidebar">
-    <!-- Brand -->
-    <a class="sidebar-brand" href="#/war-room" onclick="return false;">
-      <div class="sidebar-brand-icon">⚡</div>
-      <div class="sidebar-brand-text">
-        <span class="brand-title">Bihar Command</span>
-        <span class="brand-sub">Political Intelligence</span>
-      </div>
-    </a>
+    <!-- ── Sidebar ────────────────────────────────────────── -->
+    <nav id="sidebar">
+      <!-- Brand -->
+      <a class="sidebar-brand" href="#/war-room" onclick="return false;">
+        <div class="sidebar-brand-icon">⚡</div>
+        <div class="sidebar-brand-text">
+          <span class="brand-title">Bihar Command</span>
+          <span class="brand-sub">Political Intelligence</span>
+        </div>
+      </a>
 
-    <!-- Nav Items (built by JS) -->
-    <div class="sidebar-nav" id="sidebar-nav"></div>
+      <!-- Nav Items (built by JS) -->
+      <div class="sidebar-nav" id="sidebar-nav"></div>
 
-    <!-- Toggle button -->
-    <button class="sidebar-toggle" id="sidebar-toggle" data-tooltip="Toggle Sidebar">
-      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"></polyline>
-      </svg>
-    </button>
+      <!-- Toggle button -->
+      <button class="sidebar-toggle" id="sidebar-toggle" data-tooltip="Toggle Sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
 
-    <!-- User Footer -->
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="user-avatar">A</div>
-        <div class="user-info">
-          <div class="user-name" id="user-name-display">President</div>
-        <div class="user-role" id="user-role-display">President View</div>
+      <!-- User Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="user-avatar">A</div>
+          <div class="user-info">
+            <div class="user-name" id="user-name-display">President</div>
+            <div class="user-role" id="user-role-display">President View</div>
+          </div>
         </div>
       </div>
-    </div>
-  </nav>
+    </nav>
 
-  <!-- ── Main Content ───────────────────────────────────── -->
-  <div id="main-content">
+    <!-- ── Main Content ───────────────────────────────────── -->
+    <div id="main-content">
 
-    <!-- Header -->
-    <header id="header">
-      <div class="header-left">
-        <span id="header-title" class="page-title">🚨 War Room</span>
-        <div class="live-indicator">
-          <span class="live-dot"></span>
-          LIVE
+      <!-- Header -->
+      <header id="header">
+        <div class="header-left">
+          <span id="header-title" class="page-title">🚨 War Room</span>
+          <div class="live-indicator">
+            <span class="live-dot"></span>
+            LIVE
+          </div>
         </div>
-      </div>
 
-      <div class="header-actions">
-        <div class="header-clock font-mono" id="live-clock">Loading…</div>
+        <div class="header-actions">
+          <div class="header-clock font-mono" id="live-clock">Loading…</div>
 
-        <button class="header-btn" id="header-search-btn" data-tooltip="Search" aria-label="Search">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        </button>
+          <button class="header-btn" id="header-search-btn" data-tooltip="Search" aria-label="Search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
 
-        <button class="header-btn" id="header-alert-btn" data-tooltip="Alerts" aria-label="Alerts">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span class="dot"></span>
-        </button>
+          <button class="header-btn" id="header-alert-btn" data-tooltip="Alerts" aria-label="Alerts">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span class="dot"></span>
+          </button>
 
-        <button class="header-btn" id="header-refresh-btn" data-tooltip="Refresh" aria-label="Refresh"
-                onclick="navigateTo(AppState.currentPage)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"/>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-        </button>
-      </div>
-    </header>
+          <button class="header-btn" id="header-refresh-btn" data-tooltip="Refresh" aria-label="Refresh"
+            onclick="navigateTo(AppState.currentPage)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
-    <!-- Page Content -->
-    <main id="page-content">
-      <!-- Pages load here via JS router -->
-      <div class="flex-center" style="height:100%; flex-direction:column; gap:1rem;">
-        <div class="spinner"></div>
-        <p style="color:var(--text-muted); font-size:0.85rem;">Loading Command Center…</p>
-      </div>
-    </main>
+      <!-- Page Content -->
+      <main id="page-content">
+        <!-- Pages load here via JS router -->
+        <div class="flex-center" style="height:100%; flex-direction:column; gap:1rem;">
+          <div class="spinner"></div>
+          <p style="color:var(--text-muted); font-size:0.85rem;">Loading Command Center…</p>
+        </div>
+      </main>
 
-  </div><!-- /main-content -->
+    </div><!-- /main-content -->
 
-</div><!-- /app -->
+  </div><!-- /app -->
 
-<!-- Toast Container -->
-<div id="toast-container"></div>
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
 
-<!-- ── Data Files ──────────────────────────────────────────── -->
-<script src="assets/js/supabase-config.js"></script>
-<script src="assets/js/data/news.js"></script>
-<script src="assets/js/data/leaders.js"></script>
-<script src="assets/js/data/opposition.js"></script>
-<script src="assets/js/data/districts.js"></script>
+  <!-- ── Data Files ──────────────────────────────────────────── -->
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/data/news.js"></script>
+  <script src="assets/js/data/leaders.js"></script>
+  <script src="assets/js/data/opposition.js"></script>
+  <script src="assets/js/data/districts.js"></script>
 
-<!-- ── Module Scripts ─────────────────────────────────────── -->
-<script src="assets/js/modules/home.js"></script>
-<script src="assets/js/modules/war-room.js"></script>
-<script src="assets/js/modules/political-map.js"></script>
-<script src="assets/js/modules/leadership.js"></script>
-<script src="assets/js/modules/opposition.js"></script>
-<script src="assets/js/modules/pk-tracker.js"></script>
-<script src="assets/js/modules/media-pulse.js"></script>
-<script src="assets/js/modules/speech-intelligence.js"></script>
-<script src="assets/js/modules/issues.js"></script>
+  <!-- ── Module Scripts ─────────────────────────────────────── -->
+  <script src="assets/js/modules/home.js"></script>
+  <script src="assets/js/modules/war-room.js?v=summary-dedup-20260911-2"></script>
+  <script src="assets/js/modules/political-map.js"></script>
+  <script src="assets/js/modules/leadership.js"></script>
+  <script src="assets/js/modules/opposition.js"></script>
+  <script src="assets/js/modules/pk-tracker.js"></script>
+  <script src="assets/js/modules/media-pulse.js"></script>
+  <script src="assets/js/modules/speech-intelligence.js"></script>
+  <script src="assets/js/modules/issues.js"></script>
 
-<!-- ── Core App ───────────────────────────────────────────── -->
-<script src="assets/js/app.js"></script>
+  <!-- ── Core App ───────────────────────────────────────────── -->
+  <script src="assets/js/app.js"></script>
 
-<script>
-  // Init Lucide icons after DOM
-  document.addEventListener('DOMContentLoaded', () => {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  });
-</script>
+  <script>
+    // Init Lucide icons after DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+  </script>
 </body>
+
 </html>

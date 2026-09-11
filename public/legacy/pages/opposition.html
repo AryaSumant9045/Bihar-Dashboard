@@ -39,6 +39,45 @@
   </div>
 </div>
 
+<!-- Live public opposition activity -->
+<section class="card" style="margin-bottom:1rem;border-color:rgba(230,57,70,0.25);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;">
+    <div>
+      <div class="card-title" style="margin:0;">📡 Live Public Opposition Activity</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Official public YouTube channel updates
+      </div>
+    </div>
+    <span class="tag tag-red">LIVE</span>
+  </div>
+  <div id="opp-live-feed" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;">
+    <div class="empty-state" style="grid-column:1/-1;padding:1rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text">Loading public activity…</p>
+    </div>
+  </div>
+</section>
+
+<!-- Curated public X activity -->
+<section class="card" style="margin-bottom:1rem;border-color:rgba(74,158,255,0.25);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;">
+    <div>
+      <div class="card-title" style="margin:0;">𝕏 Live Opposition Social Pulse</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Public X accounts curated through
+        Curator.io</div>
+    </div>
+    <span class="tag tag-blue">PUBLIC SOURCES</span>
+  </div>
+  <div id="opp-x-accounts"
+    style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.75rem;margin-bottom:.85rem;">
+  </div>
+  <div id="curator-feed-default-feed-layout" aria-live="polite">
+    <div class="empty-state" style="padding:1rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text">Loading curated X activity…</p>
+    </div>
+  </div>
+</section>
+
 <!-- INTEL CARDS VIEW -->
 <div id="opp-intel-view">
   <!-- Status filter -->
