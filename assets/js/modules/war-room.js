@@ -147,9 +147,9 @@ async function loadAnalyzedSummaries(forceRefresh = false) {
   const countEl = document.getElementById('wr-summary-count');
   if (!list) return;
 
-  if (!forceRefresh) {
-    list.innerHTML = '<div class="empty-state" style="padding:.75rem;"><div class="spinner"></div><p class="empty-state-text" style="margin-top:.5rem;">Loading analyzed summaries…</p></div>';
-  }
+  // Always show spinner when triggered (it's now on-demand only)
+  list.innerHTML = '<div class="empty-state" style="padding:.75rem;"><div class="spinner"></div><p class="empty-state-text" style="margin-top:.5rem;">Loading analyzed summaries…</p></div>';
+
 
   try {
     const response = await fetch('/api/analyzed-items?limit=30', { cache: 'no-store' });
@@ -201,12 +201,246 @@ async function loadAnalyzedSummaries(forceRefresh = false) {
   }
 }
 
+/* ── Intelligence Summary (Rolling Pipeline) ─────────────── */
+
+let wrIntelAutoRefreshTimer = null;
+
+/**
+ * Fetch and render the latest intelligence summary from the pipeline.
+ * @param {boolean} forceRefresh — show loading spinner on manual refresh
+ */
+async function loadIntelligenceSummary(forceRefresh = false) {
+  const card       = document.getElementById('wr-intel-summary-card');
+  const badge      = document.getElementById('wr-intel-session-badge');
+  const provBadge  = document.getElementById('wr-intel-provider-badge');
+  const progress   = document.getElementById('wr-pipeline-progress');
+  const statusText = document.getElementById('wr-pipeline-status-text');
+  const histDiv    = document.getElementById('wr-intel-history');
+
+  if (!card) return;
+
+  if (forceRefresh) {
+    card.innerHTML = '<div class="empty-state" style="padding:.75rem;"><div class="spinner"></div><p class="empty-state-text" style="margin-top:.5rem;">Refreshing…</p></div>';
+  }
+
+  try {
+    const response = await fetch('/api/news-summaries?latest=true&limit=5', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`API ${response.status}`);
+    const result = await response.json();
+
+    const summaries      = result.data || [];
+    const currentSession = result.current_session;
+
+    // Show pipeline progress if running
+    if (currentSession && currentSession.status === 'processing' && progress && statusText) {
+      const pct = currentSession.total_fetched
+        ? Math.round((currentSession.total_processed / currentSession.total_fetched) * 100)
+        : 0;
+      progress.style.display = 'block';
+      statusText.textContent = `${currentSession.total_processed}/${currentSession.total_fetched} items · Batch ${currentSession.total_batches} · ${pct}% complete`;
+    } else if (progress) {
+      progress.style.display = 'none';
+    }
+
+    // Session badge
+    if (badge && currentSession) {
+      const slot = currentSession.schedule_slot || 'manual';
+      const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+      badge.textContent = `${slotEmoji} ${slot.charAt(0).toUpperCase() + slot.slice(1)} · ${currentSession.total_fetched || 0} fetched`;
+    }
+
+    if (!summaries.length) {
+      card.innerHTML = `<div style="text-align:center;padding:1.25rem 0;">
+        <div style="font-size:1.5rem;margin-bottom:.5rem;">📡</div>
+        <p style="font-size:.78rem;color:var(--text-muted);">No intelligence summary yet.</p>
+        <p style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Summaries are generated automatically at 7 AM, 1 PM and 8 PM IST.</p>
+      </div>`;
+      return;
+    }
+
+    // Render latest summary
+    const latest = summaries[0];
+    renderIntelligenceSummary(latest, card);
+
+    // Provider badge
+    if (provBadge && latest.llm_provider) {
+      const provLabels = { gemini: '🟣 Gemini', groq: '🟢 Groq', plugsky: '🔵 PlugSky' };
+      provBadge.textContent = provLabels[latest.llm_provider] || latest.llm_provider;
+      provBadge.style.display = 'inline-flex';
+    }
+
+    // Render previous sessions history (summaries[1..])
+    const history     = summaries.slice(1);
+    const historyList = document.getElementById('wr-intel-history-list');
+    if (history.length && histDiv && historyList) {
+      histDiv.style.display = 'block';
+      historyList.innerHTML = history.map((s) => {
+        const inf = s.inference || {};
+        const session = s.cron_sessions || {};
+        const slot = session.schedule_slot || 'manual';
+        const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+        const temp = inf.political_temperature || '';
+        const tempColor = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' }[temp] || 'var(--text-muted)';
+        return `<div style="padding:.45rem .65rem;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;">
+          <span style="color:var(--text-secondary);">${slotEmoji} ${slot} · ${new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          ${temp ? `<span style="color:${tempColor};font-weight:700;">● ${temp.toUpperCase()}</span>` : ''}
+          <span style="color:var(--text-muted);">${s.batch_size || 0} items · ${s.llm_provider}</span>
+        </div>`;
+      }).join('');
+    }
+
+  } catch (e) {
+    if (card) card.innerHTML = `<p style="font-size:.72rem;color:var(--red);padding:.5rem 0;">Could not load intelligence summary: ${wrEscape(e.message)}</p>`;
+    if (badge) badge.textContent = 'Error';
+  }
+}
+
+/**
+ * Render a single intelligence summary into the target container.
+ */
+function renderIntelligenceSummary(summary, container) {
+  const inf = summary.inference || {};
+  const session = summary.cron_sessions || {};
+
+  const tempColor = {
+    high:   { bg: 'rgba(230,57,70,0.08)',   border: 'rgba(230,57,70,0.3)',  color: 'var(--red)',   label: '🔴 HIGH' },
+    medium: { bg: 'rgba(255,159,67,0.08)',  border: 'rgba(255,159,67,0.3)', color: 'var(--amber)', label: '🟠 MEDIUM' },
+    low:    { bg: 'rgba(38,222,129,0.06)',  border: 'rgba(38,222,129,0.2)', color: 'var(--green)', label: '🟢 LOW' },
+  }[inf.political_temperature || 'medium'] || { bg: 'rgba(168,85,247,0.06)', border: 'rgba(168,85,247,0.2)', color: '#c084fc', label: '🟣' };
+
+  const districtHTML = inf.district_situation && Object.keys(inf.district_situation).length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📍 District Situation</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.35rem;">
+          ${Object.entries(inf.district_situation).slice(0, 8).map(([d, s]) =>
+            `<div style="padding:.35rem .55rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);">
+               <div style="font-size:.67rem;font-weight:700;color:var(--text-primary);">📍 ${wrEscape(d)}</div>
+               <div style="font-size:.65rem;color:var(--text-muted);line-height:1.4;margin-top:.15rem;">${wrEscape(s)}</div>
+             </div>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const partyHTML = inf.party_activities && Object.keys(inf.party_activities).length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🏛️ Party Activities</div>
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+          ${Object.entries(inf.party_activities).filter(([, v]) => v).slice(0, 6).map(([party, activity]) => {
+            const partyColors = { BJP: '#ff9933', RJD: '#1a8f3c', JDU: '#0070b8', INC: '#138808', 'Jan Suraaj': '#6b21a8' };
+            const pColor = partyColors[party] || 'var(--text-muted)';
+            return `<div style="padding:.35rem .55rem;background:var(--glass-bg);border-left:3px solid ${pColor};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+               <span style="font-size:.67rem;font-weight:800;color:${pColor};">${wrEscape(party)}</span>
+               <span style="font-size:.65rem;color:var(--text-secondary);margin-left:.4rem;">${wrEscape(activity)}</span>
+             </div>`;
+          }).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const problemsHTML = Array.isArray(inf.problem_areas) && inf.problem_areas.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Problem Areas</div>
+        <div style="display:flex;flex-direction:column;gap:.25rem;">
+          ${inf.problem_areas.slice(0, 5).map((p) =>
+            `<div style="padding:.3rem .55rem;background:rgba(230,57,70,0.06);border-left:2px solid var(--red);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.68rem;color:var(--text-secondary);">${wrEscape(p)}</div>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const criticalHTML = Array.isArray(inf.critical_issues) && inf.critical_issues.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🚨 Critical Issues</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
+          ${inf.critical_issues.slice(0, 6).map((i) =>
+            `<span style="padding:.25rem .5rem;background:rgba(255,159,67,0.1);border:1px solid rgba(255,159,67,0.3);border-radius:999px;font-size:.65rem;color:var(--amber);">${wrEscape(i)}</span>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const keyEventsHTML = Array.isArray(inf.key_events) && inf.key_events.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📅 Key Events</div>
+        <ol style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${inf.key_events.slice(0, 5).map((e) =>
+            `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(e)}</li>`
+          ).join('')}
+        </ol>
+      </div>`
+    : '';
+
+  const narrativeHTML = inf.narrative_threats
+    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(230,57,70,0.05);border:1px dashed rgba(230,57,70,0.3);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);margin-bottom:.2rem;">🎯 Narrative Threats</div>
+        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.narrative_threats)}</div>
+      </div>`
+    : '';
+
+  const actionsHTML = inf.recommended_actions
+    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);margin-bottom:.2rem;">⚡ Recommended Actions</div>
+        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.recommended_actions)}</div>
+      </div>`
+    : '';
+
+  const slot   = session.schedule_slot || 'manual';
+  const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+  const batchInfo = `Batch ${summary.batch_number} · ${summary.batch_size} items · ${summary.llm_provider}`;
+  const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  container.innerHTML = `<div style="padding:.85rem;border:1px solid ${tempColor.border};border-left:4px solid ${tempColor.color};border-radius:var(--radius-md);background:${tempColor.bg};">
+    <!-- Top bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.35rem;">
+      <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:.65rem;font-weight:800;color:${tempColor.color};letter-spacing:.05em;">POLITICAL TEMPERATURE ${tempColor.label}</span>
+        <span class="tag" style="font-size:.6rem;">${slotEmoji} ${slot.charAt(0).toUpperCase() + slot.slice(1)}</span>
+      </div>
+      <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${batchInfo}</span>
+    </div>
+
+    <!-- Overall situation -->
+    ${inf.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid ${tempColor.border};padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(inf.overall_situation)}</div>` : ''}
+
+    <!-- Opposition critique -->
+    ${inf.opposition_critique ? `<div style="margin-top:.65rem;padding:.4rem .6rem;background:rgba(168,85,247,0.06);border-left:3px solid rgba(168,85,247,0.4);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.7rem;color:var(--text-secondary);"><span style="font-weight:700;color:#c084fc;">विपक्ष: </span>${wrEscape(inf.opposition_critique)}</div>` : ''}
+
+    ${districtHTML}
+    ${partyHTML}
+    ${problemsHTML}
+    ${criticalHTML}
+    ${keyEventsHTML}
+    ${narrativeHTML}
+    ${actionsHTML}
+
+    <!-- Session stats footer -->
+    <div style="margin-top:.75rem;padding-top:.5rem;border-top:1px solid ${tempColor.border};display:flex;gap:1rem;flex-wrap:wrap;">
+      <span style="font-size:.62rem;color:var(--text-muted);">📡 ${session.total_fetched || 0} fetched</span>
+      <span style="font-size:.62rem;color:var(--text-muted);">✅ ${session.total_processed || 0} processed</span>
+      <span style="font-size:.62rem;color:var(--text-muted);">📦 ${summary.input_tokens || '—'} in · ${summary.output_tokens || '—'} out tokens</span>
+    </div>
+  </div>`;
+}
+
+/**
+ * Start 5-minute auto-refresh timer for intelligence summary.
+ */
+function startSummaryAutoRefresh() {
+  if (wrIntelAutoRefreshTimer) clearInterval(wrIntelAutoRefreshTimer);
+  wrIntelAutoRefreshTimer = setInterval(() => {
+    loadIntelligenceSummary(false); // silent refresh (no spinner)
+  }, 5 * 60 * 1000);
+}
+
 function initWarRoom() {
   setupWarRoomControls();
   loadActionState();
   refreshGeminiStatus();
-  loadAnalyzedSummaries();
+  loadIntelligenceSummary();     // NEW — load pipeline summary first
+  startSummaryAutoRefresh();     // NEW — auto-refresh every 5 min
   connectWarRoom();
+  // Note: loadAnalyzedSummaries() is now on-demand only (via ↻ Refresh button)
 }
 
 
@@ -666,4 +900,6 @@ window.toggleYoutubeExpansion = toggleYoutubeExpansion;
 window.updateAlertAction = updateAlertAction;
 window.triggerGeminiAnalysis = triggerGeminiAnalysis;
 window.loadAnalyzedSummaries = loadAnalyzedSummaries;
+window.loadIntelligenceSummary = loadIntelligenceSummary;
+
 

@@ -29,13 +29,6 @@ let wrRssSource = '';
 let wrYoutubeExpanded = {};
 let wrActionState = {};
 let wrGeminiRunning = false;
-let wrGeminiStatusTimer = null;
-let wrAnalysisByRawId = {};
-let wrAnalysisByUrl = {};
-let wrAnalysisByTitle = {};
-let wrGeminiVisibleCount = 5;
-let wrGeminiRenderItems = [];
-let wrActionDetails = {};
 
 const WR_ACTION_LABELS = { new: 'New', review: 'Review', assigned: 'Assigned', report: 'Report requested', monitor: 'Monitor', closed: 'Closed' };
 
@@ -79,100 +72,390 @@ function wrTags(item) {
     .filter(tag => text.includes(tag.toLowerCase())).slice(0, 4);
 }
 
-function wrTitleKey(value) {
-  return String(value || '').toLowerCase().replace(/https?:\/\/\S+/g, '').replace(/[^a-z0-9\u0900-\u097f]+/gi, ' ').trim().replace(/\s+/g, ' ');
+/* Return first sentence of text, capped at 120 chars. */
+function wrCrispSummary(text) {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return '';
+  const sentenceEnd = clean.search(/[.!?]/);
+  const firstSentence = sentenceEnd > 10 ? clean.slice(0, sentenceEnd + 1) : clean;
+  if (firstSentence.length <= 120) return firstSentence;
+  const truncated = firstSentence.slice(0, 120);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 60 ? truncated.slice(0, lastSpace) : truncated) + '…';
 }
 
-function wrVisibleSummary(value, title) {
-  const summary = String(value || '').trim();
-  if (!summary || wrTitleKey(summary) === wrTitleKey(title)) return '';
-  const firstSentence = summary.split(/(?<=[।!?])\s+/)[0].trim() || summary;
-  return firstSentence.length > 120 ? `${firstSentence.slice(0, 117).trimEnd()}...` : firstSentence;
+/**
+ * Returns true if `summary` is essentially a restatement of `title`.
+ * Used to suppress redundant "Executive Summary" blocks.
+ * Checks: word overlap > 70%, or summary starts with the first 5 words of title.
+ */
+function wrSummaryIsRedundant(summary, title) {
+  if (!summary || !title) return true;
+  const clean = s => String(s).toLowerCase().replace(/[^\w\u0900-\u097f]+/gi, ' ').trim();
+  const s = clean(summary);
+  const t = clean(title);
+  /* Prefix check — summary begins with same 5 words as title */
+  const titleStart = t.split(' ').slice(0, 5).join(' ');
+  if (s.startsWith(titleStart)) return true;
+  /* Word-overlap check — meaningful words only (length > 2) */
+  const sWords = new Set(s.split(' ').filter(w => w.length > 2));
+  const tWords = new Set(t.split(' ').filter(w => w.length > 2));
+  if (!sWords.size || !tWords.size) return true;
+  const overlap = [...sWords].filter(w => tWords.has(w)).length;
+  return (overlap / Math.max(sWords.size, tWords.size)) > 0.70;
 }
 
-function wrSimilarNews(items) {
-  const groups = [];
-  items.forEach(item => {
-    const key = wrTitleKey(item.title);
-    const words = new Set(key.split(' ').filter(word => word.length > 2));
-    let group = groups.find(candidate => {
-      if (candidate.key === key) return true;
-      const overlap = [...words].filter(word => candidate.words.has(word)).length;
-      return words.size > 3 && candidate.words.size > 3 && overlap / Math.max(words.size, candidate.words.size) >= 0.75;
-    });
-    if (!group) {
-      group = { item: { ...item }, key, words, sources: [] };
-      groups.push(group);
-    }
-    const source = item.source || 'Unknown source';
-    if (!group.sources.includes(source)) group.sources.push(source);
-    if ((!group.item.summary || group.item.summary === group.item.title) && item.summary) group.item.summary = item.summary;
-    if (!group.item.url && item.url) group.item.url = item.url;
-  });
-  return groups.map(group => ({ ...group.item, sourceCount: group.sources.length, sourceNames: group.sources }));
+/**
+ * Pick the best displayable summary for a card:
+ * 1. Gemini-generated summary (from analyzed_items via enrichment) — if not redundant with title
+ * 2. First sentence of raw body — if not redundant with title
+ * 3. null → caller shows "🔄 Gemini analysis pending"
+ */
+function wrBestSummary(item) {
+  /* Priority 1: real Gemini summary */
+  if (item.gemini_summary && !item.gemini_summary.startsWith('Summary pending')) {
+    const gs = String(item.gemini_summary).trim();
+    if (gs && !wrSummaryIsRedundant(gs, item.title)) return gs;
+  }
+  /* Priority 2: first-sentence of raw body */
+  const crisp = wrCrispSummary(item.body);
+  if (crisp && !wrSummaryIsRedundant(crisp, item.title)) return crisp;
+  /* Nothing useful — analysis pending */
+  return null;
 }
 
 function wrNormalise(item) {
-  const analysis = wrAnalysisByRawId[String(item.id)] || wrAnalysisByUrl[item.url] || wrAnalysisByTitle[wrTitleKey(item.title)];
-  const summary = item.summary || analysis?.summary || null;
   return {
     id: item.id,
     title: item.title || 'Untitled update',
-    summary: wrVisibleSummary(summary, item.title),
-    body: wrVisibleSummary(summary, item.title),
+    body: item.content || item.body || '',
+    gemini_summary: item.gemini_summary || null,
     district: item.author || item.district || 'General',
     source: item.source || 'NewsData.io',
     created_at: item.created_at || item.time,
     url: item.url || item.link || '',
     category: wrCategory(item),
     level: wrLevel(item),
-    tags: wrTags(item),
-    sourceCount: item.sourceCount || 1,
-    sourceNames: item.sourceNames || [item.source || 'Unknown source']
+    tags: wrTags(item)
   };
 }
 
-function wrNormaliseAnalysis(item) {
-  const raw = item.raw_items || {};
-  return wrNormalise({
-    id: item.id,
-    title: raw.title || item.summary || 'Analyzed news item',
-    summary: item.summary || raw.title,
-    district: item.district,
-    source: `Gemini AI · ${item.module || 'General'}`,
-    created_at: item.created_at,
-    url: raw.url || '',
-    priority: item.priority,
-    category: item.module || 'General'
-  });
+/* ── AI Executive Summary Feed ─────────────────────────────── */
+
+async function loadAnalyzedSummaries(forceRefresh = false) {
+  const list = document.getElementById('wr-summary-list');
+  const countEl = document.getElementById('wr-summary-count');
+  if (!list) return;
+
+  // Always show spinner when triggered (it's now on-demand only)
+  list.innerHTML = '<div class="empty-state" style="padding:.75rem;"><div class="spinner"></div><p class="empty-state-text" style="margin-top:.5rem;">Loading analyzed summaries…</p></div>';
+
+
+  try {
+    const response = await fetch('/api/analyzed-items?limit=30', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    const result = await response.json();
+    const items = (result.data || []).filter(item => item.summary && !item.summary.startsWith('Summary pending'));
+
+    if (countEl) countEl.textContent = `${items.length} analyzed`;
+
+    if (!items.length) {
+      list.innerHTML = `<div style="text-align:center;padding:1.25rem 0;">
+        <div style="font-size:1.5rem;margin-bottom:.5rem;">🧠</div>
+        <p style="font-size:.78rem;color:var(--text-muted);">No analyzed summaries yet.</p>
+        <p style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Click <b>⚡ Analyse</b> above to process the news queue.</p>
+      </div>`;
+      return;
+    }
+
+    const priorityConfig = {
+      Critical:   { color: 'var(--red)',   bg: 'rgba(230,57,70,0.1)',  border: 'rgba(230,57,70,0.3)',  icon: '🔴' },
+      Developing: { color: 'var(--amber)', bg: 'rgba(255,159,67,0.1)', border: 'rgba(255,159,67,0.3)', icon: '🟠' },
+      Watch:      { color: 'var(--gold)',  bg: 'rgba(245,197,24,0.08)', border: 'rgba(245,197,24,0.25)', icon: '🟡' },
+      Routine:    { color: 'var(--green)', bg: 'rgba(38,222,129,0.06)', border: 'rgba(38,222,129,0.2)', icon: '🟢' },
+    };
+
+    list.innerHTML = items.map(item => {
+      const pc = priorityConfig[item.priority] || priorityConfig.Watch;
+      const title = item.raw_items?.title || item.event_type || 'Update';
+      const source = item.raw_items?.source_name || '';
+      const url = item.raw_items?.url || '';
+      const district = item.district && item.district !== 'General' ? `📍 ${wrEscape(item.district)}` : '';
+      const who = item.who ? `👤 ${wrEscape(item.who)}` : '';
+      return `<div style="padding:.65rem .75rem;border:1px solid ${pc.border};border-left:3px solid ${pc.color};border-radius:var(--radius-md);background:${pc.bg};">
+        <div style="display:flex;gap:.4rem;align-items:center;margin-bottom:.3rem;flex-wrap:wrap;">
+          <span style="font-size:.6rem;font-weight:800;color:${pc.color};letter-spacing:.05em;">${pc.icon} ${(item.priority || 'WATCH').toUpperCase()}</span>
+          ${district ? `<span style="font-size:.62rem;color:var(--text-muted);">${district}</span>` : ''}
+          ${who ? `<span style="font-size:.62rem;color:var(--text-muted);">${who}</span>` : ''}
+          ${source ? `<span style="font-size:.62rem;color:var(--text-muted);">📡 ${wrEscape(source)}</span>` : ''}
+        </div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--text-primary);line-height:1.35;margin-bottom:.3rem;">${wrEscape(title)}</div>
+        <div style="font-size:.75rem;color:var(--text-secondary);line-height:1.55;border-left:2px solid ${pc.color}44;padding-left:.5rem;">${wrEscape(item.summary)}</div>
+        ${url ? `<a href="${wrEscape(url)}" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin-top:.4rem;font-size:.65rem;color:var(--primary-light);text-decoration:none;">Source ↗</a>` : ''}
+      </div>`;
+    }).join('');
+
+  } catch (e) {
+    if (list) list.innerHTML = `<p style="font-size:.72rem;color:var(--red);padding:.5rem 0;">Could not load summaries: ${wrEscape(e.message)}</p>`;
+    if (countEl) countEl.textContent = 'Error';
+  }
+}
+
+/* ── Intelligence Summary (Rolling Pipeline) ─────────────── */
+
+let wrIntelAutoRefreshTimer = null;
+
+/**
+ * Fetch and render the latest intelligence summary from the pipeline.
+ * @param {boolean} forceRefresh — show loading spinner on manual refresh
+ */
+async function loadIntelligenceSummary(forceRefresh = false) {
+  const card       = document.getElementById('wr-intel-summary-card');
+  const badge      = document.getElementById('wr-intel-session-badge');
+  const provBadge  = document.getElementById('wr-intel-provider-badge');
+  const progress   = document.getElementById('wr-pipeline-progress');
+  const statusText = document.getElementById('wr-pipeline-status-text');
+  const histDiv    = document.getElementById('wr-intel-history');
+
+  if (!card) return;
+
+  if (forceRefresh) {
+    card.innerHTML = '<div class="empty-state" style="padding:.75rem;"><div class="spinner"></div><p class="empty-state-text" style="margin-top:.5rem;">Refreshing…</p></div>';
+  }
+
+  try {
+    const response = await fetch('/api/news-summaries?latest=true&limit=5', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`API ${response.status}`);
+    const result = await response.json();
+
+    const summaries      = result.data || [];
+    const currentSession = result.current_session;
+
+    // Show pipeline progress if running
+    if (currentSession && currentSession.status === 'processing' && progress && statusText) {
+      const pct = currentSession.total_fetched
+        ? Math.round((currentSession.total_processed / currentSession.total_fetched) * 100)
+        : 0;
+      progress.style.display = 'block';
+      statusText.textContent = `${currentSession.total_processed}/${currentSession.total_fetched} items · Batch ${currentSession.total_batches} · ${pct}% complete`;
+    } else if (progress) {
+      progress.style.display = 'none';
+    }
+
+    // Session badge
+    if (badge && currentSession) {
+      const slot = currentSession.schedule_slot || 'manual';
+      const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+      badge.textContent = `${slotEmoji} ${slot.charAt(0).toUpperCase() + slot.slice(1)} · ${currentSession.total_fetched || 0} fetched`;
+    }
+
+    if (!summaries.length) {
+      card.innerHTML = `<div style="text-align:center;padding:1.25rem 0;">
+        <div style="font-size:1.5rem;margin-bottom:.5rem;">📡</div>
+        <p style="font-size:.78rem;color:var(--text-muted);">No intelligence summary yet.</p>
+        <p style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Summaries are generated automatically at 7 AM, 1 PM and 8 PM IST.</p>
+      </div>`;
+      return;
+    }
+
+    // Render latest summary
+    const latest = summaries[0];
+    renderIntelligenceSummary(latest, card);
+
+    // Provider badge
+    if (provBadge && latest.llm_provider) {
+      const provLabels = { gemini: '🟣 Gemini', groq: '🟢 Groq', plugsky: '🔵 PlugSky' };
+      provBadge.textContent = provLabels[latest.llm_provider] || latest.llm_provider;
+      provBadge.style.display = 'inline-flex';
+    }
+
+    // Render previous sessions history (summaries[1..])
+    const history     = summaries.slice(1);
+    const historyList = document.getElementById('wr-intel-history-list');
+    if (history.length && histDiv && historyList) {
+      histDiv.style.display = 'block';
+      historyList.innerHTML = history.map((s) => {
+        const inf = s.inference || {};
+        const session = s.cron_sessions || {};
+        const slot = session.schedule_slot || 'manual';
+        const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+        const temp = inf.political_temperature || '';
+        const tempColor = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' }[temp] || 'var(--text-muted)';
+        return `<div style="padding:.45rem .65rem;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;">
+          <span style="color:var(--text-secondary);">${slotEmoji} ${slot} · ${new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          ${temp ? `<span style="color:${tempColor};font-weight:700;">● ${temp.toUpperCase()}</span>` : ''}
+          <span style="color:var(--text-muted);">${s.batch_size || 0} items · ${s.llm_provider}</span>
+        </div>`;
+      }).join('');
+    }
+
+  } catch (e) {
+    if (card) card.innerHTML = `<p style="font-size:.72rem;color:var(--red);padding:.5rem 0;">Could not load intelligence summary: ${wrEscape(e.message)}</p>`;
+    if (badge) badge.textContent = 'Error';
+  }
+}
+
+/**
+ * Render a single intelligence summary into the target container.
+ */
+function renderIntelligenceSummary(summary, container) {
+  const inf = summary.inference || {};
+  const session = summary.cron_sessions || {};
+
+  const tempColor = {
+    high:   { bg: 'rgba(230,57,70,0.08)',   border: 'rgba(230,57,70,0.3)',  color: 'var(--red)',   label: '🔴 HIGH' },
+    medium: { bg: 'rgba(255,159,67,0.08)',  border: 'rgba(255,159,67,0.3)', color: 'var(--amber)', label: '🟠 MEDIUM' },
+    low:    { bg: 'rgba(38,222,129,0.06)',  border: 'rgba(38,222,129,0.2)', color: 'var(--green)', label: '🟢 LOW' },
+  }[inf.political_temperature || 'medium'] || { bg: 'rgba(168,85,247,0.06)', border: 'rgba(168,85,247,0.2)', color: '#c084fc', label: '🟣' };
+
+  const districtHTML = inf.district_situation && Object.keys(inf.district_situation).length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📍 District Situation</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.35rem;">
+          ${Object.entries(inf.district_situation).slice(0, 8).map(([d, s]) =>
+            `<div style="padding:.35rem .55rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);">
+               <div style="font-size:.67rem;font-weight:700;color:var(--text-primary);">📍 ${wrEscape(d)}</div>
+               <div style="font-size:.65rem;color:var(--text-muted);line-height:1.4;margin-top:.15rem;">${wrEscape(s)}</div>
+             </div>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const partyHTML = inf.party_activities && Object.keys(inf.party_activities).length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🏛️ Party Activities</div>
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+          ${Object.entries(inf.party_activities).filter(([, v]) => v).slice(0, 6).map(([party, activity]) => {
+            const partyColors = { BJP: '#ff9933', RJD: '#1a8f3c', JDU: '#0070b8', INC: '#138808', 'Jan Suraaj': '#6b21a8' };
+            const pColor = partyColors[party] || 'var(--text-muted)';
+            return `<div style="padding:.35rem .55rem;background:var(--glass-bg);border-left:3px solid ${pColor};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+               <span style="font-size:.67rem;font-weight:800;color:${pColor};">${wrEscape(party)}</span>
+               <span style="font-size:.65rem;color:var(--text-secondary);margin-left:.4rem;">${wrEscape(activity)}</span>
+             </div>`;
+          }).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const problemsHTML = Array.isArray(inf.problem_areas) && inf.problem_areas.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Problem Areas</div>
+        <div style="display:flex;flex-direction:column;gap:.25rem;">
+          ${inf.problem_areas.slice(0, 5).map((p) =>
+            `<div style="padding:.3rem .55rem;background:rgba(230,57,70,0.06);border-left:2px solid var(--red);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.68rem;color:var(--text-secondary);">${wrEscape(p)}</div>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const criticalHTML = Array.isArray(inf.critical_issues) && inf.critical_issues.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🚨 Critical Issues</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
+          ${inf.critical_issues.slice(0, 6).map((i) =>
+            `<span style="padding:.25rem .5rem;background:rgba(255,159,67,0.1);border:1px solid rgba(255,159,67,0.3);border-radius:999px;font-size:.65rem;color:var(--amber);">${wrEscape(i)}</span>`
+          ).join('')}
+        </div>
+      </div>`
+    : '';
+
+  const keyEventsHTML = Array.isArray(inf.key_events) && inf.key_events.length
+    ? `<div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📅 Key Events</div>
+        <ol style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${inf.key_events.slice(0, 5).map((e) =>
+            `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(e)}</li>`
+          ).join('')}
+        </ol>
+      </div>`
+    : '';
+
+  const narrativeHTML = inf.narrative_threats
+    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(230,57,70,0.05);border:1px dashed rgba(230,57,70,0.3);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);margin-bottom:.2rem;">🎯 Narrative Threats</div>
+        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.narrative_threats)}</div>
+      </div>`
+    : '';
+
+  const actionsHTML = inf.recommended_actions
+    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);margin-bottom:.2rem;">⚡ Recommended Actions</div>
+        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.recommended_actions)}</div>
+      </div>`
+    : '';
+
+  const slot   = session.schedule_slot || 'manual';
+  const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
+  const batchInfo = `Batch ${summary.batch_number} · ${summary.batch_size} items · ${summary.llm_provider}`;
+  const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  container.innerHTML = `<div style="padding:.85rem;border:1px solid ${tempColor.border};border-left:4px solid ${tempColor.color};border-radius:var(--radius-md);background:${tempColor.bg};">
+    <!-- Top bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.35rem;">
+      <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:.65rem;font-weight:800;color:${tempColor.color};letter-spacing:.05em;">POLITICAL TEMPERATURE ${tempColor.label}</span>
+        <span class="tag" style="font-size:.6rem;">${slotEmoji} ${slot.charAt(0).toUpperCase() + slot.slice(1)}</span>
+      </div>
+      <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${batchInfo}</span>
+    </div>
+
+    <!-- Overall situation -->
+    ${inf.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid ${tempColor.border};padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(inf.overall_situation)}</div>` : ''}
+
+    <!-- Opposition critique -->
+    ${inf.opposition_critique ? `<div style="margin-top:.65rem;padding:.4rem .6rem;background:rgba(168,85,247,0.06);border-left:3px solid rgba(168,85,247,0.4);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.7rem;color:var(--text-secondary);"><span style="font-weight:700;color:#c084fc;">विपक्ष: </span>${wrEscape(inf.opposition_critique)}</div>` : ''}
+
+    ${districtHTML}
+    ${partyHTML}
+    ${problemsHTML}
+    ${criticalHTML}
+    ${keyEventsHTML}
+    ${narrativeHTML}
+    ${actionsHTML}
+
+    <!-- Session stats footer -->
+    <div style="margin-top:.75rem;padding-top:.5rem;border-top:1px solid ${tempColor.border};display:flex;gap:1rem;flex-wrap:wrap;">
+      <span style="font-size:.62rem;color:var(--text-muted);">📡 ${session.total_fetched || 0} fetched</span>
+      <span style="font-size:.62rem;color:var(--text-muted);">✅ ${session.total_processed || 0} processed</span>
+      <span style="font-size:.62rem;color:var(--text-muted);">📦 ${summary.input_tokens || '—'} in · ${summary.output_tokens || '—'} out tokens</span>
+    </div>
+  </div>`;
+}
+
+/**
+ * Start 5-minute auto-refresh timer for intelligence summary.
+ */
+function startSummaryAutoRefresh() {
+  if (wrIntelAutoRefreshTimer) clearInterval(wrIntelAutoRefreshTimer);
+  wrIntelAutoRefreshTimer = setInterval(() => {
+    loadIntelligenceSummary(false); // silent refresh (no spinner)
+  }, 5 * 60 * 1000);
 }
 
 function initWarRoom() {
   setupWarRoomControls();
-  setupAiSidebar();
   loadActionState();
   refreshGeminiStatus();
-  loadGeminiResults();
-  if (wrGeminiStatusTimer) clearInterval(wrGeminiStatusTimer);
-  wrGeminiStatusTimer = setInterval(refreshGeminiStatus, 30000);
+  loadIntelligenceSummary();     // NEW — load pipeline summary first
+  startSummaryAutoRefresh();     // NEW — auto-refresh every 5 min
   connectWarRoom();
+  // Note: loadAnalyzedSummaries() is now on-demand only (via ↻ Refresh button)
 }
 
-function setupAiSidebar() {
-  const sidebar = document.getElementById('wr-ai-sidebar');
-  if (!sidebar || sidebar.dataset.ready === 'true') return;
-  ['wr-quick-actions', 'wr-news-sources', 'wr-livehindustan-sources'].forEach(id => {
-    const card = document.getElementById(id);
-    if (card) sidebar.appendChild(card);
-  });
-  sidebar.dataset.ready = 'true';
-}
 
 function setGeminiStatus(message, tone = 'muted') {
+  /* Only show the status div during active analysis — not for idle queue messages */
   const status = document.getElementById('wr-gemini-status');
   if (!status) return;
-  status.textContent = message;
-  status.style.color = tone === 'error' ? 'var(--red)' : tone === 'success' ? 'var(--green)' : 'var(--text-muted)';
+  if (message) {
+    status.textContent = message;
+    status.style.color = tone === 'error' ? 'var(--red)' : tone === 'success' ? 'var(--green)' : 'var(--text-muted)';
+    status.style.display = 'block';
+  } else {
+    status.style.display = 'none';
+    status.textContent = '';
+  }
 }
 
 function setGeminiResult(message, tone = 'default') {
@@ -185,19 +468,23 @@ function setGeminiResult(message, tone = 'default') {
 
 async function refreshGeminiStatus() {
   try {
-    const response = await fetch('/api/analysis-status', { cache: 'no-store' });
+    const response = await fetch('/api/analyze-news', { cache: 'no-store' });
+    if (!response.ok) return; /* silent fail — don't show API errors in the UI */
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Could not read analysis queue');
     const pending = Number(result.pending || 0);
     const pendingLabel = document.getElementById('wr-gemini-pending');
-    if (pendingLabel) pendingLabel.textContent = `Pending: ${pending}`;
-    const last = result.last_cycle?.completed_at;
-    const lastLabel = document.getElementById('wr-gemini-last');
-    if (lastLabel) lastLabel.textContent = last ? `Last analyzed: ${wrTimeAgo(last)}` : 'Last analyzed: Awaiting first cycle';
-    if (!wrGeminiRunning) setGeminiStatus(pending ? `${pending} items queued. Auto-analysis runs every 15 minutes.` : 'Queue clear. Auto-analysis is monitoring new items.', pending ? 'muted' : 'success');
-    await loadGeminiResults(false);
-  } catch (error) {
-    setGeminiStatus(error.message, 'error');
+    if (pendingLabel) {
+      pendingLabel.textContent = pending ? `${pending} pending` : '';
+      pendingLabel.style.display = pending ? 'inline-flex' : 'none';
+    }
+    /* Only update button label if not currently running */
+    if (!wrGeminiRunning) {
+      const button = document.getElementById('wr-gemini-trigger');
+      if (button) button.textContent = '⚡ Analyse';
+      setGeminiStatus(''); /* hide status when idle */
+    }
+  } catch (_) {
+    /* Network errors during status check are silently ignored */
   }
 }
 
@@ -205,12 +492,9 @@ async function triggerGeminiAnalysis() {
   if (wrGeminiRunning) return;
   const button = document.getElementById('wr-gemini-trigger');
   wrGeminiRunning = true;
-  if (button) {
-    button.disabled = true;
-    button.textContent = '⏳ Analyzing…';
-  }
+  if (button) { button.disabled = true; button.textContent = '⏳ Analyzing…'; }
   setGeminiResult('', 'default');
-  setGeminiStatus('Gemini is analyzing the next 10 news items. Please keep this page open.', 'muted');
+  setGeminiStatus('Gemini is analyzing the next batch of news items…', 'muted');
 
   try {
     const response = await fetch('/api/analyze-news', {
@@ -221,94 +505,37 @@ async function triggerGeminiAnalysis() {
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Gemini analysis failed');
     const message = result.processed
-      ? `${result.processed} analyzed · ${result.alerts_created || 0} alerts created${result.errors ? ` · ${result.errors} errors` : ''}`
-      : (result.message || 'No pending items');
-    setGeminiResult(message, result.errors ? 'error' : 'success');
-    setGeminiStatus('Batch complete. Queue status updated.', 'success');
-    await loadGeminiResults();
+      ? `✅ ${result.processed} analyzed · ${result.alerts_created || 0} alerts created${result.failed ? ` · ${result.failed} errors` : ''}`
+      : (result.message || 'No pending items to analyze');
+    setGeminiResult(message, result.failed ? 'error' : 'success');
+    setGeminiStatus(''); /* hide status when done */
     await refreshGeminiStatus();
+    await loadAnalyzedSummaries(true);
   } catch (error) {
-    setGeminiResult(error.message, 'error');
-    setGeminiStatus('Analysis could not be completed.', 'error');
+    setGeminiResult(`❌ ${error.message}`, 'error');
+    setGeminiStatus('');
   } finally {
     wrGeminiRunning = false;
-    if (button) {
-      button.textContent = '▶ Run Analysis';
-      button.disabled = false;
-    }
-    await refreshGeminiStatus();
+    if (button) { button.textContent = '⚡ Analyse'; button.disabled = false; }
   }
 }
 
+
+
 function loadActionState() {
-  fetch('/api/action-centre', { cache: 'no-store' })
-    .then(response => response.ok ? response.json() : Promise.reject(new Error('Action Centre unavailable')))
-    .then(result => {
-      wrActionState = {};
-      (result.data || []).forEach(action => {
-        wrActionState[String(action.item_id)] = action.status || 'new';
-        wrActionDetails[String(action.item_id)] = action;
-      });
-      renderActionCentre();
-      applyFilters();
-    })
-    .catch(error => console.warn('Action Centre load failed:', error.message));
+  try { wrActionState = JSON.parse(localStorage.getItem('bihar-war-room-actions') || '{}'); } catch { wrActionState = {}; }
 }
 
 function getAlertAction(id) {
   return wrActionState[String(id)] || 'new';
 }
 
-async function updateAlertAction(id, status) {
+function updateAlertAction(id, status) {
   wrActionState[String(id)] = status;
+  localStorage.setItem('bihar-war-room-actions', JSON.stringify(wrActionState));
   renderActionCentre();
   renderTopAttention();
   applyFilters();
-  const item = wrAllNews.find(news => String(news.id) === String(id));
-  if (!item) return;
-  try {
-    const response = await fetch('/api/action-centre', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...wrActionDetails[String(id)], item_id: id, title: item.title, source: item.source, priority: item.level, status })
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Action update failed');
-    wrActionDetails[String(id)] = result.data;
-  } catch (error) {
-    setGeminiStatus(`Action Centre: ${error.message}`, 'error');
-  }
-}
-
-function openActionDetails(id) {
-  const item = wrAllNews.find(news => String(news.id) === String(id));
-  if (!item) return;
-  const action = wrActionDetails[String(id)] || {};
-  const history = (action.history || []).slice(0, 8).map(entry => `<div style="padding:.45rem 0;border-top:1px solid var(--border-subtle);font-size:.7rem;color:var(--text-secondary);"><b>${wrEscape(entry.action)}</b> · ${wrEscape(entry.actor || 'War Room user')} · ${wrTimeAgo(entry.created_at)}<div style="color:var(--text-muted);margin-top:.2rem;">${wrEscape(JSON.stringify(entry.new_value || {}))}</div></div>`).join('') || '<div style="font-size:.72rem;color:var(--text-muted);">No history yet.</div>';
-  openModal(`<form onsubmit="saveActionDetails(event, '${wrEscape(id)}')" style="display:flex;flex-direction:column;gap:.75rem;">
-    <label>Assignee<input id="wr-assignee" class="input" value="${wrEscape(action.assignee || '')}" placeholder="Officer or team name"></label>
-    <label>Deadline<input id="wr-deadline" class="input" type="datetime-local" value="${action.deadline ? new Date(action.deadline).toISOString().slice(0, 16) : ''}"></label>
-    <label>Comment<textarea id="wr-comment" class="input" rows="4" placeholder="Follow-up, context or instruction">${wrEscape(action.comment || '')}</textarea></label>
-    <label>Approval<select id="wr-approval" class="select-dropdown"><option value="pending"${action.approval_status === 'pending' || !action.approval_status ? ' selected' : ''}>Pending approval</option><option value="approved"${action.approval_status === 'approved' ? ' selected' : ''}>Approved</option><option value="rejected"${action.approval_status === 'rejected' ? ' selected' : ''}>Rejected</option></select></label>
-    <button class="btn btn-primary" type="submit">Save Action</button>
-    <div><div class="card-title" style="margin:.25rem 0 .4rem;">Audit history</div>${history}</div>
-  </form>`, `Action Centre · ${item.title}`);
-}
-
-async function saveActionDetails(event, id) {
-  event.preventDefault();
-  const item = wrAllNews.find(news => String(news.id) === String(id));
-  const existing = wrActionDetails[String(id)] || {};
-  try {
-    const response = await fetch('/api/action-centre', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...existing, item_id: id, title: item.title, source: item.source, priority: item.level, status: getAlertAction(id), assignee: document.getElementById('wr-assignee').value, deadline: document.getElementById('wr-deadline').value || null, comment: document.getElementById('wr-comment').value, approval_status: document.getElementById('wr-approval').value, actor: 'War Room user' })
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Could not save action');
-    wrActionDetails[String(id)] = result.data;
-    closeModal();
-    renderActionCentre();
-  } catch (error) { setGeminiStatus(`Action Centre: ${error.message}`, 'error'); }
 }
 
 function setupWarRoomControls() {
@@ -323,6 +550,7 @@ function setupWarRoomControls() {
 async function connectWarRoom() {
   const grid = document.getElementById('wr-alerts-grid');
   if (grid) grid.innerHTML = '<div class="empty-state"><div class="spinner"></div><p class="empty-state-text">Loading live news feed…</p></div>';
+
   try {
     const endpoints = ['/api/live-news', 'http://localhost:8000/api/live-news'];
     let response;
@@ -338,89 +566,24 @@ async function connectWarRoom() {
     }
     if (!response) throw lastError || new Error('Live news backend is unavailable.');
     const result = await response.json();
-    if (result.status !== 'success') throw new Error('Live news backend returned an error.');
-    wrAllNews = (result.data || []).map(wrNormalise);
-    wrDisplayedNews = wrAllNews;
-    renderTicker();
-    renderTopAttention();
-    renderActionCentre();
-    applyFilters();
-    renderSources();
-    renderThreatGauge();
-    renderCategoryChart();
-    setupSearch();
-    await loadGeminiResults(false);
+
+    if (result.status === 'success') {
+      wrAllNews = result.data.map(wrNormalise);
+      wrDisplayedNews = wrAllNews;
+      renderTicker();
+      renderTopAttention();
+      renderActionCentre();
+      applyFilters();
+      renderSources();
+      renderThreatGauge();
+      renderCategoryChart();
+      setupSearch();
+    } else {
+      throw new Error('API returned failure status');
+    }
   } catch (error) {
     renderWarRoomError(error.message);
   }
-}
-
-async function loadGeminiResults(showLoading = true) {
-  const grid = document.getElementById('wr-ai-results-grid');
-  const summary = document.getElementById('wr-ai-priority-summary');
-  const total = document.getElementById('wr-ai-result-count');
-  if (!grid || !summary || !total) return;
-  if (showLoading) grid.innerHTML = '<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading analysed intelligence…</p></div>';
-  try {
-    const response = await fetch('/api/analyzed-items?limit=200', { cache: 'no-store' });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Could not load analyzed news');
-    const items = result.data || [];
-    if (!items.length) {
-      total.textContent = '0 analysed';
-      grid.innerHTML = '<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">No AI summaries generated yet. The next automatic cycle will add them.</p></div>';
-      return;
-    }
-    wrAnalysisByRawId = Object.fromEntries(items.filter(item => item.raw_item_id).map(item => [String(item.raw_item_id), item]));
-    wrAnalysisByUrl = Object.fromEntries(items.filter(item => item.raw_items?.url).map(item => [item.raw_items.url, item]));
-    wrAnalysisByTitle = Object.fromEntries(items.filter(item => item.raw_items?.title).map(item => [wrTitleKey(item.raw_items.title), item]));
-    wrAllNews = wrAllNews.map(item => wrNormalise(item));
-    wrDisplayedNews = wrDisplayedNews.map(item => wrNormalise(item));
-    if (wrDisplayedNews.length) applyFilters();
-    renderTopAttention();
-    const counts = { Critical: 0, Developing: 0, Watch: 0 };
-    items.forEach(item => { if (counts[item.priority] !== undefined) counts[item.priority]++; });
-    total.textContent = `${items.length} analysed`;
-    summary.innerHTML = [['Critical', '🔴', 'var(--red)'], ['Developing', '🟠', 'var(--amber)'], ['Watch', '🟡', 'var(--gold)']]
-      .map(([priority, icon, color]) => `<button type="button" class="stat-card" style="text-align:left;cursor:pointer;border-color:${color}55;"><div class="stat-label">${icon} ${priority}</div><div class="stat-value" style="color:${color};font-size:1.45rem;">${counts[priority]}</div><div class="stat-change">AI analysed news</div></button>`).join('');
-    window.wrGeminiItems = items;
-    wrGeminiVisibleCount = 5;
-    summary.querySelectorAll('button').forEach((button, index) => button.onclick = () => filterGeminiResults(['Critical', 'Developing', 'Watch'][index]));
-    renderGeminiResults(items);
-  } catch (error) {
-    total.textContent = 'Load failed';
-    grid.innerHTML = `<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">${wrEscape(error.message)}</p></div>`;
-  }
-}
-
-function renderGeminiResults(items) {
-  const grid = document.getElementById('wr-ai-results-grid');
-  if (!grid) return;
-  if (!items.length) {
-    grid.innerHTML = '<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">No analysed database news available yet.</p></div>';
-    return;
-  }
-  wrGeminiRenderItems = items;
-  const colors = { Critical: 'var(--red)', Developing: 'var(--amber)', Watch: 'var(--gold)', Routine: 'var(--green)' };
-  const visibleItems = items.slice(0, wrGeminiVisibleCount);
-  grid.innerHTML = visibleItems.map(item => {
-    const color = colors[item.priority] || 'var(--text-muted)';
-    const raw = item.raw_items || {};
-    const summary = wrVisibleSummary(item.summary, raw.title);
-    return `<article class="card" style="padding:.85rem;border-left:4px solid ${color};"><div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;"><span class="tag" style="color:${color};border-color:${color}55;">${wrEscape(item.priority || 'Watch')}</span><span class="tag" style="margin-left:.35rem;">${wrEscape(item.module || 'General')}</span>${item.summary_needs_review ? '<span class="tag tag-red" style="margin-left:.35rem;">Review summary</span>' : ''}<div style="font-size:.86rem;font-weight:700;line-height:1.4;margin-top:.5rem;">${wrEscape(raw.title || 'Untitled')}</div>${summary ? `<div style="font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-top:.55rem;">Executive Summary</div><div style="font-size:.8rem;color:var(--text-primary);line-height:1.5;margin-top:.15rem;">${wrEscape(summary)}</div>` : ''}<div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">Reason: ${wrEscape(item.priority_reason || 'Unclear from source')}</span><span class="tag">Reliability: ${wrEscape(item.source_reliability || 'Needs Verification')}</span><span class="tag">Reach: ${wrEscape(item.public_reach_indicator || 'Not mentioned')}</span>${item.factual_context_needed ? '<span class="tag tag-red">Context check needed</span>' : ''}</div></div>${raw.url ? `<a class="btn btn-ghost btn-sm" href="${wrEscape(raw.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ''}</div><div style="font-size:.68rem;color:var(--text-muted);margin-top:.5rem;">📍 ${wrEscape(item.district || 'General')} · ${wrEscape(item.who || 'Unknown')}</div></article>`;
-  }).join('');
-  if (items.length > visibleItems.length) {
-    grid.insertAdjacentHTML('beforeend', `<button type="button" class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="showMoreGeminiResults()">Read 10 more (${items.length - visibleItems.length} remaining)</button>`);
-  }
-}
-
-function showMoreGeminiResults() {
-  wrGeminiVisibleCount += 10;
-  renderGeminiResults(wrGeminiRenderItems);
-}
-
-function filterGeminiResults(priority) {
-  renderGeminiResults((window.wrGeminiItems || []).filter(item => item.priority === priority));
 }
 
 function renderActionCentre() {
@@ -442,7 +605,7 @@ function renderTopAttention() {
   const list = document.getElementById('wr-top-attention-list');
   if (!list) return;
   const order = { critical: 0, developing: 1, watch: 2, routine: 3 };
-  const news = wrSimilarNews(wrAllNews.filter(item => !item.source.toLowerCase().includes('youtube')));
+  const news = wrAllNews.filter(item => !item.source.toLowerCase().includes('youtube'));
   const candidates = (news.length ? news : wrAllNews).slice().sort((a, b) => {
     const levelDifference = order[a.level] - order[b.level];
     if (levelDifference) return levelDifference;
@@ -454,20 +617,21 @@ function renderTopAttention() {
   }
   list.innerHTML = candidates.map((item, index) => {
     const level = WR_LEVEL_CONFIG[item.level];
-    const summary = wrVisibleSummary(item.summary, item.title);
+    const bestSummary = wrBestSummary(item);
+    const summaryBlock = bestSummary
+      ? `<div style="margin-top:.45rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5;margin-top:.2rem;">${wrEscape(bestSummary)}</div></div>`
+      : `<div style="margin-top:.4rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
     return `<article style="padding:.85rem;border:1px solid ${level.color}44;border-left:3px solid ${level.color};border-radius:var(--radius-md);background:var(--glass-bg);animation:slideInUp .3s ease both;animation-delay:${index * .05}s;">
       <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start;"><span style="font-size:.68rem;font-weight:800;color:${level.color};">${index + 1}. ${level.label}</span><span style="font-size:.65rem;color:var(--text-muted);">${wrTimeAgo(item.created_at)}</span></div>
       <div style="font-size:.82rem;font-weight:700;line-height:1.35;margin-top:.55rem;">${wrEscape(item.title)}</div>
-      ${summary ? `<div style="font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-top:.6rem;">Executive Summary</div><div style="font-size:.78rem;color:var(--text-primary);line-height:1.5;margin-top:.18rem;">${wrEscape(summary)}</div>` : ''}
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag">📡 ${wrEscape(item.source)}</span>${item.sourceCount > 1 ? `<span class="tag tag-blue">${item.sourceCount} sources reported this</span>` : ''}</div>
+      ${summaryBlock}
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag">📡 ${wrEscape(item.source)}</span></div>
       <div style="display:flex;gap:.4rem;margin-top:.7rem;align-items:center;">${item.url ? `<a class="btn btn-ghost btn-sm" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ''}<button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div>
     </article>`;
   }).join('');
 }
 
-async function loadAllWarRoomNews() {
-  return connectWarRoom();
-}
+
 
 async function filterByDistrict() {
   const select = document.getElementById('wr-district-filter');
@@ -477,11 +641,12 @@ async function filterByDistrict() {
     applyFilters();
     return;
   }
-  const grid = document.getElementById('wr-alerts-grid');
-  if (grid) grid.innerHTML = '<div class="empty-state"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>';
-  const { data, error } = await wrClient.from('NewsDashboard').select('*').ilike('author', `%${wrCurrentDistrict}%`).order('created_at', { ascending: false });
-  if (error) { renderWarRoomError(error.message); return; }
-  wrDisplayedNews = (data || []).map(wrNormalise);
+
+  // Client-side filter since our API returns everything at once
+  wrDisplayedNews = wrAllNews.filter(item =>
+    item.district.toLowerCase().includes(wrCurrentDistrict.toLowerCase()) ||
+    item.district.toLowerCase() === 'multiple'
+  );
   applyFilters();
 }
 
@@ -522,32 +687,57 @@ function renderYoutubeChannel(videos, channelIndex) {
   const source = videos[0].source;
   const visibleVideos = videos.slice(0, wrYoutubeExpanded[source] ? 10 : 3);
   const moreButton = videos.length > 3 ? `<button class="btn btn-ghost btn-sm" style="grid-column:1/-1;justify-self:center;" onclick="toggleYoutubeExpansion('${wrEscape(source)}')">${wrYoutubeExpanded[source] ? 'Show less' : `See more (${Math.min(videos.length, 10) - 3} more)`}</button>` : '';
-  return `<section style="width:100%;padding:1rem;margin-bottom:1rem;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--glass-bg);"><h3 style="margin:0 0 .85rem;font-size:.9rem;color:var(--text-primary);">▶️ ${wrEscape(source.replace('YouTube: ', ''))}</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;">${visibleVideos.map((item, index) => { const level = WR_LEVEL_CONFIG[item.level]; return `<article class="card card-shine" style="border-left:4px solid ${level.color};animation:slideInUp .3s ease both;animation-delay:${(channelIndex * 3 + index) * .04}s;"><div style="display:flex;flex-direction:column;gap:.75rem;height:100%;"><div style="font-size:.9rem;font-weight:700;line-height:1.35;">${wrEscape(item.title)}</div><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(item.body).slice(0, 120)}${item.body.length > 120 ? '…' : ''}</div><div style="display:flex;gap:.4rem;align-items:center;margin-top:auto;"><span style="font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span>${item.url ? `<a class="btn btn-ghost btn-sm" style="margin-left:auto;" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">▶ Watch</a>` : ''}<button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`; }).join('')}${moreButton}</div></section>`;
+  return `<section style="width:100%;padding:1rem;margin-bottom:1rem;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--glass-bg);">
+    <h3 style="margin:0 0 .85rem;font-size:.9rem;color:var(--text-primary);">▶️ ${wrEscape(source.replace('YouTube: ', ''))}</h3>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;">
+      ${visibleVideos.map((item, index) => {
+        const level = WR_LEVEL_CONFIG[item.level];
+        const bestSummary = wrBestSummary(item);
+        const summaryBlock = bestSummary
+          ? `<div><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.4;margin-top:.15rem;">${wrEscape(bestSummary)}</div></div>`
+          : `<div style="font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
+        return `<article class="card card-shine" style="border-left:4px solid ${level.color};animation:slideInUp .3s ease both;animation-delay:${(channelIndex * 3 + index) * .04}s;"><div style="display:flex;flex-direction:column;gap:.75rem;height:100%;"><div style="font-size:.9rem;font-weight:700;line-height:1.35;">${wrEscape(item.title)}</div>${summaryBlock}<div style="display:flex;gap:.4rem;align-items:center;margin-top:auto;"><span style="font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span>${item.url ? `<a class="btn btn-ghost btn-sm" style="margin-left:auto;" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">▶ Watch</a>` : ''}<button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
+      }).join('')}
+      ${moreButton}
+    </div>
+  </section>`;
 }
 
+
+
 function renderAlerts(data) {
-  const grid = document.getElementById('wr-alerts-grid');
+  const newsGrid = document.getElementById('wr-alerts-grid');
   const ytGrid = document.getElementById('wr-yt-grid');
-  if (!grid) return;
-  const newsData = wrSimilarNews(data.filter(item => !item.source.toLowerCase().includes('youtube')));
+  if (!newsGrid) return;
+
+  const newsData = data.filter(item => !item.source.toLowerCase().includes('youtube'));
   const ytData = data.filter(item => item.source.toLowerCase().includes('youtube'));
-  if (!newsData.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><h3>No News Alerts</h3><p class="empty-state-text">No live news matches these filters.</p></div>'; }
-  else {
-    const order = { critical: 0, developing: 1, watch: 2, routine: 3 };
+  const order = { critical: 0, developing: 1, watch: 2, routine: 3 };
+
+  if (!newsData.length) {
+    newsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><h3>No News Alerts</h3><p class="empty-state-text">No live news matches these filters.</p></div>';
+  } else {
     const sortedNews = [...newsData].sort((a, b) => order[a.level] - order[b.level]);
     const visibleNews = wrNewsExpanded ? sortedNews : sortedNews.slice(0, 5);
-    grid.innerHTML = visibleNews.map((item, index) => {
+    newsGrid.innerHTML = visibleNews.map((item, index) => {
       const level = WR_LEVEL_CONFIG[item.level];
       const action = getAlertAction(item.id);
+      const bestSummary = wrBestSummary(item);
+      const summaryBlock = bestSummary
+        ? `<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">${wrEscape(bestSummary)}</div></div>`
+        : `<div style="margin-top:.3rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
       return `<article class="card card-shine" style="border-left:4px solid ${level.color}; animation:slideInUp .3s ease both; animation-delay:${index * .04}s;">
-      <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;flex:1;">
-        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:${level.dim};border:1px solid ${level.color}44;border-radius:999px;color:${level.color};font-size:.65rem;font-weight:700;">${level.label}</span><span class="tag tag-blue">${wrEscape(item.category)}</span><span class="tag">📍 ${wrEscape(item.district)}</span>${item.sourceCount > 1 ? `<span class="tag tag-blue">${item.sourceCount} sources reported this</span>` : ''}</div>
-        <div style="font-size:.9rem;font-weight:700;line-height:1.35;">${wrEscape(item.title)}</div>
-        <div style="font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-top:.55rem;">Executive Summary</div><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.55;margin-top:.15rem;max-width:65ch;">${wrEscape(wrVisibleSummary(item.summary || item.body, item.title))}</div>
-        <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">${item.tags.map(tag => `<span class="tag">${wrEscape(tag)}</span>`).join('')}<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span></div>
-      </div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">${item.url ? `<a class="btn btn-ghost btn-sm" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ''}<select class="select-dropdown" style="max-width:9rem;font-size:.7rem;" aria-label="Action status" onchange="updateAlertAction('${wrEscape(item.id)}', this.value)">${Object.entries(WR_ACTION_LABELS).map(([value, label]) => `<option value="${value}"${action === value ? ' selected' : ''}>${label}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" onclick="openActionDetails('${wrEscape(item.id)}')">Action details</button><button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
+        <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;flex:1;">
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:${level.dim};border:1px solid ${level.color}44;border-radius:999px;color:${level.color};font-size:.65rem;font-weight:700;">${level.label}</span><span class="tag tag-blue">${wrEscape(item.category)}</span><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ${wrEscape(item.source)}</span></div>
+          <div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">${wrEscape(item.title)}</div>
+          ${summaryBlock}
+          <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">${item.tags.map(tag => `<span class="tag">${wrEscape(tag)}</span>`).join('')}<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span></div>
+        </div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><select class="select-dropdown" style="max-width:9rem;font-size:.7rem;" aria-label="Action status" onchange="updateAlertAction('${wrEscape(item.id)}', this.value)">${Object.entries(WR_ACTION_LABELS).map(([value, label]) => `<option value="${value}"${action === value ? ' selected' : ''}>${label}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
     }).join('') + (sortedNews.length > 5 ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="toggleNewsExpansion()">${wrNewsExpanded ? 'Show less' : `Read more (${sortedNews.length - 5} more)`}</button>` : '');
+
+
   }
+
   if (ytGrid) {
     if (!ytData.length) {
       ytGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p class="empty-state-text">No YouTube videos available.</p></div>';
@@ -572,7 +762,25 @@ function updateLevelCounts() {
 function renderSources() {
   const el = document.getElementById('wr-sources');
   if (!el) return;
-  el.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;padding:.35rem 0;"><span style="font-size:.8rem;color:var(--text-secondary);">📡 NewsData.io feed</span><span style="font-size:.7rem;color:var(--green);">● Connected</span></div><div style="font-size:.7rem;color:var(--text-muted);">Supabase Realtime pushes new qualifying records instantly.</div>`;
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:0.6rem;padding:0.4rem 0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:0.85rem;color:var(--text-secondary);font-weight:600;">📡 NewsData.io (Primary)</span>
+        <span style="font-size:0.75rem;color:var(--green);">● Live</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:0.85rem;color:var(--text-secondary);font-weight:600;">📰 Google News (Aggregator)</span>
+        <span style="font-size:0.75rem;color:var(--green);">● Live</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:0.85rem;color:var(--text-secondary);font-weight:600;">▶️ YouTube API</span>
+        <span style="font-size:0.75rem;color:var(--amber);">● Fallback</span>
+      </div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.8rem;line-height:1.4;">
+      FastAPI backend merging multiple verified sources, categorizing by severity.
+    </div>
+  `;
 }
 
 function renderThreatGauge() {
@@ -691,5 +899,7 @@ window.toggleWarRoomRss = toggleWarRoomRss;
 window.toggleYoutubeExpansion = toggleYoutubeExpansion;
 window.updateAlertAction = updateAlertAction;
 window.triggerGeminiAnalysis = triggerGeminiAnalysis;
-window.openActionDetails = openActionDetails;
-window.saveActionDetails = saveActionDetails;
+window.loadAnalyzedSummaries = loadAnalyzedSummaries;
+window.loadIntelligenceSummary = loadIntelligenceSummary;
+
+

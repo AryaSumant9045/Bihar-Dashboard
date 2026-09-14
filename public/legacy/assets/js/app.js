@@ -136,7 +136,7 @@ async function navigateTo(pageId) {
 
   // Load page HTML
   try {
-    const res = await fetch(`pages/${pageId}.html`);
+    const res = await fetch(`pages/${pageId}.html?v=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Page not found');
     const html = await res.text();
     if ($pageContent) {

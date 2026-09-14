@@ -67,7 +67,7 @@ def get_clients():
 
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.5-flash-lite", system_instruction=GEMINI_SYSTEM_PROMPT)
+    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction=GEMINI_SYSTEM_PROMPT)
     return supabase, model
 
 

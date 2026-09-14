@@ -56,35 +56,66 @@
     No open actions.</div>
 </section>
 
-<!-- AI Executive Summary Feed (replaces Gemini control box) -->
-<section id="wr-summary-feed" class="card" style="margin-bottom:1rem;border-color:rgba(168,85,247,0.3);">
+<!-- ═══════════════════════════════════════════════════════════
+     INTELLIGENCE SUMMARY FEED — Rolling pipeline summaries
+     Auto-refreshes every 5 min. Shows structured LLM inference.
+     ═══════════════════════════════════════════════════════════ -->
+<section id="wr-intel-feed" class="card" style="margin-bottom:1rem;border-color:rgba(168,85,247,0.3);">
+  <!-- Header -->
   <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;">
     <div>
-      <div class="card-title" style="margin:0;">🧠 AI Executive Summaries</div>
-      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Gemini-analyzed intelligence — auto-updated after each analysis cycle</div>
+      <div class="card-title" style="margin:0;">📊 Intelligence Summary</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">
+        Rolling AI analysis — auto-updated 3× daily (Morning · Noon · Evening)
+      </div>
     </div>
     <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
-      <span id="wr-summary-count" class="tag" style="border-color:rgba(168,85,247,0.35);color:#c084fc;">Loading…</span>
-      <span id="wr-gemini-pending" class="tag" style="border-color:rgba(168,85,247,0.2);color:var(--text-muted);font-size:.65rem;"></span>
-      <button id="wr-gemini-trigger" class="btn btn-ghost btn-sm" type="button" onclick="triggerGeminiAnalysis()" title="Run Gemini Analysis">
-        ⚡ Analyse
-      </button>
+      <span id="wr-intel-session-badge" class="tag" style="border-color:rgba(168,85,247,0.35);color:#c084fc;font-size:.65rem;">Loading…</span>
+      <span id="wr-intel-provider-badge" class="tag" style="border-color:rgba(38,222,129,0.3);color:var(--green);font-size:.6rem;display:none;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="loadIntelligenceSummary(true)">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Session progress bar (visible while pipeline is running) -->
+  <div id="wr-pipeline-progress" style="display:none;margin-bottom:.75rem;padding:.5rem .75rem;background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:var(--radius-md);">
+    <div style="font-size:.72rem;font-weight:700;color:#c084fc;margin-bottom:.3rem;">⚙️ Pipeline Running…</div>
+    <div id="wr-pipeline-status-text" style="font-size:.68rem;color:var(--text-muted);"></div>
+  </div>
+
+  <!-- Main Intelligence Summary Card -->
+  <div id="wr-intel-summary-card" style="display:flex;flex-direction:column;gap:.75rem;">
+    <div class="empty-state" style="padding:.75rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text" style="margin-top:.5rem;">Loading intelligence summary…</p>
+    </div>
+  </div>
+
+  <!-- Previous sessions -->
+  <div id="wr-intel-history" style="margin-top:.75rem;display:none;">
+    <div style="font-size:.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">Previous Sessions</div>
+    <div id="wr-intel-history-list" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+  </div>
+</section>
+
+<!-- Per-item Analysis Queue (secondary, collapsed by default) -->
+<section id="wr-summary-feed" class="card" style="margin-bottom:1rem;border-color:rgba(74,158,255,0.2);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;">
+    <div>
+      <div class="card-title" style="margin:0;font-size:.85rem;">🧠 Per-Item Analysis Queue</div>
+      <div style="font-size:.68rem;color:var(--text-muted);margin-top:.15rem;">Individual news item summaries · click Analyse to process</div>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+      <span id="wr-summary-count" class="tag" style="font-size:.62rem;">–</span>
+      <span id="wr-gemini-pending" class="tag" style="font-size:.62rem;display:none;"></span>
+      <button id="wr-gemini-trigger" class="btn btn-ghost btn-sm" type="button" onclick="triggerGeminiAnalysis()">⚡ Analyse</button>
     </div>
   </div>
   <div id="wr-gemini-status" style="display:none;"></div>
   <span id="wr-gemini-result" class="tag" style="display:none;margin-bottom:.5rem;"></span>
-
-  <!-- Summary Cards List -->
-  <div id="wr-summary-list" style="display:flex;flex-direction:column;gap:.5rem;max-height:320px;overflow-y:auto;padding-right:.25rem;">
-    <div class="empty-state" style="padding:.75rem;">
-      <div class="spinner"></div>
-      <p class="empty-state-text" style="margin-top:.5rem;">Loading analyzed summaries…</p>
-    </div>
+  <div id="wr-summary-list" style="display:flex;flex-direction:column;gap:.5rem;max-height:260px;overflow-y:auto;padding-right:.25rem;">
+    <div style="text-align:center;padding:.75rem 0;font-size:.72rem;color:var(--text-muted);">Click ⚡ Analyse to load per-item summaries.</div>
   </div>
-
-  <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.6rem;" onclick="loadAnalyzedSummaries(true)">
-    ↻ Refresh Summaries
-  </button>
+  <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.6rem;" onclick="loadAnalyzedSummaries(true)">↻ Refresh</button>
 </section>
 
 
