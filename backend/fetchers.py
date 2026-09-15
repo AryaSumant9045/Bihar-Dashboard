@@ -1,3 +1,11 @@
+"""
+backend/fetchers.py - Data Fetching Logic
+--------------------------------------------------------
+Yeh file alag-alag sources (jaise NewsData.io API, YouTube API, aur RSS Feeds) 
+se Bihar ki news aur data fetch karne ka kaam karti hai. 
+Fetch hone ke baad yeh data ko database (Supabase) ke `raw_items` table mein save karti hai.
+"""
+
 import os
 import requests
 import feedparser

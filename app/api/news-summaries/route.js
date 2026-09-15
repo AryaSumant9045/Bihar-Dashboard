@@ -1,4 +1,9 @@
 /**
+ * app/api/news-summaries/route.js - News Summaries API
+ * --------------------------------------------------------
+ * Yeh endpoint database (Supabase) se processed aur summarize ki gayi news nikaal kar
+ * frontend (War Room dashboard) ko bhejta hai.
+ * --------------------------------------------------------
  * GET /api/news-summaries
  * ============================================================
  * Returns news summaries from the rolling pipeline for War Room rendering.

@@ -1,3 +1,10 @@
+/**
+ * app/api/analyze-news/route.js - Manual News Analysis API
+ * --------------------------------------------------------
+ * Yeh endpoint manual/force-refresh ke liye hai jisse hum instantly Gemini AI se
+ * bachi hui (unprocessed) news ko analyze karwa sakte hain.
+ */
+
 import { getSupabase } from '../../../lib/supabase';
 import { runAnalysisCycle } from '../../../lib/gemini-analysis';
 

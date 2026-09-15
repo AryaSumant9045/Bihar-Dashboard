@@ -1,3 +1,11 @@
+"""
+fetch_news.py - Standalone News Fetcher (Legacy/Alternative)
+--------------------------------------------------------
+Yeh file ek standalone script hai jo NewsData.io se Bihar political news fetch karke 
+Supabase mein save karti hai. Ise as a background worker chalaya ja sakta hai.
+(Yeh backend/fetchers.py aur backend/worker.py ka ek alternative ya legacy version ho sakta hai).
+"""
+
 """Fetch Bihar political news from NewsData.io and save it in Supabase.
 
 Run this long-lived worker separately from the static dashboard:

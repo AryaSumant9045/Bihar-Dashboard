@@ -1,4 +1,10 @@
 /**
+ * app/api/cron/news-pipeline/route.js - Cron Job Pipeline
+ * --------------------------------------------------------
+ * Yeh file cron jobs (automated background tasks) ke liye hai.
+ * Yeh har 15 minute mein call hoti hai aur thoda-thoda karke news fetch aur analyze karti hai
+ * taaki server par ek sath load na pade (30 seconds limit ke andar).
+ * --------------------------------------------------------
  * GET /api/cron/news-pipeline
  * ============================================================
  * Stateful single-batch endpoint — completes in <25 seconds.

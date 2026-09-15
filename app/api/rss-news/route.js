@@ -1,3 +1,10 @@
+/**
+ * app/api/rss-news/route.js - RSS News API
+ * --------------------------------------------------------
+ * Yeh endpoint alag-alag districts (zilon) ki RSS feeds ko parse karke laata hai.
+ * Yeh frontend ko district-wise news provide karne ke kaam aata hai.
+ */
+
 import Parser from 'rss-parser';
 
 const parser = new Parser();

@@ -12,6 +12,24 @@ For existing analyzed rows, set `SUMMARY_REPROCESS_SECRET` and run `node scripts
 For existing raw-item duplicates, run `node scripts/cleanup-duplicate-raw-items.mjs` first as a dry-run. Set the server-only `SUPABASE_SERVICE_ROLE_KEY`, then run with `--apply` after reviewing the reported groups. Apply migration `006_raw_item_dedup_index.sql` afterward; never expose the service-role key to the browser.
 
 The old `POST /api/analyze-news` endpoint remains only as an emergency force-refresh endpoint and uses the same locked worker.
+# 🔄 Backend Background Worker (`worker.py`)
+
+The `backend/worker.py` script is a continuous background daemon that automates the entire data pipeline.
+
+**What it does:**
+1. **Loop Execution:** It runs in a continuous loop, waking up every 15 minutes.
+2. **Data Fetching (`fetchers.py`):** It fetches the latest news from various RSS feeds and APIs, deduplicates them, and saves the raw data into the `raw_items` Supabase table.
+3. **AI Analysis (`gemini_analyzer.py`):** Immediately after fetching, it takes a batch (default 20) of unprocessed items and sends them to Gemini AI to extract summaries, sentiment, and generate actionable alerts (saving to `analyzed_items` and `alerts`).
+
+**Why it exists:**
+Instead of relying on serverless cron jobs (like `app/api/cron/news-pipeline`), you can run this script as a persistent background process on a server to handle all backend processing automatically.
+
+**How to run it:**
+```bash
+python3 backend/worker.py
+```
+
+
 # ⚡ Bihar Political Command Center
 ### BJP Bihar — President's Intelligence Dashboard
 

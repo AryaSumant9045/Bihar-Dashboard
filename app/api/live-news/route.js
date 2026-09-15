@@ -1,3 +1,10 @@
+/**
+ * app/api/live-news/route.js - Live News API
+ * --------------------------------------------------------
+ * Yeh API endpoint RSS feeds se live news fetch karta hai (jaise Bhaskar, LiveHindustan etc).
+ * Iska use frontend par seedha latest news dikhane ke liye hota hai.
+ */
+
 import Parser from 'rss-parser';
 import { getSupabase } from '../../../lib/supabase';
 

@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/news-pipeline",
-      "schedule": "*/15 1-16 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "30 21 * * 0"
-    }
-  ]
-}
+{}

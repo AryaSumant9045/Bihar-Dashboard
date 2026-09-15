@@ -1,4 +1,11 @@
-"""Low-cost Bihar news ingestion and Gemini analysis worker.
+"""
+backend/worker.py - Background Job Runner
+--------------------------------------------------------
+Yeh file ek continuous worker hai jo loop mein chalta hai.
+Yeh har 15 minute mein feeds fetch karta hai aur unhe Gemini se analyze karwata hai.
+(Yani yeh fetchers.py aur gemini_analyzer.py ko automatically time-to-time run karta hai).
+
+Low-cost Bihar news ingestion and Gemini analysis worker.
 
 Run with: python3 backend/worker.py
 It fetches all configured feeds, deduplicates into raw_items, then analyzes

@@ -1,3 +1,11 @@
+"""
+backend/server.py - FastAPI Backend Server
+--------------------------------------------------------
+Yeh file FastAPI server ko setup karti hai.
+Iska main kaam frontend (React/Next.js) ko APIs provide karna hai 
+jisse frontend raw news aur processed items ko fetch kar sake.
+"""
+
 from fastapi import FastAPI
 from fastapi import HTTPException, Query
 from fastapi.staticfiles import StaticFiles
