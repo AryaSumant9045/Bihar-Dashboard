@@ -40,7 +40,7 @@
       pointer-events:none;
     }
     .container {
-      width: 100%; max-width: 900px;
+      width: 100%; max-width: 1050px;
       padding: 2rem;
       position:relative; z-index:1;
     }
@@ -68,16 +68,25 @@
 
     /* Role Cards Grid */
     .roles-grid {
-      display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem;
+      display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;
       margin-bottom:2rem;
     }
     @media (max-width: 768px) {
       .roles-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 480px) {
-      .roles-grid { grid-template-columns: repeat(2, 1fr); }
+      .container { padding: 1rem; }
+      .login-header { margin-bottom: 1.25rem; }
+      .logo-badge { width: 48px; height: 48px; font-size: 1.2rem; margin-bottom: 0.5rem; border-radius: 12px; }
+      .login-title { font-size: 1.4rem; margin-bottom: 0.2rem; }
+      .login-sub { font-size: 0.65rem; }
+      .roles-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
       .role-desc, .role-badge { display: none !important; }
-      .role-card { padding: 1rem; }
+      .role-card { padding: 0.6rem; border-radius: 12px; }
+      .role-icon { font-size: 1.4rem; margin-bottom: 0.3rem; }
+      .role-name { font-size: 0.75rem; margin-bottom: 0; }
+      .login-footer { margin-top: 0.5rem; font-size: 0.55rem; }
+      .security-badge { padding: 0.2rem 0.5rem; font-size: 0.55rem; margin-bottom: 0.4rem; }
     }
     .role-card {
       background: rgba(255,255,255,0.03);
@@ -167,43 +176,61 @@
       style="--role-color:rgba(230,57,70,0.15); --role-border:rgba(230,57,70,0.6); --role-bg:rgba(230,57,70,0.06); --role-glow:rgba(230,57,70,0.2);"
       onclick="selectRole(this,'warroom')">
       <div class="role-icon">🚨</div>
-      <div class="role-name">War Room / Admin</div>
-      <div class="role-desc">Breaking news, alerts, PK tracker, media pulse. Real-time monitoring.</div>
+      <div class="role-name">War Room</div>
+      <div class="role-desc">Breaking news, alerts, media pulse. Real-time monitoring.</div>
       <span class="role-badge" style="background:rgba(230,57,70,0.15); color:#e63946;">Intelligence</span>
+    </div>
+
+    <div class="role-card" data-role="opposition"
+      style="--role-color:rgba(168,85,247,0.15); --role-border:rgba(168,85,247,0.6); --role-bg:rgba(168,85,247,0.06); --role-glow:rgba(168,85,247,0.2);"
+      onclick="selectRole(this,'opposition')">
+      <div class="role-icon">🔍</div>
+      <div class="role-name">Opposition Intel</div>
+      <div class="role-desc">Monitor opposition activities, speeches, and strategies.</div>
+      <span class="role-badge" style="background:rgba(168,85,247,0.15); color:#a855f7;">Analysis</span>
     </div>
 
     <div class="role-card" data-role="district"
       style="--role-color:rgba(38,222,129,0.15); --role-border:rgba(38,222,129,0.6); --role-bg:rgba(38,222,129,0.06); --role-glow:rgba(38,222,129,0.2);"
       onclick="selectRole(this,'district')">
-      <div class="role-icon">🗺</div>
+      <div class="role-icon">📋</div>
       <div class="role-name">District Update</div>
       <div class="role-desc">Submit and view district-level issues, activities and field reports.</div>
       <span class="role-badge" style="background:rgba(38,222,129,0.15); color:#26de81;">Field</span>
+    </div>
+
+    <div class="role-card" data-role="map"
+      style="--role-color:rgba(46,204,113,0.15); --role-border:rgba(46,204,113,0.6); --role-bg:rgba(46,204,113,0.06); --role-glow:rgba(46,204,113,0.2);"
+      onclick="selectRole(this,'map')">
+      <div class="role-icon">🗺</div>
+      <div class="role-name">Bihar Map</div>
+      <div class="role-desc">Interactive political map of Bihar constituencies.</div>
+      <span class="role-badge" style="background:rgba(46,204,113,0.15); color:#2ecc71;">Geography</span>
+    </div>
+
+    <div class="role-card" data-role="pk"
+      style="--role-color:rgba(231,76,60,0.15); --role-border:rgba(231,76,60,0.6); --role-bg:rgba(231,76,60,0.06); --role-glow:rgba(231,76,60,0.2);"
+      onclick="selectRole(this,'pk')">
+      <div class="role-icon">🎯</div>
+      <div class="role-name">Prashant Kishor Tracker</div>
+      <div class="role-desc">Track Prashant Kishor's campaigns, movements, and narratives.</div>
+      <span class="role-badge" style="background:rgba(231,76,60,0.15); color:#e74c3c;">Target</span>
     </div>
 
     <div class="role-card" data-role="comms"
       style="--role-color:rgba(74,158,255,0.15); --role-border:rgba(74,158,255,0.6); --role-bg:rgba(74,158,255,0.06); --role-glow:rgba(74,158,255,0.2);"
       onclick="selectRole(this,'comms')">
       <div class="role-icon">🎙</div>
-      <div class="role-name">Communication Team</div>
+      <div class="role-name">Communication</div>
       <div class="role-desc">Speech intelligence, media briefs, talking points and communication prep.</div>
       <span class="role-badge" style="background:rgba(74,158,255,0.15); color:#4a9eff;">Comms</span>
-    </div>
-
-    <div class="role-card" data-role="readonly"
-      style="--role-color:rgba(168,85,247,0.15); --role-border:rgba(168,85,247,0.6); --role-bg:rgba(168,85,247,0.06); --role-glow:rgba(168,85,247,0.2);"
-      onclick="selectRole(this,'readonly')">
-      <div class="role-icon">👁</div>
-      <div class="role-name">Read-Only Leadership</div>
-      <div class="role-desc">View-only access to all dashboards. No editing or alert management.</div>
-      <span class="role-badge" style="background:rgba(168,85,247,0.15); color:#a855f7;">View Only</span>
     </div>
 
     <div class="role-card" data-role="it"
       style="--role-color:rgba(255,159,67,0.15); --role-border:rgba(255,159,67,0.6); --role-bg:rgba(255,159,67,0.06); --role-glow:rgba(255,159,67,0.2);"
       onclick="selectRole(this,'it')">
       <div class="role-icon">💻</div>
-      <div class="role-name">IT Cell / Social</div>
+      <div class="role-name">IT / Cell & Social</div>
       <div class="role-desc">Media pulse, social monitoring, trending topics and counter-narrative tools.</div>
       <span class="role-badge" style="background:rgba(255,159,67,0.15); color:#ff9f43;">Social</span>
     </div>
@@ -234,9 +261,11 @@
     const roleRoutes = {
       president: '#/home',
       warroom: '#/war-room',
+      opposition: '#/opposition',
       district: '#/issues',
+      map: '#/political-map',
+      pk: '#/pk-tracker',
       comms: '#/speech-intelligence',
-      readonly: '#/home',
       it: '#/media-pulse'
     };
     const route = roleRoutes[selectedRole] || '#/home';

@@ -647,6 +647,17 @@ function filterByLevel(level) {
   wrCurrentLevel = level;
   document.querySelectorAll('#wr-filter-group .filter-pill').forEach(pill => pill.classList.toggle('active', pill.dataset.level === level));
   applyFilters();
+  
+  // On mobile, scroll down to the alerts so the user can immediately see the filtered results
+  if (window.innerWidth <= 900) {
+    const filterSection = document.getElementById('wr-filter-group');
+    if (filterSection) {
+      // Small delay to allow rendering to complete
+      setTimeout(() => {
+        filterSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
+  }
 }
 
 function filterByCategory() {
