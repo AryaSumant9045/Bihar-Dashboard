@@ -16,6 +16,17 @@
     <p class="page-module-subtitle">Real-time political intelligence — Prioritised alerts for immediate action</p>
   </div>
   <div class="page-header-actions">
+    <!-- Quick Actions Dropdown -->
+    <div style="position:relative; display:inline-block;" id="wr-quick-actions-dropdown-container">
+      <button class="btn btn-primary" onclick="document.getElementById('wr-quick-actions-menu').style.display = document.getElementById('wr-quick-actions-menu').style.display === 'flex' ? 'none' : 'flex'">⚡ Quick Actions</button>
+      <div id="wr-quick-actions-menu" class="card" style="display:none; position:absolute; right:0; top:110%; z-index:100; flex-direction:column; gap:0.4rem; padding:0.75rem; min-width:220px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+        <button class="btn btn-danger btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Briefing Sent','Morning intelligence brief dispatched','success'); this.parentElement.style.display='none';">📋 Send Morning Brief</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Escalated','All critical alerts escalated to leadership','error'); this.parentElement.style.display='none';">🔴 Escalate All Critical</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="navigateTo('opposition'); this.parentElement.style.display='none';">🔍 Open Opposition Intel</button>
+        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="navigateTo('speech-intelligence'); this.parentElement.style.display='none';">🎙 Generate Speech Brief</button>
+      </div>
+    </div>
+    
     <div class="search-input">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24"
         stroke="currentColor" stroke-width="2">
@@ -70,6 +81,81 @@
   <div id="wr-intel-history" style="margin-top:.75rem;display:none;">
     <div style="font-size:.65rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">Previous Sessions</div>
     <div id="wr-intel-history-list" style="display:flex;flex-direction:column;gap:.35rem;"></div>
+  </div>
+</section>
+
+<!-- District-Wise Local News -->
+<section id="wr-district-news" class="card" style="margin-bottom:1rem; border-color:rgba(74,158,255,0.3);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;">
+    <div>
+      <div class="card-title" style="margin:0;">📰 District-Wise Local News Updates</div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;">Select a district to view real-time local news reports</div>
+    </div>
+  </div>
+  
+  <div style="display:flex; flex-direction:column; gap:1rem;">
+    <!-- State Level News -->
+    <div>
+      <div style="font-size:0.75rem; font-weight:700; color:var(--amber); margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+        <span>🟠 State Level News</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleWarRoomRssSource('bhaskar')">Bihar (State Level)</button>
+      </div>
+    </div>
+
+    <!-- District News -->
+    <div>
+      <div style="font-size:0.75rem; font-weight:700; color:#4a9eff; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+        <span>🔵 District Level Intelligence</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan')">Bihar (All)</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-patna')">Patna</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhagalpur')">Bhagalpur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-muzaffarpur')">Muzaffarpur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-ara')">Ara</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-begusarai')">Begusarai</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-biharsharif')">Biharsharif</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-buxar')">Buxar</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-chapra')">Chapra</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gopalganj')">Gopalganj</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-hajipur')">Hajipur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jahanabad')">Jahanabad</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-siwan')">Siwan</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gaya')">Gaya</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-aurangabad')">Aurangabad</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhabua')">Bhabua</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-nawada')">Nawada</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sasaram')">Sasaram</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-banka')">Banka</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-araria')">Araria</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-katihar')">Katihar</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-khagaria')">Khagaria</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-kishanganj')">Kishanganj</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhepura')">Madhepura</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-munger')">Munger</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-purnia')">Purnia</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-saharsa')">Saharsa</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-lakhisarai')">Lakhisarai</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jamui')">Jamui</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-supaul')">Supaul</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-darbhanga')">Darbhanga</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhubani')">Madhubani</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bagaha')">Bagaha</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bettiah')">Bettiah</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-motihari')">Motihari</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-samastipur')">Samastipur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sitamarhi')">Sitamarhi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- News Output Panel -->
+  <div style="margin-top:1.25rem; border-top:1px solid rgba(255,255,255,0.05); padding-top:1rem;">
+    <div id="wr-rss-panel" aria-live="polite">
+    </div>
+    <div id="wr-livehindustan-panel" aria-live="polite"></div>
   </div>
 </section>
 
@@ -163,7 +249,7 @@
 </div>
 
 <!-- Main Layout: Alerts Grid + Right Panel -->
-<div style="display:grid; grid-template-columns:1fr 300px; gap:1rem;">
+<div style="display:grid; grid-template-columns:1fr; gap:1rem;">
 
   <!-- Alert Cards -->
   <div>
@@ -204,113 +290,21 @@
 
     <!-- YouTube Videos Section -->
     <div style="margin-top:2rem;">
-      <div
-        style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
-        <span style="font-size:1.2rem;">▶️</span>
-        <h2 style="font-size:1.1rem; color:var(--text-primary); margin:0;">YouTube Monitoring</h2>
+      <div style="display:flex; justify-content:center; align-items:center;">
+        <button class="btn btn-ghost" onclick="const ytSec = document.getElementById('wr-yt-section-container'); ytSec.style.display = ytSec.style.display === 'none' ? 'block' : 'none';">▶️ See YouTube News</button>
       </div>
-      <div id="wr-yt-grid" style="display:flex; flex-direction:column; gap:1rem;">
+      
+      <div id="wr-yt-section-container" style="display:none; margin-top:1rem;">
+        <div
+          style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
+          <span style="font-size:1.2rem;">▶️</span>
+          <h2 style="font-size:1.1rem; color:var(--text-primary); margin:0;">YouTube Monitoring</h2>
+        </div>
+        <div id="wr-yt-grid" style="display:flex; flex-direction:column; gap:1rem;">
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Right Panel -->
-  <div style="display:flex; flex-direction:column; gap:1rem;">
-
-    <!-- Threat Gauge -->
-    <div class="card" style="text-align:center;">
-      <div class="card-title" style="margin-bottom:0.5rem;">⚡ Threat Gauge</div>
-      <canvas id="wr-threat-chart" width="160" height="90"></canvas>
-      <div
-        style="font-family:'Outfit',sans-serif; font-size:1.75rem; font-weight:800; color:var(--red); margin-top:-1.5rem;">
-        HIGH</div>
-      <div style="font-size:0.72rem; color:var(--text-muted);">75/100 — Elevated</div>
-    </div>
-
-    <!-- Alert Sources -->
-    <div class="card">
-      <div class="card-title" style="margin-bottom:0.5rem;">📡 Source Status</div>
-      <div id="wr-sources"></div>
-    </div>
-
-    <!-- Category Chart -->
-    <div class="card">
-      <div class="card-title" style="margin-bottom:0.75rem;">📊 Alerts by Category</div>
-      <canvas id="wr-category-chart" height="160"></canvas>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="card">
-      <div class="card-title" style="margin-bottom:0.75rem;">⚡ Quick Actions</div>
-      <div style="display:flex; flex-direction:column; gap:0.4rem;">
-        <button class="btn btn-danger btn-sm w-full" style="justify-content:flex-start;"
-          onclick="showToast('Briefing Sent','Morning intelligence brief dispatched','success')">📋 Send Morning
-          Brief</button>
-        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;"
-          onclick="showToast('Escalated','All critical alerts escalated to leadership','error')">🔴 Escalate All
-          Critical</button>
-        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;"
-          onclick="navigateTo('opposition')">🔍 Open Opposition Intel</button>
-        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;"
-          onclick="navigateTo('speech-intelligence')">🎙 Generate Speech Brief</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title" style="margin-bottom:0.75rem;">🟠 Bhaskar Bihar News</div>
-      <div style="display:flex;flex-direction:column;gap:0.4rem;">
-        <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;"
-          onclick="toggleWarRoomRssSource('bhaskar')">🟠 Bhaskar Bihar News</button>
-      </div>
-      <div id="wr-rss-panel" style="margin-top:0.75rem;" aria-live="polite">
-        <p style="font-size:0.72rem;color:var(--text-muted);margin:0;">Select a source to load its latest news.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title" style="margin-bottom:0.75rem;">🔵 LiveHindustan News</div>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.4rem;">
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan')">Bihar</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-patna')">Patna</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhagalpur')">Bhagalpur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-muzaffarpur')">Muzaffarpur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-ara')">Ara</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-begusarai')">Begusarai</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-biharsharif')">Biharsharif</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-buxar')">Buxar</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-chapra')">Chapra</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gopalganj')">Gopalganj</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-hajipur')">Hajipur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jahanabad')">Jahanabad</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-siwan')">Siwan</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gaya')">Gaya</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-aurangabad')">Aurangabad</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhabua')">Bhabua</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-nawada')">Nawada</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sasaram')">Sasaram</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-banka')">Banka</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-araria')">Araria</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-katihar')">Katihar</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-khagaria')">Khagaria</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-kishanganj')">Kishanganj</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhepura')">Madhepura</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-munger')">Munger</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-purnia')">Purnia</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-saharsa')">Saharsa</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-lakhisarai')">Lakhisarai</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jamui')">Jamui</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-supaul')">Supaul</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-darbhanga')">Darbhanga</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhubani')">Madhubani</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bagaha')">Bagaha</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bettiah')">Bettiah</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-motihari')">Motihari</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-samastipur')">Samastipur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sitamarhi')">Sitamarhi</button>
-      </div>
-      <div id="wr-livehindustan-panel" style="margin-top:0.75rem;" aria-live="polite"></div>
-    </div>
-
-  </div>
 
 </div>

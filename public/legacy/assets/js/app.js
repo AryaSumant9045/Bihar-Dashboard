@@ -117,6 +117,9 @@ async function navigateTo(pageId) {
   if (!validPages.includes(pageId)) pageId = 'home';
 
   AppState.currentPage = pageId;
+  
+  // Close mobile sidebar if open
+  document.getElementById('sidebar').classList.remove('mobile-open');
 
   // Update active nav
   document.querySelectorAll('.nav-item').forEach(el => {

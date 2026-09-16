@@ -69,6 +69,14 @@
       display:grid; grid-template-columns: repeat(3, 1fr); gap:1rem;
       margin-bottom:2rem;
     }
+    @media (max-width: 768px) {
+      .roles-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .roles-grid { grid-template-columns: repeat(2, 1fr); }
+      .role-desc, .role-badge { display: none !important; }
+      .role-card { padding: 1rem; }
+    }
     .role-card {
       background: rgba(255,255,255,0.03);
       border: 1px solid rgba(255,255,255,0.07);
@@ -200,9 +208,6 @@
 
   </div>
 
-  <button class="enter-btn" id="enter-btn" onclick="enterDashboard()">
-    ⚡ &nbsp; Enter Command Center
-  </button>
 
   <div class="login-footer">
     <div class="security-badge">🔒 Secure Access &nbsp;•&nbsp; Role-Based &nbsp;•&nbsp; Audit Logged</div>
@@ -220,12 +225,8 @@
     document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
     selectedRole = role;
-  }
-
-  function enterDashboard() {
-    const btn = document.getElementById('enter-btn');
-    btn.textContent = '⏳  Loading Command Center…';
-    btn.style.opacity = '0.7';
+    
+    el.style.opacity = '0.7';
     sessionStorage.setItem('bcc_role', selectedRole);
     
     const roleRoutes = {
@@ -238,7 +239,7 @@
     };
     const route = roleRoutes[selectedRole] || '#/home';
 
-    setTimeout(() => { window.location.href = '../index.html' + route; }, 600);
+    setTimeout(() => { window.location.href = '../index.html' + route; }, 400);
   }
 </script>
 </body>

@@ -1344,3 +1344,204 @@ Error fetching RSS Live Hindustan: getaddrinfo ENOTFOUND api.livehindustan.com
 [1] ==================================================
 [1] [DB] Checking for new news articles to fetch...
 [1] [Google News] Inserted: Shivraj Singh Chouhan visits flood-hit Bihar, reviews relief operations - Awaz The Voice
+[1] [Live Hindustan] Inserted: वैशाली के बाढ़ प्रभावित तेरसिया पहुंचे शिवराज सिंह चौहान और सम्राट चौधरी, केले की बर्बाद फसल देखी
+[1] [DB] 2 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.12 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan visits flood-hit areas of Bihar; to review relief operations - ThePrint
+[1] [Google News] Inserted: Bihar Air Quality Index (AQI) and India Air Pollution - IQAir
+[1] [Dainik Bhaskar] Inserted: नानी घर से लौट रहे युवक को मारी गोली:दाहिने पैर की हड्डी टूटी, गंभीर हालत में पावापुरी रेफर; अस्पताल की व्यवस्था पर परिवार ने जताया नाराजगी
+[1] [Live Hindustan] Inserted: बेगूसराय: लाखो थाने के इनियार-पनसल्ला के बीच NH-31 किनारे महिला का शव मिलने से सनसनी, दोनों आंख फोड़कर हत्या की आशंका
+[1] [DB] 4 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.11 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {

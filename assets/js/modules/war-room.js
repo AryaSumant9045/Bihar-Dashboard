@@ -20,7 +20,9 @@ let wrClient = null;
 let wrChannel = null;
 let wrThreatChart = null;
 let wrCategoryChart = null;
-let wrNewsExpanded = false;
+let wrNewsVisibleCount = 4;
+let wrYoutubeVisibleCount = 1;
+let wrYoutubeVideoCounts = {};
 let wrRssItems = [];
 let wrRssExpanded = false;
 let wrRssSourceName = 'Bihar News';
@@ -667,24 +669,57 @@ function toggleYoutubeExpansion(source) {
   applyFilters();
 }
 
+function loadMoreYoutubeVideos(source) {
+  if (!wrYoutubeVideoCounts[source]) wrYoutubeVideoCounts[source] = 5;
+  wrYoutubeVideoCounts[source] += 5;
+  applyFilters();
+}
+
 function renderYoutubeChannel(videos, channelIndex) {
   const source = videos[0].source;
-  const visibleVideos = videos.slice(0, wrYoutubeExpanded[source] ? 10 : 3);
-  const moreButton = videos.length > 3 ? `<button class="btn btn-ghost btn-sm" style="grid-column:1/-1;justify-self:center;" onclick="toggleYoutubeExpansion('${wrEscape(source)}')">${wrYoutubeExpanded[source] ? 'Show less' : `See more (${Math.min(videos.length, 10) - 3} more)`}</button>` : '';
-  return `<section style="width:100%;padding:1rem;margin-bottom:1rem;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--glass-bg);">
-    <h3 style="margin:0 0 .85rem;font-size:.9rem;color:var(--text-primary);">▶️ ${wrEscape(source.replace('YouTube: ', ''))}</h3>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;">
-      ${visibleVideos.map((item, index) => {
-        const level = WR_LEVEL_CONFIG[item.level];
-        const bestSummary = wrBestSummary(item);
-        const summaryBlock = bestSummary
-          ? `<div><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.4;margin-top:.15rem;">${wrEscape(bestSummary)}</div></div>`
-          : `<div style="font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
-        return `<article class="card card-shine" style="border-left:4px solid ${level.color};animation:slideInUp .3s ease both;animation-delay:${(channelIndex * 3 + index) * .04}s;"><div style="display:flex;flex-direction:column;gap:.75rem;height:100%;"><div style="font-size:.9rem;font-weight:700;line-height:1.35;">${wrEscape(item.title)}</div>${summaryBlock}<div style="display:flex;gap:.4rem;align-items:center;margin-top:auto;"><span style="font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span>${item.url ? `<a class="btn btn-ghost btn-sm" style="margin-left:auto;" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">▶ Watch</a>` : ''}<button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
-      }).join('')}
-      ${moreButton}
+  const sourceId = source.replace(/[^a-zA-Z0-9]/g, '');
+  
+  const visibleCount = wrYoutubeVideoCounts[source] || 5;
+  const visibleVideos = videos.slice(0, visibleCount);
+  
+  const videoHTML = visibleVideos.map((item, index) => {
+    const level = WR_LEVEL_CONFIG[item.level] || WR_LEVEL_CONFIG.watch;
+    const bestSummary = wrBestSummary(item);
+    const summaryBlock = bestSummary
+      ? '<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">' + wrEscape(bestSummary) + '</div></div>'
+      : '<div style="margin-top:.3rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>';
+    
+    const tagsHTML = (item.tags || []).map(tag => '<span class="tag">' + wrEscape(tag) + '</span>').join('');
+    const watchLink = item.url ? '<a class="btn btn-ghost btn-sm" href="' + wrEscape(item.url) + '" target="_blank" rel="noopener noreferrer">▶ Watch</a>' : '';
+
+    return '<article class="card card-shine" style="border-left:4px solid ' + level.color + '; animation:slideInUp .3s ease both; animation-delay:' + (index * 0.04) + 's;">' +
+      '<div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;flex:1;">' +
+      '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:' + level.dim + ';border:1px solid ' + level.color + '44;border-radius:999px;color:' + level.color + ';font-size:.65rem;font-weight:700;">' + level.label + '</span><span class="tag tag-blue">' + wrEscape(item.category || 'Media') + '</span><span class="tag">📍 ' + wrEscape(item.district || 'Bihar') + '</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ' + wrEscape(item.source) + '</span></div>' +
+      '<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">' + wrEscape(item.title) + '</div>' +
+      summaryBlock +
+      '<div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">' + tagsHTML + '<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ' + wrTimeAgo(item.created_at) + '</span></div>' +
+      '</div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">' + watchLink + '<button class="btn btn-ghost btn-sm" onclick="openAlertDetail(\'' + wrEscape(item.id) + '\')">Details</button></div></div></article>';
+  }).join('');
+
+  let moreVideosBtn = '';
+  if (videos.length > visibleCount) {
+    moreVideosBtn = `<button class="btn btn-ghost" style="align-self:center;margin-top:.5rem;" onclick="loadMoreYoutubeVideos('${wrEscape(source)}')">See more YT news (${Math.min(visibleCount + 5, videos.length)}/${videos.length})</button>`;
+  }
+
+  // Open all channels by default
+  const displayStyle = 'flex';
+
+  return `
+  <div style="margin-bottom:0.75rem;">
+    <button class="btn btn-ghost w-full" style="justify-content:space-between; background:var(--glass-bg); border:1px solid var(--border-subtle);" onclick="const el = document.getElementById('yt-channel-${sourceId}'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">
+      <span>▶️ ${wrEscape(source.replace('YouTube: ', ''))} (${videos.length} videos)</span>
+      <span style="font-size:0.8rem;">▼</span>
+    </button>
+    <div id="yt-channel-${sourceId}" style="display:${displayStyle}; flex-direction:column; gap:0.75rem; margin-top:0.75rem;">
+      ${videoHTML}
+      ${moreVideosBtn}
     </div>
-  </section>`;
+  </div>`;
 }
 
 
@@ -702,7 +737,7 @@ function renderAlerts(data) {
     newsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><h3>No News Alerts</h3><p class="empty-state-text">No live news matches these filters.</p></div>';
   } else {
     const sortedNews = [...newsData].sort((a, b) => order[a.level] - order[b.level]);
-    const visibleNews = wrNewsExpanded ? sortedNews : sortedNews.slice(0, 5);
+    const visibleNews = sortedNews.slice(0, wrNewsVisibleCount);
     newsGrid.innerHTML = visibleNews.map((item, index) => {
       const level = WR_LEVEL_CONFIG[item.level];
       const action = getAlertAction(item.id);
@@ -717,9 +752,7 @@ function renderAlerts(data) {
           ${summaryBlock}
           <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">${item.tags.map(tag => `<span class="tag">${wrEscape(tag)}</span>`).join('')}<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span></div>
         </div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><select class="select-dropdown" style="max-width:9rem;font-size:.7rem;" aria-label="Action status" onchange="updateAlertAction('${wrEscape(item.id)}', this.value)">${Object.entries(WR_ACTION_LABELS).map(([value, label]) => `<option value="${value}"${action === value ? ' selected' : ''}>${label}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
-    }).join('') + (sortedNews.length > 5 ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="toggleNewsExpansion()">${wrNewsExpanded ? 'Show less' : `Read more (${sortedNews.length - 5} more)`}</button>` : '');
-
-
+    }).join('') + (sortedNews.length > wrNewsVisibleCount ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="loadMoreNews()">Read more ${Math.min(wrNewsVisibleCount + 4, sortedNews.length)}/${sortedNews.length} news</button>` : '');
   }
 
   if (ytGrid) {
@@ -727,13 +760,20 @@ function renderAlerts(data) {
       ytGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p class="empty-state-text">No YouTube videos available.</p></div>';
     } else {
       const channels = [...new Map(ytData.map(item => [item.source, ytData.filter(video => video.source === item.source)])).values()];
-      ytGrid.innerHTML = channels.map(renderYoutubeChannel).join('');
+      const visibleChannels = channels.slice(0, wrYoutubeVisibleCount);
+      ytGrid.innerHTML = visibleChannels.map((channel, idx) => renderYoutubeChannel(channel, idx)).join('') + 
+        (channels.length > wrYoutubeVisibleCount ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="loadMoreYoutube()">See more YT channel news (${Math.min(wrYoutubeVisibleCount + 1, channels.length)}/${channels.length})</button>` : '');
     }
   }
 }
 
-function toggleNewsExpansion() {
-  wrNewsExpanded = !wrNewsExpanded;
+function loadMoreNews() {
+  wrNewsVisibleCount += 4;
+  applyFilters();
+}
+
+function loadMoreYoutube() {
+  wrYoutubeVisibleCount += 1;
   applyFilters();
 }
 
@@ -877,7 +917,8 @@ window.openAlertDetail = openAlertDetail;
 window.filterByLevel = filterByLevel;
 window.filterByCategory = filterByCategory;
 window.filterByDistrict = filterByDistrict;
-window.toggleNewsExpansion = toggleNewsExpansion;
+window.loadMoreNews = loadMoreNews;
+window.loadMoreYoutube = loadMoreYoutube;
 window.loadWarRoomRss = loadWarRoomRss;
 window.toggleWarRoomRssSource = toggleWarRoomRssSource;
 window.toggleWarRoomRss = toggleWarRoomRss;
