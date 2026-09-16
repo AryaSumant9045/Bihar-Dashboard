@@ -693,7 +693,7 @@ function renderYoutubeChannel(videos, channelIndex) {
     const watchLink = item.url ? '<a class="btn btn-ghost btn-sm" href="' + wrEscape(item.url) + '" target="_blank" rel="noopener noreferrer">▶ Watch</a>' : '';
 
     return '<article class="card card-shine" style="border-left:4px solid ' + level.color + '; animation:slideInUp .3s ease both; animation-delay:' + (index * 0.04) + 's;">' +
-      '<div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;flex:1;">' +
+      '<div class="card-content-wrapper"><div style="min-width:0;flex:1;">' +
       '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:' + level.dim + ';border:1px solid ' + level.color + '44;border-radius:999px;color:' + level.color + ';font-size:.65rem;font-weight:700;">' + level.label + '</span><span class="tag tag-blue">' + wrEscape(item.category || 'Media') + '</span><span class="tag">📍 ' + wrEscape(item.district || 'Bihar') + '</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ' + wrEscape(item.source) + '</span></div>' +
       '<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">' + wrEscape(item.title) + '</div>' +
       summaryBlock +
@@ -746,7 +746,7 @@ function renderAlerts(data) {
         ? `<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">${wrEscape(bestSummary)}</div></div>`
         : `<div style="margin-top:.3rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
       return `<article class="card card-shine" style="border-left:4px solid ${level.color}; animation:slideInUp .3s ease both; animation-delay:${index * .04}s;">
-        <div style="display:flex;justify-content:space-between;gap:.75rem;align-items:flex-start;"><div style="min-width:0;flex:1;">
+        <div class="card-content-wrapper"><div style="min-width:0;flex:1;">
           <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:${level.dim};border:1px solid ${level.color}44;border-radius:999px;color:${level.color};font-size:.65rem;font-weight:700;">${level.label}</span><span class="tag tag-blue">${wrEscape(item.category)}</span><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ${wrEscape(item.source)}</span></div>
           <div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">${wrEscape(item.title)}</div>
           ${summaryBlock}

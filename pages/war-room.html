@@ -19,7 +19,7 @@
     <!-- Quick Actions Dropdown -->
     <div style="position:relative; display:inline-block;" id="wr-quick-actions-dropdown-container">
       <button class="btn btn-primary" onclick="document.getElementById('wr-quick-actions-menu').style.display = document.getElementById('wr-quick-actions-menu').style.display === 'flex' ? 'none' : 'flex'">⚡ Quick Actions</button>
-      <div id="wr-quick-actions-menu" class="card" style="display:none; position:absolute; right:0; top:110%; z-index:100; flex-direction:column; gap:0.4rem; padding:0.75rem; min-width:220px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <div id="wr-quick-actions-menu" class="card" style="display:none; position:absolute; left:0; top:110%; z-index:100; flex-direction:column; gap:0.4rem; padding:0.75rem; min-width:220px; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
         <button class="btn btn-danger btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Briefing Sent','Morning intelligence brief dispatched','success'); this.parentElement.style.display='none';">📋 Send Morning Brief</button>
         <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="showToast('Escalated','All critical alerts escalated to leadership','error'); this.parentElement.style.display='none';">🔴 Escalate All Critical</button>
         <button class="btn btn-ghost btn-sm w-full" style="justify-content:flex-start;" onclick="navigateTo('opposition'); this.parentElement.style.display='none';">🔍 Open Opposition Intel</button>
@@ -291,7 +291,7 @@
     <!-- YouTube Videos Section -->
     <div style="margin-top:2rem;">
       <div style="display:flex; justify-content:center; align-items:center;">
-        <button class="btn btn-ghost" onclick="const ytSec = document.getElementById('wr-yt-section-container'); ytSec.style.display = ytSec.style.display === 'none' ? 'block' : 'none';">▶️ See YouTube News</button>
+        <button class="btn btn-ghost w-full" style="text-align:center;" onclick="const ytSec = document.getElementById('wr-yt-section-container'); ytSec.style.display = ytSec.style.display === 'none' ? 'block' : 'none';">▶️ See YouTube News</button>
       </div>
       
       <div id="wr-yt-section-container" style="display:none; margin-top:1rem;">

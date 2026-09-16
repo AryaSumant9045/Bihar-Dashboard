@@ -1545,3 +1545,377 @@ Error fetching RSS Live Hindustan: getaddrinfo ENOTFOUND api.livehindustan.com
 [0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
 [0]   250 |
 [0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[0] Background analysis cycle failed: Error: TypeError: fetch failed
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] Gemini Error: [Errno 60] Operation timed out. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Unterminated string starting at: line 39 column 26 (char 2403)
+[1] Raw text was: {
+[1]   "overall_situation": "बिहार में लगातार बाढ़ के कारण 49 लाख से अधिक लोग प्रभावित हैं, जिससे फसल नुकसान, खाद्य सुरक्षा और सार्वजनिक स्वास्थ्य पर दबाव बढ़ रहा है। सरकार ने राहत कार्य तेज़ करने, वित्तीय सहायता ट्रांसफर और जल‑सुरक्षा उपायों की घोषणा की है, जबकि कई अपराध और सामाजिक असंतोष की घटनाएँ सम...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] PlugSky Fallback Error: HTTPSConnectionPool(host='api.plugsky.com', port=443): Read timed out. (read timeout=30)
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar family performs teen's 'last rites' after she marries Dalit boyfriend - The Times of India
+[1] [Google News] Inserted: How A 400-Year-Old Bihar Temple Inspired Tamannaah Bhatia And Sidharth Malhotra's Vvaan - NDTV
+[1] [Google News] Inserted: Is RJD’s olive branch to Nitish bid to drive a wedge within the NDA? - Deccan Herald
+[1] [Google News] Inserted: Bihar floods: More than 49 lakh hit in 15 districts as rivers swell - rediff.com
+[1] [Google News] Inserted: Bihar Board extends Class 10, 12 exam 2027 registration deadline extended to September 30: Check complete - The Times of India
+[1] [Google News] Inserted: Nintendo: Delhi High Court Stops Bihar-Based Company From Using the Japanese Giant’s Name - IGN India
+[1] [Google News] Inserted: The Toast Of The BRICS Summit, Bihar’s Sattuz Eyes Global Brand Recognition - ETV Bharat
+[1] [Google News] Inserted: Bihar man climbs on top of overbridge, cops halt traffic and bring crane to rescue him - India Today
+[1] [Google News] Inserted: Will JD-U Blink On UCC In Bihar? - rediff.com
+[1] [Google News] Inserted: Expedite ROB projects across Bihar, minister tells officials - The Times of India
+[1] [Google News] Inserted: Memorial lecture revisits Bihar’s educational evolution, stresses alignment with digital era - The Times of India
+[1] [Google News] Inserted: Bihar STET 2026 Registration Deadline Extended To September 22; Check Application Details - NDTV
+[1] [Google News] Inserted: Bihar Establishes DNA Testing for Missing Persons in Wake of Nepal Flood Disaster - Legal Desire
+[1] [Google News] Inserted: US Woman Detained Near India-Nepal Border In Bihar's Kishanganj, Police Find Nothing Suspicious After Questioning - ETV Bharat
+[1] [Google News] Inserted: Bihar Government Approves Rs 3,516 Crore Vishnupad Temple Redevelopment, Manasarovar-Manpur Bridge And Son-Falgu River Link Projects - Swarajya
+[1] [Google News] Inserted: Declared Dead In 2014, Bihar Woman Found Alive In Jharkhand During SIR - ETV Bharat
+[1] [Google News] Inserted: Bihar Board Exam 2027 Registration Ends Today; Here's How To Register - NDTV
+[1] [Google News] Inserted: Bihar floods: Union Minister Shivraj Singh Chouhan, CM Samrat Choudhary survey flood-affected areas; assure full Central assistance - ANI News
+[1] [Google News] Inserted: Supreme Court Appoints Justice Ashwani Kumar Singh As Administrator Of Bihar Cricket Association - Verdictum
+[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan to visit Bihar on September 16 to review flood situation - economictimes.com
+[1] [Google News] Inserted: Kashi model comes to Bihar: ₹2,520 crore makeover planned around Vishnupad Temple - Business Today
+[1] [Google News] Inserted: Union minister Shivraj Singh Chouhan and Bihar CM survey flood damage, pledge full central aid - The News Mill
+[1] Supabase DB error on article 'Rahul Gandhi urges s...': The read operation timed out
+[1] [Google News] Inserted: Bihar’s Famous Vishnupad Temple To Get A ₹2,520 Crore Makeover; Here’s What’s Planned For Pilgrims - curlytales.com
+[1] [Google News] Inserted: Bihar Cabinet approves Vishnupad complex, river link - Daily Pioneer
+[1] [Google News] Inserted: Bihar Board Exam 2027 Registration Concludes Today, Register Now! - Education Times
+[1] [Google News] Inserted: BharatBenz Expands Reach in Bihar’s Koshi Belt with New Devkrishna Trucking Dealership - Motorindia
+[1] [Google News] Inserted: Bihar Board Exam Form 2027: Class 10, 12 form deadline extended till September 30, check details - Moneycontrol.com
+[1] [Google News] Inserted: Vinay Kumar goes on 21-day leave, Preeta Verma gets Bihar additional DGP charge - The Times of India
+[1] [Google News] Inserted: Nepal floods bring 'unusual' fish to Bihar, govt warns people not to eat or sell them - The Times of India
+[1] [Google News] Inserted: DGP, BPSC and BPSSC chiefs go on leave simultaneously - The Times of India
+[1] [Google News] Inserted: Bihar CM Samrat Chaudhary expands his cabinet; 32 ministers including Nitish Kumar’s son take oath as new Ministers - News On AIR
+[1] [Google News] Inserted: Bihar Board exam 2027 registration ends today; steps to apply here - India Today
+[1] [Google News] Inserted: Shivraj Singh Chouhan Visits Flood-Hit Bihar, Reviews Relief and Rescue Operations - 10net.in
+[1] [Google News] Inserted: 'Don't Eat Fish Caught From Floodwaters': Bihar On Alert After Nepal Tragedy - NDTV
+[1] [Dainik Bhaskar] Inserted: बाढ़ पीड़ित बच्चों से मिले CM सम्राट, शिवराज:मुंगेर में सीएम बोले-गंगा पाथवे एलिवेटेड नहीं 'एट ग्रेड' बनेगा; हाजीपुर का हेलिकॉप्टर-ट्रैक्टर से जायजा
+[1] [Dainik Bhaskar] Inserted: बिहार दिनभर, 10 बड़ी खबरें:सुपरिटेंडेंट इंजीनियर के पास 10 करोड़ का मकान, बाढ़ पीड़ितों तक ट्रैक्टर से पहुंचे केंद्रीय मंत्री, सुशांत सिंह मौत का खुलेगा राज!
+[1] [Dainik Bhaskar] Inserted: कोबरा लेकर हॉस्पिटल पहुंचा युवक, बोला-डॉक्टर साहब, बचा लीजिए:समस्तीपुर में सांप डसने के बाद 3km बाइक चलाई; बच्चे को बचाने के लिए आगे की हथेली
+[1] [Dainik Bhaskar] Inserted: सुपरिटेंडेंट इंजीनियर का पटना में 10 करोड़ का आलीशान घर:पूर्णिया में भवन निर्माण विभाग में पोस्टेड हैं सत्येन्द्र; 2 महीने पहले ही हुआ प्रमोशन
+[1] [Dainik Bhaskar] Inserted: पटना समेत 5 जिलों में तेज बारिश, 26 में अलर्ट:सीवान में ठनका से दादा-पोते की मौत, भोजपुर में मछुआरों ने पकड़ा घड़ियाल;15 जिलों में बाढ़
+[1] [Dainik Bhaskar] Inserted: DGP समेत बिहार के 3 सीनियर अफसर छुट्टी पर:दरोगा भर्ती परीक्षा की जांच के बीच लीव पर BPSSC के अध्यक्ष, जानें कौन संभाल रहा काम
+[1] [Dainik Bhaskar] Inserted: दरभंगा में 17 अक्टूबर तक चलेगा सेवा संकल्प अभियान:पोलो मैदान में कल शाम मुख्य कार्यक्रम; डीएम ने तैयारियों का जायजा लिया, जनभागीदारी पर जोर
+[1] [Dainik Bhaskar] Inserted: DM बोले-'बच्चों की सुरक्षा में लापरवाही नहीं, त्वरित कार्रवाई हो':पॉक्सो, बाल तस्करी और बाल विवाह की रोकथाम को दिया प्रशिक्षण
+[1] [Dainik Bhaskar] Inserted: गया में कॉलेज प्रशासन के खिलाफ ABVP का प्रदर्शन:पुतला फूंका, जलजमाव-पेयजल और बंद जिम का मुद्दा उठाया; इंटर्नशिप में अवैध वसूली की जांच की मांग
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर में प्रसव के बाद प्रसूता की मौत, हाईवे जाम:शव रखकर 45 मिनट प्रदर्शन; परिजनों का निजी नर्सिंग होम पर आरोप, 8 मांगें रखीं
+[1] [Dainik Bhaskar] Inserted: बैद्यनाथ महतो हत्याकांड,आरोपी का VIDEO; कहा-‘मैंने गोली नहीं चलाई’:सीतामढ़ी में हत्या के बाद से फरार, जमीन विवाद-मारपीट का आरोप
+[1] [Dainik Bhaskar] Inserted: कटिहार में 35 टीबी मरीजों को मिला पोषण आहार:लायंस क्लब ने किया वितरण, 6 माह तक मिलेगा सहारा
+[1] [Dainik Bhaskar] Inserted: गया में बालू खनन के गड्ढे में डूबा बच्चा:4 घंटे बाद मिला शव; दो-तीन बच्चों के साथ नहाने गया था, ग्रामीणों ने एसडीआरएफ से पहले ढूंढ निकाला
+[1] [Dainik Bhaskar] Inserted: बेगूसराय को बाढ़-सुखाड़ प्रभावित घोषित करने की मांग,RJD का धरना:MLC उर्मिला ठाकुर बोलीं-तेजस्वी ने 17 महीने में काम किया, जिलाध्यक्ष बोले-किसानों को मुआवजा, GR राशि मिले
+[1] [Dainik Bhaskar] Inserted: रामकृष्ण स्कूल के निदेशक गिरफ्तार:तीन साल पहले छात्रा ने लगाया था छेड़खानी का आरोप, एसोसिएशन ने की निष्पक्ष जांच की मांग
+[1] [Dainik Bhaskar] Inserted: दरभंगा स्नातक सीट से निर्दलीय लड़ेंगे छात्र नेता दिलीप:11 साल से पेपरलीक-भ्रष्टाचार के खिलाफ आंदोलन का दावा; युवाओं के लिए वैकेंसी होंगे मुद्दे
+[1] [Dainik Bhaskar] Inserted: 5 साल की विशा ने 36 घंटे का उपवास रखा:किशनगंज में पर्युषण महापर्व में तप-संयम की मिसाल
+[1] [Dainik Bhaskar] Inserted: शिक्षकों ने 7वें वेतन आयोग के अनुरूप वेतनमान की मांग:सीतामढ़ी में 51 सदस्यीय प्रतिनिधिमंडल ने सौंपा मांग पत्र, आंदोलन की चेतावनी
+[1] [Dainik Bhaskar] Inserted: परीक्षा दे रहे छात्रों पर स्कूल में घुसकर हमला:नालंदा में 5-7 लड़कों ने बेल्ट-डंडों से पीटा; बीच-बचाव करने वाली शिक्षिका से धक्का-मुक्की
+[1] [Dainik Bhaskar] Inserted: अररिया के 3 थानों को मिले नए थानाध्यक्ष:SP ने 3 दारोगाओं का तबादला कर कानून-व्यवस्था मजबूत करने को कहा
+[1] [Dainik Bhaskar] Inserted: शेखपुरा के बरबीघा SBI में लगा सोलर मेला:सोलर ऊर्जा की जानकारी दी गई, 10 वेंडर शामिल हुए और 172 आवेदन मिले
+[1] [Dainik Bhaskar] Inserted: हादसों वाले ब्लैक स्पॉट होंगे सुरक्षित:मधेपुरा में सड़क सुरक्षा समिति ने की एक्सीडेंट की रिव्यु
+[1] [Dainik Bhaskar] Inserted: मुंगेर-भागलपुर मरीन ड्राइव का काम बारिश बाद होगा शुरू:CM सम्राट चौधरी बोले- 83 KM की फोरलेन सड़क बाढ़ से भी बचाएगी
+[1] [Dainik Bhaskar] Inserted: खगड़िया में कल से सेवा संकल्प अभियान:DM के निर्देश पर एक्शन प्लान तैयार, DDC श्रेया श्री को वरीय प्रभार
+[1] [Dainik Bhaskar] Inserted: तिलयुगा नदी में नहाने गया युवक डूबा:सुपौल में NDRF को दी गई सूचना, तलाश जारी
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर में तेज हवाओं के साथ झमाझम बारिश शुरू:उमस से राहत मिली, अगले 2-4 दिन भारी बारिश और वज्रपात की संभावना
+[1] [Dainik Bhaskar] Inserted: बिजली गिरने से दादा-पोते की मौत:सीवान में मवेशी चराने गए थे, एक व्यक्ति घायल
+[1] [Dainik Bhaskar] Inserted: बक्सर में 18 सितंबर से मुफ्त रोजगार प्रशिक्षण:18 से 28 साल के युवा कर सकेंगे आवेदन, इंटरव्यू- कम्युनिकेशन स्किल की ट्रेनिंग
+[1] [Dainik Bhaskar] Inserted: अररिया में बूथ स्तर तक होंगे सेवा कार्यक्रम:PM मोदी के जनसेवा के 25 साल पूरे होने पर BJP का सेवा संकल्प महाअभियान
+[1] [Dainik Bhaskar] Inserted: दरभंगा में पिकअप ने बाइक सवार को मारी टक्कर, मौत:2 साल पहले हुई थी शादी, नहीं थी कोई संतान; एयरपोर्ट पर निजी काम करते थे
+[1] [Dainik Bhaskar] Inserted: आधी रात में औचक निरीक्षण, 2 थानाध्यक्ष समेत 7 निलंबित:शेखपुरा में ड्यूटी से गायब मिले, एसपी ने बदले 2 थानों के प्रभारी
+[1] [Dainik Bhaskar] Inserted: अज्ञात गाड़ी की टक्कर से बुजुर्ग की मौत:सीवान में दूध देकर लौट रहे थे घर, झाड़ी में मिला बॉडी
+[1] [Dainik Bhaskar] Inserted: भागलपुर में CM सम्राट-शिवराज बाढ़ पीड़ितों से मिले:राहत शिविर में मिल रही सुविधाओं की ली जानकारी, नवगछिया के काजीकोरैया तटबंध का किया हवाई सर्वे
+[1] [Dainik Bhaskar] Inserted: DM ने किया पकड़ीदयाल अनुमंडल कार्यालय का सरप्राइज इंस्पेक्शन:मोतिहारी में कामकाज में सुधार और शिकायतों के तुरंत निपटारे के निर्देश
+[1] [Dainik Bhaskar] Inserted: बाइक पार्किंग विवाद में कारोबारी से थाने में मारपीट:जमुई में SI समेत पुलिसकर्मियों पर पीटने का आरोप, SP-DIG-DGP से शिकायत
+[1] [Dainik Bhaskar] Inserted: DM ने जर्जर सड़कों की मरम्मत के लिए लिखा लेटर:ग्रामीण कार्य विभाग के सचिव को पत्र, सर्वे के बाद मरम्मत-पुनर्निर्माण होगा
+[1] [Dainik Bhaskar] Inserted: विधायक बबलू कुमार मंडल महसौड़ी स्कूल की बैठक में शामिल:शिक्षा व्यवस्था मजबूत करने को बताया प्राथमिकता, बाउंड्री वाल निर्माण में सहयोग का भरोसा
+[1] [Dainik Bhaskar] Inserted: नालंदा-महाबोधि कॉलेज की बिल्डिंग का नीतीश कुमार ने किया उद्घाटन:पाटलिपुत्र यूनिवर्सिटी का पहला इंटीग्रेटेड बीएड कॉलेज बना, मॉर्डन सुविधाओं से है लैस
+[1] [Dainik Bhaskar] Inserted: अररिया कॉलेज में डॉ. बृजकिशोर बने नए एग्जाम कंट्रोलर:नई परीक्षा टीम भी गठित, डॉ. राजेश मोहन समेत 3 उप-नियंत्रक अपॉइंट
+[1] [Dainik Bhaskar] Inserted: SP हिमांशु ने त्योहारों के लिए पुलिस को किया अलर्ट:अच्छा काम करने वाले पुलिसकर्मी सम्मानित, शिकायतों के तुरंत निपटारे पर फोकस
+[1] [Dainik Bhaskar] Inserted: चंदा लेने निकले दुर्गा पूजा समिति के कोषाध्यक्ष पर हमला:किशनगंज में धक्का देकर सड़क पर गिराया, हाथ टूटा; एक्स-रे में फ्रैक्चर, अरेस्ट
+[1] [Dainik Bhaskar] Inserted: जनाजे से लौट रहे बुजुर्ग को वाहन ने रौंदा, मौत:किशनगंज में माराडांगा चौक के पास हादसा, आक्रोशित ग्रामीणों ने NH-327E जाम किया
+[1] [Dainik Bhaskar] Inserted: मोतिहारी में रोड एक्सीडेंट पीड़ितों को 4-4 लाख का मुआवजा:विधायक प्रमोद कुमार ने चेक सौंपे, सदर अंचल परिसर में कार्यक्रम
+[1] [Dainik Bhaskar] Inserted: मोहनिया थाना में वरिष्ठ नागरिक संघ की बैठक:वृद्धा पेंशन ₹1100 से ₹3000 करने और अलग ऑफिस खोलने की मांग
+[1] [Dainik Bhaskar] Inserted: औरंगाबाद में अश्लील गाना बजाने से रोकने पर हत्या:11 साल बाद दो दोषियों को उम्रकैद, कोर्ट ने मुंडा शाह-मोईन शाह पर लगाया 1-1 हजार जुर्माना
+[1] [Dainik Bhaskar] Inserted: '2 दिन में अतिक्रमण हटाओ, नहीं तो चलेगा बुलडोजर':मोतिहारी में प्रशासन का अल्टीमेटम, ठेला वालों के लिए बनेगा अलग वेंडिंग जोन
+[1] [Dainik Bhaskar] Inserted: मोहनिया अंचल ऑफिस का अपर समाहर्ता ने किया सरप्राइज इंस्पेक्शन:कमियां मिलने पर अधिकारियों को सुधरने की सख्त हिदायत
+[1] [Dainik Bhaskar] Inserted: फौलादपुर की मुख्य सड़क पर जलजमाव:राहगीरों-वाहन चालकों को हो रही परेशानी, स्थायी समाधान के लिए ग्रामीणों ने डीएम से लगाई गुहार
+[1] [Dainik Bhaskar] Inserted: बरबीघा के तत्कालीन SHO के खिलाफ गिरफ्तारी वारंट जारी:2017 के शराब बरामदगी मामले में कोर्ट में गवाही नहीं देने पर कार्रवाई
+[1] [Dainik Bhaskar] Inserted: नालंदा में साइबर ठग गिरोह का भंडाफोड:3 भाइयों समेत 7 शातिर गिरफ्तार, लोन-लॉटरी का झांसा देकर करते थे ठगी
+[1] [Dainik Bhaskar] Inserted: फोन पर गांजा-स्मैक का ऑर्डर, तय जगह पर डिलीवरी:मुजफ्फरपुर में युवक गिरफ्तार, घर से गांजा-स्मैक-कोटा बरामद; मोबाइल खंगाल रही पुलिस
+[1] [Dainik Bhaskar] Inserted: अश्लील आर्केस्ट्रा वीडियो में 5 नामजद समेत अन्य पर केस:मधुबनी में स्कूल का वीडियो हुआ था वायरल, DM के निर्देश पर जांच
+[1] [Dainik Bhaskar] Inserted: कैमूर में स्नेक बाइट से बच्चे की मौत:ईंटों के ढेर में छिपा था जहरीला गेहुअन, हाथ रखते ही डसा; इलाज के दौरान दम तोड़ा
+[1] [Dainik Bhaskar] Inserted: नालंदा में अल्पसंख्यक आवासीय विद्यालय शुरू,56 करोड़ में बना बिल्डिंग:मंत्री मो.जमा खां-सांसद कौशलेन्द्र ने किया उद्घाटन, 560 बच्चों को मुफ्त पढ़ाई-रहने के साथ NEET-JEE की कोचिंग
+[1] [Dainik Bhaskar] Inserted: शराब और पुलिस से दुर्व्यवहार मामले में दो आरोपी गिरफ्तार:मधुबनी पुलिस ने अलग-अलग जगहों से पकड़ा, कोर्ट में होगी पेशी
+[1] [Dainik Bhaskar] Inserted: भभुआ में पेपरलेस रजिस्ट्री से 192 लोगों ने कराया रजिस्ट्रेशन:17 अगस्त से शुरू हुई व्यवस्था, सरकार को मिला 2.63 करोड़ राजस्व
+[1] [Dainik Bhaskar] Inserted: उच्च विद्यालय निर्मली के भूमि विवाद की होगी जांच:सुपौल DM ने निरीक्षण कर शिक्षकों का लेसन प्लान देखा, सीओ को जल्द रिपोर्ट देने का निर्देश
+[1] [Dainik Bhaskar] Inserted: किशनगंज में अतिक्रमण पर चला बुलडोजर:JCB से सीढ़ी-चबूतरे और अवैध निर्माण हटाए, दुकानदारों से जुर्माना वसूला
+[1] [Live Hindustan] Inserted: बगहा के मधुबनी में ऑपरेशन के बाद महिला की मौत, इलाज में लापरवाही के आरोप पर हंगामा
+[1] [Live Hindustan] Inserted: भोजपुर के उदवंतनगर में तेज पछुआ हवा के साथ बारिश, धान की फसल को मिली राहत
+[1] [Live Hindustan] Inserted: भोजपुर के गड़हनी में जफी हत्याकांड के तीन आरोपितों ने कोर्ट में किया सरेंडर, पुलिस दबिश का असर
+[1] [Live Hindustan] Inserted: भाई वीरेंद्र के ऑफर को नहीं मिला जेडीयू से भाव, अब निशांत को सीएम बनाने के सवाल पर भी बोले
+[1] [Live Hindustan] Inserted: गया-कोडरमा रेलखंड के बंधुआ फाटक पर आरओबी निर्माण अटका, रोजाना जाम से लोग परेशान
+[1] [Live Hindustan] Inserted: गोपालगंज में किशोर न्याय बोर्ड की बैठक, लंबित मामलों के त्वरित निष्पादन पर जोर
+[1] [Live Hindustan] Inserted: सासाराम में अतिक्रमण के खिलाफ नगर निगम का अभियान, सड़क और फुटपाथ से हटाए अवैध कब्जे
+[1] [Live Hindustan] Inserted: बेगूसराय को बाढ़-सूखा क्षेत्र घोषित करने की मांग, राजद ने कलेक्ट्रेट पर दिया धरना
+[1] [Live Hindustan] Inserted: रोहतास में ताराचंडी-मांझर कुंड मार्ग पर वाहन पाबंदी को लेकर पूर्व विधायक ने जताई आपत्ति
+[1] [Live Hindustan] Inserted: गोपालगंज में मुखिया के घर में चोरी का प्रयास, वेंटिलेटर तोड़ घुस रहे थे चोर, CCTV में दिखे
+[1] [Live Hindustan] Inserted: गोपालगंज के सिधवलिया में ट्रक की टक्कर से ई-रिक्शा पलटा, चालक समेत पांच लोग जख्मी
+[1] [Live Hindustan] Inserted: गोपालगंज में 490 बोतल शराब के साथ तस्कर गिरफ्तार, कार के बॉक्स में छिपाकर ले जा रहा था
+[1] [Live Hindustan] Inserted: गोपालगंज में धान अधिप्राप्ति की तैयारी, 50 हजार किसानों का निबंधन कराने का लक्ष्य तय
+[1] [Live Hindustan] Inserted: रोहतास के करगहर में कार ने टेंपो में मारी जोरदार टक्कर, टेंपो पेड़ पर चढ़ा, कई घायल
+[1] [Live Hindustan] Inserted: नवादा के गोविंदपुर में तालाब में डूबने से 45 वर्षीय व्यक्ति की मौत, शौच के बाद गया था तालाब की ओर
+[1] [Live Hindustan] Inserted: दरभंगा में महाकवि विद्यापति की प्रतिमा खंडित, असामाजिक तत्वों ने ईंट से वार कर सिर तोड़ा
+[1] [Live Hindustan] Inserted: सासाराम में जनजातीय महिलाओं-बच्चों की शिक्षा-स्वास्थ्य पर सेमिनार, कार्ययोजना पर हुई चर्चा
+[1] [Live Hindustan] Inserted: नवादा में पांच दिवसीय स्काउट-गाइड शिविर संपन्न, छात्रों ने सीखे अनुशासन और सेवा के गुर
+[1] [Live Hindustan] Inserted: सेवा संकल्प अभियान के तहत सासाराम में 17 सितंबर को नेहरू पार्क समेत प्रमुख स्थलों पर जलेंगे दीप
+[1] [Live Hindustan] Inserted: रोहतास राजपुर बाजार में एड्स जागरूकता कार्यक्रम, HIV कारण बचाव व जांच पर दी जानकारी
+[1] [Live Hindustan] Inserted: खगड़िया के बछौता में पोखर में डूबने से 19 वर्षीय युवक नीतीश कुमार की मौत
+[1] [Live Hindustan] Inserted: रोहतास के चेनारी में मानदेय और PF भुगतान को लेकर सफाई कर्मियों का प्रदर्शन, सड़क पर फेंका कूड़ा
+[1] [Live Hindustan] Inserted: नवादा में आज से 102 एंबुलेंस सेवा ठप, मरीजों को निजी वाहनों पर होना पड़ रहा निर्भर
+[1] [Live Hindustan] Inserted: जेन जी और जेन अल्फा ने उड़ाई बिहार पुलिस की नींद, स्कूल की समस्याओं पर तुरंत कार्रवाई के आदेश
+[1] [Live Hindustan] Inserted: रोह में 11000 वोल्ट तार की चपेट में किसान की मौत, बिजली विभाग पर लापरवाही का आरोप
+[1] [Live Hindustan] Inserted: रोहतास डेहरी PHC में रोगी कल्याण समिति की बैठक, रंगाई-पुताई व सुविधाएं सुधारने का निर्णय
+[1] [Live Hindustan] Inserted: गोपालगंज बंजारी बाइपास पर दो बाइक टकराईं, युवक की मौत, बहन समेत 3 घायल
+[1] [Live Hindustan] Inserted: लखनऊ होकर बंगाल, बिहार और पंजाब के लिए 2 स्पेशल ट्रेनें चलेंगी, यात्रियों को राहत
+[1] [Live Hindustan] Inserted: गला रेता, दो उंगलियां काटकर सिर के पास रख दी; बेतिया में महिला की बेरहमी से हत्या
+[1] [Live Hindustan] Inserted: किशनगंज के महानंदा ब्रिज पर कार से 169 लीटर विदेशी शराब बरामद, एक युवक गिरफ्तार
+[1] [Live Hindustan] Inserted: गोपालगंज: कम राशन पर PDS दुकानदारों पर कार्रवाई, होटलों में घरेलू गैस पर FIR
+[1] [Live Hindustan] Inserted: नवादा की सकरी नदी में प्रतिमा विसर्जन के लिए गए बच्चे की लाश मिली, परिजनों ने किया सड़क जाम
+[1] [Live Hindustan] Inserted: छठ-दिवाली स्पेशल ट्रेनों में अमृत भारत के रैक दौड़ेंगे, किराये में यात्रियों को बड़ी राहत
+[1] [Live Hindustan] Inserted: गया जी: दिल्ली AIIMS में इलाजरत जीतनराम मांझी के स्वस्थ होने पर HAM कार्यकर्ताओं ने मिठाई खिलाकर खुशी जताई, दीर्घायु की
+[1] [Live Hindustan] Inserted: नवादा: कौआकोल के वारसी डिग्री कॉलेज में गर्ल्स कॉमन रूम व शिक्षक सम्मान समारोह का उद्घाटन MLC नवल किशोर ने किया
+[1] [Live Hindustan] Inserted: गया जी: फल्गु नदी में सोन नदी से पानी लाने की योजना सफल, केंद्रीय मंत्री जीतनराम मांझी का सपना पूरा - हम पार्टी
+[1] [Live Hindustan] Inserted: गोपालगंज के राजेंद्र नगर वार्ड 22 में एक माह से जलजमाव, पानी निकासी की मांग
+[1] [Live Hindustan] Inserted: बिहार को संकट से उबारने में केंद्र देगी सम्राट सरकार का साथ, बाढ़ से क्षति को देख बोले शिवराज सिंह चौहान
+[1] [DB] 130 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 7.10 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar Floods Displace Millions and Submerge Farmland, Prompting Emergency Relief and Federal Assessment - rtvonline.com
+[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan to visit Bihar on September 16 to review flood situation - The Economic Times
+[1] [DB] 2 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.10 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: BJP Allies in Andhra Pradesh, Bihar Strike Cautious Note as Shah Promises UCC in 21 NDA-Ruled States - thewire.in
+[1] [Google News] Inserted: ‘Don’t count parents’ salary, farm income’: Bihar government tightens creamy-layer rules amid quota row - indianexpress.com
+[1] [Dainik Bhaskar] Inserted: कैमूर के 15 मॉडल स्कूलों का होगा रेनोवेशन:DM ने विकास, उपस्थिति, स्मार्ट क्लास और अतिक्रमण हटाने के लिए दिए निर्देश
+[1] [Dainik Bhaskar] Inserted: सीवान में होमगार्ड जवान पर महिला के मर्डर का आरोप:मौत से पहले बेटी को भगा ले गया था आरोपी, 3 लोगों के खिलाफ नोट छोड़ गई मृतका
+[1] [Live Hindustan] Inserted: मोदी के बर्थडे पर बाढ़ पीड़ितों का जिया जलाएगी बीजेपी, आशीर्वाद का दीया कार्यक्रम पर बोले तेजस्वी
+[1] [DB] 5 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.10 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Nintendo: Delhi High Court Stops Bihar-Based Company From Using the Japanese Giant’s Name - in.ign.com
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] Supabase DB error on article 'The Toast Of The BRI...': The read operation timed out
+[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan visits flood-hit areas of Bihar; to review relief operations - Daily Excelsior
+[1] [Google News] Inserted: Bihar Cabinet approves Vishnupad complex, river link - dailypioneer.com
+[1] [Google News] Inserted: Bihar CM transfers Rs 579 crore relief to 8.27 lakh flood-hit families - dailypioneer.com
+[1] [Google News] Inserted: NDA allies divided over Amit Shah UCC push in Andhra, Bihar - dailypioneer.com
+[1] [Dainik Bhaskar] Inserted: सुपरिटेंडेंट इंजीनियर का पटना में 10 करोड़ का घर:पूर्णिया में भवन निर्माण विभाग में पोस्टेड हैं सत्येंद्र; 2 महीने पहले हुआ था प्रमोशन; केस दर्ज
+[1] [Dainik Bhaskar] Inserted: चांदनी चौक से कोसी पुल तक सड़क जर्जर:अररिया में कांग्रेस जिला अध्यक्ष की DM से जल्द निर्माण की मांग
+[1] [Dainik Bhaskar] Inserted: गया में कई वार्डों में नहीं पहुंच रहा पानी:अरबों की जलापूर्ति योजना के बाद भी पाइपलाइन में लीकेज, कम प्रेशर की शिकायत; पार्षदों की बुडको पर नाराजगी
+[1] [DB] 8 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.18 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar Celebrates 114th Foundation Day - newsonair.gov.in
+[1] [Google News] Inserted: Bihar CM Samrat Chaudhary expands his cabinet; 32 ministers including Nitish Kumar’s son take oath as new Ministers - newsonair.gov.in
+[1] [Google News] Inserted: Bihar Declared Naxal-Free After Surrender of Last Armed Maoist in Munger - newsonair.gov.in
+[1] [Google News] Inserted: Flood situation remains grim in several parts of Bihar - newsonair.gov.in
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर सिविल कोर्ट में बिहार का पहला ‘मिट्टी कैफे’ शुरू:दिव्यांगों को रोजगार और वित्तीय स्वतंत्रता का अवसर; उद्घाटन में DM-SSP समेत कई अधिकारी रहे मौजूद
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] [DB] 5 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.16 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar man climbs on top of overbridge, cops halt traffic and bring crane to rescue him - indiatoday.in
+[1] [Google News] Inserted: Centre stands with Bihar Govt to tackle flood crisis: Shivraj Singh Chouhan - The Statesman
+[1] [Dainik Bhaskar] Inserted: गोपालगंज से किडनैप छात्र 9 घंटे बाद देवरिया से मिला:नकाबपोशों ने किया था अपहरण, स्कूल के पास से गायब; CCTV-DVR से छेड़छाड़
+[1] [Dainik Bhaskar] Inserted: 90 साल पुरानी गणेश पूजा पर साउंड को लेकर पाबंदी:नालंदा में आयोजकों ने लाउडस्पीकर-जागरण की अनुमति मांगी; एसडीओ बोले- आवेदन आने पर अनुमति दी जाएगी
+[1] [DB] 4 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.19 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Centre stands with Bihar Govt to tackle flood crisis: Shivraj Singh Chouhan - thestatesman.com
+[1] [Live Hindustan] Inserted: बिहार में बाढ़ ने रोके टीचर ट्रांसफर, शिक्षा विभाग ने सामान्य तबादलों के आवेदन की तारीख आगे बढ़ाई
+[1] [DB] 2 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.10 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: This banyan tree in Bihar is at least 700 years old — and science has finally proved it - The Indian Express
+[1] [Dainik Bhaskar] Inserted: 450 डब्बे सोयाबीन तेल लूटने वाले अंतरराज्यीय गिरोह का खुलासा:किशनगंज 4 गिरफ्तार, यूपी से लेकर मोतिहारी तक छापेमारी
+[1] [DB] 2 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.12 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: 26 trained to strengthen food safety drive in Bihar - The Times of India
+[1] [Google News] Inserted: The Toast Of The BRICS Summit, Bihar’s Sattuz Eyes Global Brand Recognition - etvbharat.com
+[1] [Google News] Inserted: US Woman Detained Near India-Nepal Border In Bihar's Kishanganj, Police Find Nothing Suspicious After Questioning - etvbharat.com
+[1] [Google News] Inserted: Declared Dead In 2014, Bihar Woman Found Alive In Jharkhand During SIR - etvbharat.com
+[1] [DB] 4 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.10 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
