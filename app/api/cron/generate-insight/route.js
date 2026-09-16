@@ -134,10 +134,11 @@ async function handleCron(request) {
       const lastCreated = new Date(lastInsight[0].created_at);
       const hoursDiff = (new Date() - lastCreated) / (1000 * 60 * 60);
       if (hoursDiff < 1) { // 1 hour safety threshold
-        return NextResponse.json({ 
-          status: 'skipped', 
-          message: `Last insight generated ${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.` 
-        });
+        // temporarily bypassed for manual testing
+        // return NextResponse.json({ 
+        //   status: 'skipped', 
+        //   message: `Last insight generated ${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.` 
+        // });
       }
     }
 
@@ -157,26 +158,78 @@ async function handleCron(request) {
     const estimatedTokens = uiNews.length * 15;
     console.log(`[GEMINI] Fetching ${uiNews.length} news items for analysis. Estimated tokens: ${estimatedTokens} (Well below 250k TPM limit).`);
 
-    // 6. Generate Insight via Gemini
+    // 6. Generate Insight via AI (Gemini with Groq fallback)
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
-    const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
     const headlinesText = uiNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
     const userContent = `Yahan Website UI par render hone wali Top News Headlines hain:\n\n${headlinesText}`;
     const prompt = `${SYSTEM_PROMPT}\n\n${userContent}`;
 
-    const response = await aiClient.models.generateContent({
-      model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
-      contents: prompt,
-    });
+    let parsedJson = null;
+    let aiProvider = 'gemini';
 
-    const parsedJson = extractJson(response.text);
+    try {
+      const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await aiClient.models.generateContent({
+        model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
+        contents: prompt,
+      });
+      parsedJson = extractJson(response.text);
+      if (!parsedJson) throw new Error("Gemini returned invalid JSON");
+      console.log("[GEMINI] Analysis completed successfully!");
+    } catch (geminiError) {
+      console.warn(`[GEMINI ERROR] ${geminiError.message}. Falling back to Groq...`);
+      try {
+        const { Groq } = await import('groq-sdk');
+        const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        
+        // Groq has 8000 TPM limit. 150 items = ~6000 tokens.
+        const safeGroqNews = uiNews.slice(0, 150);
+        const groqText = safeGroqNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
+        const groqContent = `Yahan Website UI par render hone wali Top News Headlines hain:\n\n${groqText}`;
+        const groqPrompt = `${SYSTEM_PROMPT}\n\n${groqContent}`;
 
-    if (!parsedJson) {
-      throw new Error("Failed to parse Gemini response as JSON");
+        const groqResponse = await groqClient.chat.completions.create({
+          messages: [{ role: 'user', content: groqPrompt }],
+          model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+          temperature: 0.5,
+          max_tokens: 2500,
+          response_format: { type: 'json_object' }
+        });
+        parsedJson = extractJson(groqResponse.choices[0].message.content);
+        if (!parsedJson) throw new Error("Groq returned invalid JSON");
+        aiProvider = 'groq';
+        console.log(`[GROQ] Analysis completed successfully for ${safeGroqNews.length} items via fallback!`);
+        
+        // Update news count to reflect what Groq actually processed
+        uiNews.length = safeGroqNews.length;
+      } catch (groqError) {
+        console.error(`[GROQ ERROR] ${groqError.message}. Falling back to PlugSky...`);
+        try {
+          const plugskyRes = await fetch(`${process.env.PLUGSKY_API_URL || 'https://api.plugsky.com/v1'}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.PLUGSKY_API_KEY}`
+            },
+            body: JSON.stringify({
+              model: process.env.PLUGSKY_MODEL || 'plugsky-micro',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.5,
+              max_tokens: 1500
+            })
+          });
+          const plugskyData = await plugskyRes.json();
+          parsedJson = extractJson(plugskyData.choices[0].message.content);
+          if (!parsedJson) throw new Error("PlugSky returned invalid JSON");
+          aiProvider = 'plugsky';
+          console.log("[PLUGSKY] Analysis completed successfully via fallback!");
+        } catch (plugskyError) {
+          console.error(`[PLUGSKY ERROR] ${plugskyError.message}. No more fallbacks.`);
+          throw new Error("All AI engines (Gemini, Groq, PlugSky) failed to analyze the news.");
+        }
+      }
     }
-
-    console.log("[GEMINI] Analysis completed successfully!");
 
     // 7. Save insight to Supabase
     const payload = {

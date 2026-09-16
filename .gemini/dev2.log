@@ -1,0 +1,76 @@
+
+> bihar-political-dashboard@1.0.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use by process 7248, using available port 3003 instead.
+   ▲ Next.js 15.5.25
+   - Local:        http://localhost:3003
+   - Network:      http://10.54.48.211:3003
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Compiled /instrumentation in 278ms (20 modules)
+ ✓ Ready in 2.5s
+ ○ Compiling /api/cron/generate-insight ...
+ ✓ Compiled /api/cron/generate-insight in 1239ms (594 modules)
+[CRON] Starting Serverless AI Insight Generation Cycle...
+(node:35281) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Error fetching RSS Live Hindustan: Unable to parse XML.
+[DB] 0 new articles fetched and saved.
+[GEMINI] Fetching 212 news items for analysis. Estimated tokens: 3180 (Well below 250k TPM limit).
+[GEMINI] Analyzing UI Rendered News via Gemini AI...
+[GEMINI ERROR] {"error":{"code":429,"message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 33.328449237s.","status":"RESOURCE_EXHAUSTED","details":[{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-2.5-flash"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"33s"}]}}. Falling back to Groq...
+[GROQ ERROR] 413 {"error":{"message":"Request too large for model `openai/gpt-oss-120b` in organization `org_01jxkjtc44ebavej9fphjajy15` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 9175, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing","type":"tokens","code":"rate_limit_exceeded"}}. No more fallbacks.
+[CRON ERROR]: Error: Both Gemini and Groq failed to analyze the news.
+    at handleCron (app/api/cron/generate-insight/route.js:197:15)
+  195 |       } catch (groqError) {
+  196 |         console.error(`[GROQ ERROR] ${groqError.message}. No more fallbacks.`);
+> 197 |         throw new Error("Both Gemini and Groq failed to analyze the news.");
+      |               ^
+  198 |       }
+  199 |     }
+  200 |
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 500 in 65039ms
+ ✓ Compiled in 96ms (8 modules)
+ ✓ Compiled /api/cron/generate-insight in 358ms (400 modules)
+[CRON] Starting Serverless AI Insight Generation Cycle...
+Error fetching RSS Live Hindustan: Unable to parse XML.
+[DB] 0 new articles fetched and saved.
+[GEMINI] Fetching 212 news items for analysis. Estimated tokens: 3180 (Well below 250k TPM limit).
+[GEMINI] Analyzing UI Rendered News via Gemini AI...
+[GEMINI ERROR] {"error":{"code":429,"message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 32.476635322s.","status":"RESOURCE_EXHAUSTED","details":[{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"model":"gemini-2.5-flash","location":"global"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"32s"}]}}. Falling back to Groq...
+JSON parse error: SyntaxError: Unterminated string in JSON at position 3267 (line 56 column 21)
+    at JSON.parse (<anonymous>)
+    at extractJson (app/api/cron/generate-insight/route.js:46:17)
+    at handleCron (app/api/cron/generate-insight/route.js:198:22)
+  44 |       }
+  45 |     }
+> 46 |     return JSON.parse(cleaned);
+     |                 ^
+  47 |   } catch (err) {
+  48 |     console.error("JSON parse error:", err);
+  49 |     return null;
+[GROQ ERROR] Groq returned invalid JSON. Falling back to PlugSky...
+[PLUGSKY ERROR] Cannot read properties of undefined (reading '0'). No more fallbacks.
+[CRON ERROR]: Error: All AI engines (Gemini, Groq, PlugSky) failed to analyze the news.
+    at handleCron (app/api/cron/generate-insight/route.js:228:17)
+  226 |         } catch (plugskyError) {
+  227 |           console.error(`[PLUGSKY ERROR] ${plugskyError.message}. No more fallbacks.`);
+> 228 |           throw new Error("All AI engines (Gemini, Groq, PlugSky) failed to analyze the news.");
+      |                 ^
+  229 |         }
+  230 |       }
+  231 |     }
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 500 in 125000ms
+ ✓ Compiled in 77ms (8 modules)
+ ✓ Compiled /api/cron/generate-insight in 463ms (400 modules)
+[CRON] Starting Serverless AI Insight Generation Cycle...
+Error fetching RSS Live Hindustan: Unable to parse XML.
+[DB] 0 new articles fetched and saved.
+[GEMINI] Fetching 212 news items for analysis. Estimated tokens: 3180 (Well below 250k TPM limit).
+[GEMINI] Analyzing UI Rendered News via Gemini AI...
+[GEMINI ERROR] {"error":{"code":429,"message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 50.943361435s.","status":"RESOURCE_EXHAUSTED","details":[{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-2.5-flash"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"50s"}]}}. Falling back to Groq...
+[GROQ] Analysis completed successfully for 150 items via fallback!
+[DB] Structured insight saved to news_insights table!
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 200 in 66077ms
