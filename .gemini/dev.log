@@ -572,3 +572,430 @@ Error fetching RSS Live Hindustan: getaddrinfo ENOTFOUND api.livehindustan.com
 [1] Structured insight saved to news_insights table!
 [1] [INFO] Waiting for next cycle...
 [1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Giant crocodile wanders into Bihar village, forest team captures it in tense rescue - India Today
+[1] [Google News] Inserted: Bihar becomes first state in India to launch dedicated investment policy for sugar industry - chinimandi.com
+[1] [Google News] Inserted: Bihar targets drone spraying across 2.85 lakh acres in 2026-27, sanctions Rs 11.81 crore in subsidy - chinimandi.com
+[1] [Dainik Bhaskar] Inserted: पप्पू यादव का दावा- ‘मेरा WhatsApp बंद कर दिया गया’:BJP प्रवक्ता बोले- बच्चों को शर्मसार करने वाले वीडियो के कारण META ने किया प्रतिबंधित
+[1] [Dainik Bhaskar] Inserted: दिशा के हत्यारे पकड़े तो सुशांत के कातिल बेनकाब होंगे:दिशा सालियान केस में CBI ने किया FIR, नीरज बबलू बोले-दिउद्धव सरकार ने मिटाए थे सबूत
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर- क्रिकेट खेलकर लौट रहे बाइक सवार जीजा-साला की मौत:साथ बैठा तीसरे युवक की हालत गंभीर; अज्ञात वाहन टक्कर मारकर फरार
+[1] [Dainik Bhaskar] Inserted: चतुर्थवर्गीय कर्मियों के नियोजन की काउंसिलिंग 18 सितंबर को
+[1] [Dainik Bhaskar] Inserted: बलात्कार के प्रयास मामले में नौ माह की सश्रम कारावास
+[1] [Dainik Bhaskar] Inserted: गणपति के जयकारों से गूंजा रजीगंज दुर्गा मंदिर परिसर
+[1] [Dainik Bhaskar] Inserted: कृषि यंत्रों की खरीद पर किसानों को मिलेगा 80 प्रतिशत तक अनुदान
+[1] [Dainik Bhaskar] Inserted: माई भारत पोर्टल पर 100 छात्राओं का पंजीकरण
+[1] [Dainik Bhaskar] Inserted: कार्यपालक सहायक की सेवा समाप्त, नियोजन रद्द
+[1] [Dainik Bhaskar] Inserted: आर्केस्ट्रा में काम करने वाली 40 लड़की का रेस्क्यू, संचालक समेत 15 गिरफ्तार
+[1] [Dainik Bhaskar] Inserted: घाटकुसुम्भा में बाढ़ पीड़ितों से मिले भाकपा नेता, क्षेत्र का लिया जायजा
+[1] [Dainik Bhaskar] Inserted: सेवा संकल्प एवं कायाकल्प अभियान कल से शुरू
+[1] [Dainik Bhaskar] Inserted: पूर्णिया : सहायक खजांची थानाध्यक्ष हटाए गए
+[1] [Dainik Bhaskar] Inserted: पूर्णिया विश्वविद्यालय में यूजी प्रथम सेमेस्टर के रजिस्ट्रेशन की तैयारी शुरू
+[1] [Dainik Bhaskar] Inserted: स्नातक चतुर्थ सेमेस्टर की परीक्षा शांतिपूर्ण संपन्न
+[1] [Dainik Bhaskar] Inserted: इंजीनियरिंग राष्ट्र निर्माण की रीढ़ : डॉ. साकिब
+[1] [Dainik Bhaskar] Inserted: पूर्णिया के बाढ़ पीड़ितों के खातों में भेजे गए 16.70 करोड़ रुपये
+[1] [Live Hindustan] Inserted: सासाराम: मंडल कारा में बंद बंदी की मौत के बाद पोस्ट ऑफिस चौराहा पर शव रखकर जाम, मुआवजे की मांग को लेकर नारेबाजी
+[1] [DB] 21 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.11 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Amit Shah’s Uniform Civil Code plan hits a bump in Bihar - The Indian Express
+[1] [Google News] Inserted: JD-U softens stand on UCC, says 'will not oppose for no reason' - Rediff
+[1] [Google News] Inserted: UCC Push Before 2029: Allies TDP, Shiv Sena Back Amit Shah, But JD(U) Says 'Not In Bihar' - News18
+[1] [Google News] Inserted: 38 kg Marijuana Seized From School Bags In Bihar, 3 Minors Among 5 Detained - NDTV
+[1] [Google News] Inserted: ‘He wanted divorce after becoming IPS’: Bihar SP Bhanu Pratap Singh’s wife alleges husband and in-laws ke - The Times of India
+[1] [Google News] Inserted: Her husband went to jail for her murder. Now, Bihar woman found alive in Jharkhand - The Indian Express
+[1] [Google News] Inserted: Swept away by Ganga 15 days ago, Bihar woman found in UP - The Times of India
+[1] [Google News] Inserted: Bihar Cabinet approves ₹3,516 crore for Vishnupad Temple area development, Son-Falgu river link - thehindu.com
+[1] [Google News] Inserted: Bihar floods: More than 49 lakh hit in 15 districts as rivers swell - Rediff
+[1] [Google News] Inserted: Bihar man killed by wife and in-laws, buried in graveyard; body exhumed after viral video - The Times of India
+[1] [Google News] Inserted: Bihar MLA invited to Russia as public election observer - The Times of India
+[1] [Google News] Inserted: School under water, classroom on a boat: Bihar teacher keeps lessons afloat - The Times of India
+[1] [Google News] Inserted: Chouhan to visit Bihar today to assess flood situation - The Times of India
+[1] [Google News] Inserted: Floods disrupt studies of 3.73 lakh students in Bihar - The Times of India
+[1] [Google News] Inserted: From one glass of milk to a 35-year legacy: How one Bihar tea seller’s kindness to babies became a family - The Times of India
+[1] [Google News] Inserted: Bihar facing severe floods despite low rainfall: CM - The Times of India
+[1] [Google News] Inserted: Bihar court issues non-bailable warrants against nine cops in eight-year-old case - The Indian Express
+[1] [Google News] Inserted: Bihar first state to open 211 degree colleges in a day: CM - The Times of India
+[1] [Google News] Inserted: Bihar UCC War: JD(U) Rejects Implementation Plan, RJD Slams BJP After Amit Shah’s Big Announcement - The Times of India
+[1] [Google News] Inserted: In Bihar, cost of a campus surges Rs 488 crore, CAG flags lapses; findings not final, says varsity - The Indian Express
+[1] [Google News] Inserted: Bihar is flooded despite poor rains. Nepal is not the reason - The Indian Express
+[1] [Google News] Inserted: Floods in India’s Bihar state affect nearly 5 million people — Dawn - UA.NEWS
+[1] [Google News] Inserted: Millions affected as floods strike Bihar - The Express Tribune
+[1] [Google News] Inserted: Millions affected as floods strike India’s Bihar - Times of Suriname
+[1] [Google News] Inserted: Koch Bihar air quality map - IQAir
+[1] [Google News] Inserted: From Jharkhand and Bihar to India’s chip lines: why semiconductor jobs are open to everyone - YourStory.com
+[1] [Google News] Inserted: Bihar Floods Displace Millions and Submerge Farmland, Prompting Emergency Relief and Federal Assessment - RTV News
+[1] [Google News] Inserted: Bihar to conduct DNA tests on relatives to identify victims of Nepal flash flood - Greater Kashmir
+[1] [Google News] Inserted: BJP Allies in Andhra Pradesh, Bihar Strike Cautious Note as Shah Promises UCC in 21 NDA-Ruled States - TheWire.in
+[1] [Google News] Inserted: Millions affected as floods strike India's Bihar - CNA
+[1] [Google News] Inserted: Bihar plans Oxford, Harvard training for 100 professors as it opens 211 colleges - Moneycontrol.com
+[1] [Google News] Inserted: Air quality in Koch Bihar - IQAir
+[1] [Google News] Inserted: Dozens Injured As Beam Launches Used For Bridge Construction Crashes In Bihar - NDTV
+[1] [Google News] Inserted: Bihar Sharif air quality map - IQAir
+[1] [Google News] Inserted: Three-day yellow alert for rain, thunderstorm in Bihar - The Times of India
+[1] [Google News] Inserted: Floods hit 49 lakh people in 15 Bihar districts as rivers keep swelling - thehindu.com
+[1] [Google News] Inserted: Will consider Bihar’s concerns before Ganga treaty renewal, says Jaishankar - thehindu.com
+[1] [Google News] Inserted: As Bihar gets over 200 new colleges, what’s next for its teachers? Training at Oxford - The Indian Express
+[1] [Google News] Inserted: Rift within NDA over implementation of UCC in Bihar - thehindu.com
+[1] [Google News] Inserted: Bihar: Children At Work, Poverty At Play - ETV Bharat
+[1] [Google News] Inserted: Bihar floods: Congress urges Govt to carry out relief, rescue operations without delay - thehindu.com
+[1] [Google News] Inserted: Bihar Celebrates 114th Foundation Day - News On AIR
+[1] [Google News] Inserted: Giant crocodile wanders into Bihar village, forest team captures it in tense rescue - India Today
+[1] [Google News] Inserted: Uniform Civil Code: Bihar sees Rift within NDA over implementation of UCC after AMIT shAH'S - thehindu.com
+[1] [Google News] Inserted: Power Off, Flashlight On: Bihar Doctors Use Torches To Operate On Pregnant Woman - NDTV
+[1] [Google News] Inserted: Bihar DGP Vinay Kumar goes on long leave, Preeta Verma to serve as acting DGP - thebuckstopper.com
+[1] [Google News] Inserted: Students protesting alleged irregularities in Bihar SI, BPSC exams detained; SSP says disrupting public movement - ANI News
+[1] [Google News] Inserted: Bihar CM transfers Rs 579 crore relief to 8.27 lakh flood-hit families - Daily Pioneer
+[1] [Google News] Inserted: UCC in Bihar? JD(U) opposes implementation despite backing Bill in Parliament - The Times of India
+[1] [Google News] Inserted: JD(U) clarifies stance on UCC, proposal to rename party and RJD’s invitation to join hands - thehindu.com
+[1] [Google News] Inserted: Nearly 50 lakh hit by floods in Bihar as swollen rivers breach danger marks - The Times of India
+[1] [Google News] Inserted: Rahul Gandhi urges swift relief as Bihar floods affect nearly 50 lakh people - National Herald
+[1] [Google News] Inserted: Bihar CM transfers ₹579 crore in relief to flood-affected people - thehindu.com
+[1] [Google News] Inserted: Bihar becomes first state in India to launch dedicated investment policy for sugar industry - chinimandi.com
+[1] [Google News] Inserted: Four Myanmar nationals detained in Bihar over lack of valid documents - thehindu.com
+[1] [Google News] Inserted: NDA partners in Bihar differ over Shah’s UCC announcement - The Times of India
+[1] [Google News] Inserted: Bihar Temple Vandalism: Police detain 3 minor Muslim boys for stone-throwing, urination at Hanuman murti in Nalanda - organiser.org
+[1] [Google News] Inserted: The men from Bihar who live among Kashmir’s apple trees - Deccan Herald
+[1] [Google News] Inserted: ‘No UCC in Bihar’: JD(U) reacts to Shah’s 2029 deadline statement | Hindustan Times - Hindustan Times
+[1] [Google News] Inserted: SC lawyers Ashwarya Sinha, Keshav Ranjan appointed as Bihar government's AAGs - The New Indian Express
+[1] [Google News] Inserted: Students detained after blocking rail track in Bihar over SI and BPSC exam irregularities - The News Mill
+[1] [Google News] Inserted: 'Stepmotherly treatment': Tejashwi seeks 'national disaster' tag for Bihar floods, slams Centre's respons - The Times of India
+[1] [Google News] Inserted: Bihar approves ₹3,516 crore for Son-Falgu river link, Vishnupad Temple redevelopment - ET Infra
+[1] [Google News] Inserted: Bihar clears Rs 3,516 crore plan to develop Gaya’s Vishnupad Temple area like Kashi corridor - The New Indian Express
+[1] [Google News] Inserted: Bihar Declared Naxal-Free After Surrender of Last Armed Maoist in Munger - News On AIR
+[1] [Google News] Inserted: NDA allies divided over Amit Shah UCC push in Andhra, Bihar - Daily Pioneer
+[1] [Google News] Inserted: Bihar To Develop Famous Vishnupad Temple At Gaya On Lines Of Kashi-Vishwanath Corridor - ETV Bharat
+[1] [Google News] Inserted: Bihar Comes Up With Silt Management Policy Amid Protests Against Farakka Barrage And Ganga Water Sharing Treaty With Bangladesh - ETV Bharat
+[1] [Google News] Inserted: Tense scenes in Patna as job aspirants breach barricades during march to CM’s residence - The New Indian Express
+[1] [Google News] Inserted: Central team to visit Bihar on September 16 to assess flood damage - thehindu.com
+[1] [Google News] Inserted: Bihar Cabinet okays Rs 3,516 cr for Son-Falgu river link project, Vishnupad temple development - ThePrint
+[1] [Google News] Inserted: AAI invites bids for INR 42.52 crore Saharsa airport upgrade in Bihar - Prop News Time
+[1] [Google News] Inserted: Nishith Prakash’s Research Shapes Debate on Bihar’s Economic Development - Northeastern University
+[1] [Google News] Inserted: Bihar tough test for BJP’s UCC plan as JD(U) seeks talks amid differing voices - The Statesman
+[1] [Google News] Inserted: JD(U) to oppose Centre's fresh move to implement UCC in Bihar - The New Indian Express
+[1] [Google News] Inserted: Agriculture Minister to visit flood-hit Bihar on Wednesday, take aerial survey of affected areas - Daily Excelsior
+[1] [Google News] Inserted: Nearly five million people affected by floods in India’s Bihar - TheReport.live
+[1] [Google News] Inserted: JD(U) says it supports UCC, but won’t allow it to be implemented in Bihar - Scroll.in
+[1] [Google News] Inserted: Bihar floods: Rahul Gandhi urges govt to carry out relief, rescue operations with full promptness - The Economic Times
+[1] [Google News] Inserted: Central team likely to visit Bihar on September 16 to assess flood situation - The New Indian Express
+[1] [Google News] Inserted: Bihar's Sattu, Odisha's Coffee And More: What's Inside BRICS Goodie Bag - NDTV
+[1] [Google News] Inserted: Monolithisch India secures quartzite stone block in Bihar - constructionweekonline.in
+[1] [Google News] Inserted: Situation Report 7 - Extreme Weather Events in India - Bihar and Uttar Pradesh (Date: 5th September 2026) - ReliefWeb
+[1] [Google News] Inserted: Rahul Gandhi, Kharge Express Concern Over Bihar Floods, Urge Prompt Relief - News Mobile
+[1] [Google News] Inserted: ‘Don’t eat, buy or sell fish caught in Nepal floodwaters': Bihar warns citizens | India News - Hindustan Times
+[1] [Google News] Inserted: JD(U) won't oppose UCC if provisions are okay: Bihar Deputy Chief Minister - The Economic Times
+[1] [Google News] Inserted: Bihar: Job Aspirants March In Patna Seeking Cancellation Of Recruitment Exams - ETV Bharat
+[1] [Google News] Inserted: 6-Year-Old Protester Taken Away By Cops In Bihar's 'Gen Alpha' Moment - NDTV
+[1] [Google News] Inserted: Four Myanmar nationals detained in Bihar’s Katihar district - ThePrint
+[1] [Google News] Inserted: Bihar CM transfers Rs 579 cr in relief to flood-affected people - ThePrint
+[1] [Google News] Inserted: Bihar targets drone spraying across 2.85 lakh acres in 2026-27, sanctions Rs 11.81 crore in subsidy - chinimandi.com
+[1] [Google News] Inserted: BharatBenz expands presence in Bihar’s Koshi belt with new Supaul dealership - ET Auto
+[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan to visit Bihar on Sep 16 - ANI News
+[1] [Google News] Inserted: UCC in Bihar? JD(U) says no, despite backing Bill in Parliament - India Today
+[1] [Google News] Inserted: Bihar man, 72, defies age to paraglide from 24,000 feet in Himachal Pradesh - India Today
+[1] [Google News] Inserted: Students protest in Patna over alleged irregularities in Bihar SI and 70th BPSC exams - The News Mill
+[1] [Google News] Inserted: Bihar: 50 quintals of banned Chinese Thai catfish seized, 3 detained - ThePrint
+[1] [Google News] Inserted: Central Team to Visit Bihar to Assess Flood Situation - Deccan Chronicle
+[1] [Google News] Inserted: Bihar CM Samrat Chaudhary releases Rs 579.23 cr ex-gratia to over 8 lakh flood-hit families - ANI News
+[1] [Google News] Inserted: Bihar: Job aspirants march in Patna seeking cancellation of recruitment exams - ThePrint
+[1] [Google News] Inserted: Central team to visit Bihar tomorrow to assess flood damage, says Samrat - The Times of India
+[1] [Google News] Inserted: Bihar received less than 30 % of rainfall this year: CM - MillenniumPost
+[1] [Google News] Inserted: Patna: Students Block Railway Track Over Bihar Police SI, BPSC Exam Row | Videos - Hindustan Times
+[1] [Google News] Inserted: NMC seeks report on Rs 3.75 lakh hostel fee demand from Bihar MBBS interns - The Tribune
+[1] [Dainik Bhaskar] Inserted: बिहार-50 लाख आबादी बाढ़ में घिरी, जायजा लेने पहुंचे शिवराज:बगहा में तेज बारिश, 26 जिलों में अलर्ट; कटिहार में नाव पर पढ़ रहे बच्चे
+[1] [Dainik Bhaskar] Inserted: बॉयफ्रेंड से मिलने अमेरिका से 13000km दूर आई लड़की:फ्लाइट से भूटान फिर सड़क के रास्ते नेपाल पहुंची, भारत में मार्केटिंग करते पकड़ी गई
+[1] [Dainik Bhaskar] Inserted: मनोरमा देवी का विधायक बनने का फॉर्मूला:मंत्री जी की चेतावनी से सांसद जी अलर्ट!, मोबाइल की चमक से चमका इलाज!
+[1] [Dainik Bhaskar] Inserted: बिहार में बाढ़ः 15 जिले...21 शहर, 50 लाख लोग प्रभावित:लोग बोले-रोटी नहीं मिल रही, दाल में पानी ही पानी, खाने का टाइम टेबल भी नहीं
+[1] [Dainik Bhaskar] Inserted: 4KM तक गूंजती है दहाड़...एक झटके में तोड़ती है गर्दन:बिहार की खूंखार बाघिन बंगाल क्यों जा रही, नए जंगल में कैसे रहेगी
+[1] [Dainik Bhaskar] Inserted: UCC बिल पर बिहार में क्या हो रहा है?:JDU के समर्थन के बिना बिल लागू करना कितना मुश्किल, जानिए भाजपा के साथ खींचतान क्यों
+[1] [Dainik Bhaskar] Inserted: बिहटा में श्राद्ध का भोज खाने से फूड पॉइजनिंग:55 लोगों की तबियत बिगड़ी; बुखार, दस्त और कमजोरी के दिखे लक्षण
+[1] [Dainik Bhaskar] Inserted: बाढ़ में ऑफिस नहीं, ग्राउंड पर बिहार की लेडी सिंघम:ट्रैक्टर से गांव पहुंचीं भागलपुर CO, जहानाबाद की DM भूटिया खेतों में; अक्षरा सिंह-हेगड़े बांट रहीं राहत
+[1] [Dainik Bhaskar] Inserted: बिहार में बाढ़ का जायजा लेंगे केंद्रीय मंत्री शिवराज:CM सम्राट के साथ प्रभावित इलाकों का करेंगे हवाई सर्वे; राहत शिविरों में पीड़ितों से करेंगे मुलाकात
+[1] [Dainik Bhaskar] Inserted: CM सम्राट चौधरी और शिवराज सिंह चौहान मुंगेर दौरे पर:बाढ़ की स्थिति का हवाई सर्वेक्षण कर राहत सामग्री बांटेंगे, पीड़ित परिवारों से करेंगे बात
+[1] [Dainik Bhaskar] Inserted: जिंदा बेटी की घर वालों ने निकाली अर्थी:पुतला बनाकर पिता ने मुखाग्नि दी; बेटी ने बॉयफ्रेंड से भागकर की है शादी
+[1] [Dainik Bhaskar] Inserted: समस्तीपुर- SNCU में रहकर नवजातों को ब्रेस्ट फिडिंग करा सकेंगी:कुल 60 बेड की बनेगी मदर न्यूबॉर्थ केयर यूनिट, सदर समेत अनुमंडलीय अस्पतालों में मिलेगी सुविधा
+[1] [Dainik Bhaskar] Inserted: रिफ्लेक्टर नहीं, रात में जानलेवा बन रहे डिवाइडर:2 दिन पहले मधुबनी पुलिस की गाड़ी का एक्सीडेंट हुआ था, लोगों को हादसे का रहता डर
+[1] [Dainik Bhaskar] Inserted: नालंदा- महाबोधि कॉलेज की बिल्डिंग का उद्घाटन करेंगे नीतीश कुमार:आईटीईपी सत्र 2026-30 का भी होगा औपचारिक शुभारंभ; ग्रामीण विकास मंत्री, सांसद भी रहेंगे मौजूद
+[1] [Dainik Bhaskar] Inserted: मशीन लगी है, लेकिन रेडियोलॉजिस्ट नहीं:पटना के न्यू गार्डिनर अस्पताल में 2 साल से अल्ट्रासाउंड सेवा बंद, मरीजों को निजी केंद्रों का सहारा
+[1] [Dainik Bhaskar] Inserted: समस्तीपुर- लोजपा (रामविलास) नेता को एसटीएफ ने किया अरेस्ट:2 घंटे तक छापेमारी चली, बेड के पीछे छिपे मिले अंटू इस्सर; हत्या मामले में हुई गिरफ्तारी
+[1] [Dainik Bhaskar] Inserted: 'चेत जाएं, आने वाला समय गड़बड़ होगा':भागलपुर में मंत्री शैलेंद्र की सांसद अजय मंडल को चेतावनी, कहा- जनता सब देख रही है
+[1] [Dainik Bhaskar] Inserted: शिक्षिका से दुर्व्यवहार-अश्लील हरकत के आरोप में प्रधान शिक्षक निलंबित:SC/ST एक्ट में FIR, दरभंगा में शिक्षा विभाग ने की कार्रवाई
+[1] [Dainik Bhaskar] Inserted: दरभंगा में केंद्र से 100 मीटर तक पाबंदी:सुबह 7 से शाम 6 बजे तक लाउडस्पीकर बंद, 16 से 26 सितंबर तक होगी परीक्षा
+[1] [Dainik Bhaskar] Inserted: ट्यूशन टीचर से 2 साल तक अफेयर के बाद शादी:पढ़ाई के दौरान दोनों में नजदीकियां बढ़ीं, परिजन ने रात में दोनों को एक साथ पकड़ा
+[1] [Dainik Bhaskar] Inserted: नालंदा में नाबालिग ने खाया जहर, प्रेमिका लेकर पहुंची अस्पताल:बोली- आधारकार्ड बनवाने साथ निकले थे; मां ने कहा- हमारा इनसे कोई रिश्ता नहीं
+[1] [Dainik Bhaskar] Inserted: सम्राट ने कहा बाढ़ से 50 लाख पीड़ित, जल्द पुनर्निर्माण:सीएम ने बाढ़ पीड़ित 8.27 लाख परिवारों को 7-7 हजार रुपए दिए
+[1] [Dainik Bhaskar] Inserted: राजद का नीतीश को ऑफर-साथ आएं:राजद ने नीतीश से कहा-आपके लोग बर्बाद कर रहे, सरकार बनाएं...जदयू बोला-बेतुकी बात
+[1] [Dainik Bhaskar] Inserted: दारोगा बहाली धांधली:बीपीएसएससी की ओर से जारी मुख्य परीक्षा परिणाम में अभ्यर्थी ‘हॉल मैनेजमेंट’ और कतारबद्ध सेटिंग का आरोप लगा रहे
+[1] [Dainik Bhaskar] Inserted: पाटलिपुत्र टाउनशिप; 273 गांवों की जमीन लेना चुनौती:पहले चरण में कोर एरिया के 19 गांवों की जमीन को विकसित करने की योजना
+[1] [Dainik Bhaskar] Inserted: मोकामा; डबल लाइन रेल ब्रिज का काम तेज:1700 करोड़ की लागत से बने पुल पर 140 किलोमीटर की रफ्तार से फर्राटा भरेंगी ट्रेनें
+[1] [Dainik Bhaskar] Inserted: संक्रमण तेजी से बढ़ रहा है:पटना में डेंगू के मामले बढ़े, दो हफ्तों में 76 नए मरीज
+[1] [Dainik Bhaskar] Inserted: 26 वर्षों में 18 साल सामान्य से कम बारिश हुई:बिहार में बारिश का ट्रेंड 2.5 दशकों में तेजी से बदला
+[1] [Dainik Bhaskar] Inserted: गिरे मंगल ग्रह के उल्कापिंड से बनी घड़ी:लुई मोइनेट की ‘द ओनली इंडिया’ घड़ी में 18 कैरेट रेड गोल्ड और 4 माणिक का इस्तेमाल
+[1] [Dainik Bhaskar] Inserted: युवक के सिर में 2 गोली मारकर हत्या:कटिहार में घर के मचान पर सोने के दौरान बदमाशों ने किया फायरिंग
+[1] [Dainik Bhaskar] Inserted: पप्पू यादव का दावा- ‘मेरा WhatsApp बंद कर दिया गया’:BJP प्रवक्ता बोले- बच्चों को शर्मसार करने वाले वीडियो के कारण META ने किया प्रतिबंधित
+[1] [Dainik Bhaskar] Inserted: दिशा के हत्यारे पकड़े तो सुशांत के कातिल बेनकाब होंगे:दिशा सालियान केस में CBI ने किया FIR, नीरज बबलू बोले-दिउद्धव सरकार ने मिटाए थे सबूत
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर- क्रिकेट खेलकर लौट रहे बाइक सवार जीजा-साला की मौत:साथ बैठा तीसरे युवक की हालत गंभीर; अज्ञात वाहन टक्कर मारकर फरार
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर खादी ग्रामोद्योग में भ्रष्टाचार की शिकायत, मानवाधिकार आयोग गंभीर:उद्योग विभाग के सचिव को जांच के निर्देश दिए, समाजसेवी ने लिखी थी चिट्ठी
+[1] [Dainik Bhaskar] Inserted: पटना- पिता की मौत के बाद बेटे ने किया नेत्रदान:कोड़ाई महतो की आखों से दो जरूरतमंदों को मिलेगी रोशनी, PMCH में 423 मरीज इंतजार में
+[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर- जमीन कब्जा मामले में सबूत नहीं दे पाई पुलिस:कोर्ट ने एक आरोपी को पीआर बॉन्ड पर छोड़ा, 5 अन्य आरोपियों को भी मिली जमानत
+[1] [Dainik Bhaskar] Inserted: मोबाइल छीनने का विरोध करने पर युवक को मारी गोली:अररिया में साइकिल सवार घायल, 3 बदमाश फरार
+[1] [Dainik Bhaskar] Inserted: नालंदा- अल्पसंख्यक आवासीय विद्यालय में शैक्षणिक सत्र का आज शुभारंभ:नेतरहाट जैसी मिलेंगी सुविधाएं, 56 करोड़ रुपए है लागत; 8 साल के इंतजार के बाद बिल्डिंग तैयार
+[1] [Dainik Bhaskar] Inserted: नालंदा- विकसित भारत यंग लीडर्स डायलॉग 2027 का आगाज:पार्टिसिपेंट्स को सीधा पीएम मोदी से संवाद का मौका मिलेगा, 'MY Bharat' पोर्टल पर करा सकते हैं रजिस्ट्रेशन
+[1] [Dainik Bhaskar] Inserted: मोतिहारी में 3 घंटे बिजली रहेगी बंद:सुबह 10:30 से दोपहर 1:30 बजे तक पावर कट, ग्रिड सबस्टेशन में मेंटेनेंस के कारण कटौती
+[1] [Dainik Bhaskar] Inserted: मधुबनी में आर्केस्ट्रा से 40 नाबालिग लड़कियां बचाई गई:2 रात पुलिस ने चलाया अभियान, शोषण के आरोप में संचालक और 3 महिला समेत 15 गिरफ्तार
+[1] [Dainik Bhaskar] Inserted: सहेली के घर गई युवती 2 महीने से लापता:पुलिस को दिल्ली में मिल रहा लोकेशन, बेटी की तलाश में मां का पैर टूटा
+[1] [Dainik Bhaskar] Inserted: 20 फीट की जगह में बना आधुनिक पार्क:ओपन जिम और मॉर्निंग वॉक पाथ की सुविधा, मेयर ने किया उद्घाटन
+[1] [Dainik Bhaskar] Inserted: 'पीएम मोदी के जन्मदिन पर जलाएं आशीर्वाद का दीपक':गिरिराज सिंह ने की अपील, 17 सितंबर से चलेगा सेवा संकल्प अभियान
+[1] [Dainik Bhaskar] Inserted: औरंगाबाद में किराना दुकानदार ने की आत्महत्या:बेटी की शादी के लिए लोन लिया था, 10 लाख कर्ज से परेशान रहते थे
+[1] [Dainik Bhaskar] Inserted: राजभाषा सम्मेलन में बरौनी रिफाइनरी को मिला राष्ट्रीय सम्मान:मुंबई में सम्मानित हुए रिफाइनरी के कार्यकारी निदेशक, हिंदी के प्रचार-प्रसार में किया बेहतर
+[1] [Dainik Bhaskar] Inserted: प्रॉपर्टी टैक्स तय करने गई टीम से बदसलूकी:बिल्डर पर केस; निगम ने एक दिन में 93.68 लाख का संपत्ति कर वसूला
+[1] [Dainik Bhaskar] Inserted: 15 जिलों की 575 पंचायतों में 49.71 लाख आबादी प्रभावित:सात नदियां अभी लाल निशान से ऊपर, 88 प्रखंडों में बाढ़ का पानी
+[1] [Dainik Bhaskar] Inserted: एकौना में ससुर व देवर पर मारपीट का लगाया आरोप
+[1] [Dainik Bhaskar] Inserted: बुलडोजर चला : खुदाबक्श चौक से छावनी तक 60 अतिक्रमणकारियों पर कार्रवाई
+[1] [Dainik Bhaskar] Inserted: पीएम आवास योजना की प्रतीक्षा सूची में शामिल करने की पहल
+[1] [Dainik Bhaskar] Inserted: बलुआ-छतरौल में बनेगा पावर सब-स्टेशन
+[1] [Dainik Bhaskar] Inserted: जिले के प्रारंभिक विद्यालयों में अर्द्धवार्षिक मूल्यांकन शुरू, 20 तक चलेगी परीक्षा, 26 को प्रगति रिपोर्ट
+[1] [Dainik Bhaskar] Inserted: गंडक का कटाव बढ़ा, सिसवा में घर और खेत पर बढ़ा खतरा
+[1] [Dainik Bhaskar] Inserted: तरुअनवा में किसान गोष्ठी, वैज्ञानिक विधि से गन्ना उत्पादन की दी जानकारी
+[1] [Dainik Bhaskar] Inserted: पत्रकारों की सुरक्षा और सम्मान से समझौता नहीं, उठाएंगे आवाज
+[1] [Dainik Bhaskar] Inserted: स्वतंत्रता सेनानी बिंदेश्वरी प्रसाद राव की स्मृति दिवस आज
+[1] [Dainik Bhaskar] Inserted: ऋ षि पंचमी पर महिलाओं ने की सप्तर्षियों व अरुंधति की पूजा, व्रत रख कर सुनी कथा
+[1] [Dainik Bhaskar] Inserted: ईश्वर शांति महाविद्यालय परिसर में रोजगार मेला का आयोजन, 300 का कैंपस सेलेक्शन
+[1] [Dainik Bhaskar] Inserted: एमवीआई पर कार्रवाई, दो वेतन वृद्धि रोकने का आदेश
+[1] [Live Hindustan] Inserted: बाढ़ प्रभावित क्षेत्र में जंगल में फंसी सांसद पप्पू यादव की नाव, सुरक्षित निकले
+[1] [Live Hindustan] Inserted: सासाराम: मंडल कारा में बंद बंदी की मौत के बाद पोस्ट ऑफिस चौराहा पर शव रखकर जाम, मुआवजे की मांग को लेकर नारेबाजी
+[1] [Live Hindustan] Inserted: भभुआ: परिसदन में सेवा संकल्प अभियान की प्रेसवार्ता में जानकारी देते विधान परिषद सदस्य व पूर्व मंत्री संतोष सिंह व अन्य
+[1] [Live Hindustan] Inserted: कैमूर: अधौरा में अंचल कार्यालय निरीक्षण के बाद लोगों की समस्या सुन अधिकारियों को निर्देश देते डीएम कुमार अनुराग
+[1] [Live Hindustan] Inserted: भभुआ: सदर अस्पताल से रेफर करने के बाद पीड़िता को दूसरी जगह इलाज के लिए एंबुलेंस में ले जाते परिजन, मंगलवार की तस्वीर
+[1] [Live Hindustan] Inserted: बिहार में DGP का प्रभार संभालने वाली IPS प्रीता वर्मा कौन हैं, यह अहम पुरस्कार भी मिल चुका है
+[1] [Live Hindustan] Inserted: बिहार के 90 लाख जमाबंदियों में करें सुधार, मुख्य सचिव का फरमान; नाम, खाता-खेसरा के लिए डेडलाइन भी फिक्स
+[1] [Live Hindustan] Inserted: बिहार के डीजीपी और बीपीएससी अध्यक्ष समेत 3 बड़े अधिकारी अचानक छुट्टी पर गए, कौन संभालेगा जिम्मेदारी
+[1] [Live Hindustan] Inserted: पटना के बिहटा में श्राद्धकर्म का भोज खाकर 50 लोग बीमार, 6 लोगों की हालत चिंताजनक; जांच के लिए बनी टीम
+[1] [Live Hindustan] Inserted: बिहार: दारोगा बहाली में धांधली से जुड़े BPSC के जवाब से ईओयू नहीं संतुष्ट, टॉप परीक्षा केंद्रों की लिस्ट भी नहीं मिली
+[1] [Live Hindustan] Inserted: बिहार: पंचायत चुनाव में ईबीसी को 50 फीसदी के दायरे में ही आरक्षण, जल्द तय होंगे मानक; क्या होगी गाइडलाइन
+[1] [Live Hindustan] Inserted: बिहार: एलजेपीआर नेता अंट्टू ईस्सर को कमरे का ताला तोड़ कर उठा ले गई पुलिस, मर्डर केस में जारी हुआ था वारंट
+[1] [Live Hindustan] Inserted: शिवराज सिंह बाढ़ पीड़ितों के लिए सहयोग लेकर आ रहे या फोटो खिंचाने, बिहार दौरे से पहले तेजस्वी का तंज
+[1] [Live Hindustan] Inserted: टेंपो में बैठी महिला को ड्राइवर से हो गया इश्क, होटल में पकड़े गए दोनों; लोगों ने करा दी शादी
+[1] [Live Hindustan] Inserted: दारोगा भर्ती और बीपीएससी 70वीं रद्द कराने पहुंचे अभ्यर्थी, पटना में फिर भड़का छात्र आंदोलन
+[1] [Live Hindustan] Inserted: FIR में आरोपी नहीं, तो ईडी ने कैसे मारा छापा? हाईकोर्ट के 16 तीखे सवाल, संजीव हंस केस में रिशुश्री की याचिका
+[1] [Live Hindustan] Inserted: मुजफ्फरपुर के निजी अस्पताल में डिलीवरी के बाद महिला की मौत, परिजनों ने लगाया लापरवाही का आरोप
+[1] [Live Hindustan] Inserted: मुजफ्फरपुर में गैंग बनाकर टेंपो लूटते थे बदमाश, पहले यात्री बनकर करते थे गाड़ी रिजर्व
+[1] [Live Hindustan] Inserted: रोहतास के डेहरी होटल में पुलिस की छापेमारी, 4 युवतियों और 3 युवकों के बरामद होने की खबर
+[1] [Live Hindustan] Inserted: गोपालगंज में सांसद डॉ. आलोक कुमार सुमन का जनता दरबार, समस्याओं के जल्द समाधान के निर्देश
+[1] [Live Hindustan] Inserted: 35 रुपये किलो के भाव से मिलेंगे सस्ते प्याज, पटना में इन जगहों पर लगेंगी गाड़ियां; एक ग्राहक की लिमिट भी तय
+[1] [Live Hindustan] Inserted: गोपालगंज में निजी क्लिनिक में इलाज के दौरान 22 वर्षीय महिला की मौत, परिजनों ने लगाया लापरवाही का आरोप
+[1] [Live Hindustan] Inserted: बिहार में UCC पर BJP के सहयोगी दलों के कड़े तेवर, रुख एक- प्रावधान देखकर स्टैंड लेंगे
+[1] [Live Hindustan] Inserted: जेडीयू सांसद अजय मंडल पर भड़के भाजपा मंत्री शैलेंद्र, कहा- चेत जाइए, नहीं तो बहुत बुरा होगा
+[1] [Live Hindustan] Inserted: सासाराम मंडल कारा के विचाराधीन बंदी अमरजीत की सदर अस्पताल में इलाज के दौरान मौत
+[1] [Live Hindustan] Inserted: भोजपुर के सहार में हत्या के आरोपी चुल्लू पांडे गिरफ्तार, कई मामलों में है अभियुक्त
+[1] [Live Hindustan] Inserted: सासाराम के बेदा नहर के पास बनेगा STP, DM ने देर रात स्थल का किया निरीक्षण
+[1] [Live Hindustan] Inserted: भोजपुर के लसाढ़ी में राजकीय शहीद सम्मान समारोह, प्रभारी मंत्री व सांसद ने दी श्रद्धांजलि
+[1] [Live Hindustan] Inserted: भोजपुर के पीरो थाने का SP अवधेश दीक्षित ने किया निरीक्षण, ड्यूटी पर तैनात पुलिसकर्मियों की जांच
+[1] [Live Hindustan] Inserted: मुजफ्फरपुर में गांजा-स्मैक के खिलाफ पुलिस का अभियान तेज, 3 दिन में 6 केस और कई गिरफ्तार
+[1] [Live Hindustan] Inserted: विष्णुपद कॉरिडोर पर 2500 करोड़, सोन-फल्गु नदी जोड़ योजना को हरी झंडी; सम्राट कैबिनेट के 17 फैसले
+[1] [Live Hindustan] Inserted: राजद से जेडीयू को सरकार बनाने का न्योता, वीरेंद्र बोले- भाजपा का गठबंधन छोड़ साथ आएं समाजवादी
+[1] [Live Hindustan] Inserted: रोहतास के डेहरी में जलजमाव से गुस्साए लोगों ने सड़क जाम किया, नगर परिषद पर लगाए आरोप
+[1] [Live Hindustan] Inserted: नालंदा के बिहारशरीफ में नियोजन मेला, 25 कंपनियों ने लगाए स्टॉल, युवाओं को मिले नियुक्ति पत्र
+[1] [Live Hindustan] Inserted: रोहतास में निर्माणाधीन रोपवे का DM ने किया निरीक्षण, पर्यटन विकास पर जोर
+[1] [Live Hindustan] Inserted: गया जंक्शन पर नवनिर्मित RPF कार्यालय भवन का ECR IG ने किया निरीक्षण
+[1] [Live Hindustan] Inserted: गोपालगंज में हत्या, लूट और रंगदारी के खिलाफ सर्राफा कारोबारियों का मौन मार्च, सुरक्षा की मांग
+[1] [Live Hindustan] Inserted: रोहतास के गुनसेज में सहयोग शिविर, SDO दिलीप कुमार ने स्टॉलों का निरीक्षण कर दिए निर्देश
+[1] [Live Hindustan] Inserted: रोहतास के 2012 प्रारंभिक विद्यालयों में अर्द्धवार्षिक परीक्षा शुरू, 3.23 लाख बच्चे दे रहे परीक्षा
+[1] [Live Hindustan] Inserted: बिहटा-सरमेरा और उदाकिशुनगंज-भटगामा हाईवे पर सबसे पहले शुरू होगी टोल टैक्स की वसूली
+[1] [Live Hindustan] Inserted: रोहतास के उत्तरी बरांव में सहयोग शिविर, DDC डॉ. आकांक्षा आनंद ने सुनीं ग्रामीणों की समस्याएं
+[1] [Live Hindustan] Inserted: बेगूसराय में बदला मौसम का मिजाज, आंधी के साथ तेज बारिश से उमस भरी गर्मी से राहत
+[1] [Live Hindustan] Inserted: नवादा में शांति समिति की बैठक, SDM बोले- शहर का माहौल बिगाड़ने वालों पर होगी सख्त कार्रवाई
+[1] [Live Hindustan] Inserted: नवादा के नारदीगंज में करंट लगने से अधेड़ झुलसा, गंभीर हालत में सदर अस्पताल रेफर
+[1] [Live Hindustan] Inserted: रोहतास के समहुता में सहयोग शिविर, DM ने ग्रामीणों की समस्याएं सुन त्वरित समाधान के निर्देश दिए
+[1] [Live Hindustan] Inserted: नवादा के माधोपुर पंचायत में ग्राम सभा का आयोजन, BDO ने ग्रामीणों की समस्याएं सुनीं
+[1] [Live Hindustan] Inserted: रोहतास SP मिस्टर राज ने धौड़ाड थाना और गोलक्षणी टीओपी का किया निरीक्षण, दिए सख्त निर्देश
+[1] [Live Hindustan] Inserted: सासाराम में जलजमाव के खिलाफ जन सुराज का प्रदर्शन, नगर आयुक्त को सौंपा ज्ञापन
+[1] [Live Hindustan] Inserted: सासाराम के गंसाडीह में सहयोग शिविर, SDM ने सड़क, राशन और पेंशन की शिकायतें सुनीं
+[1] [Live Hindustan] Inserted: UCC के प्रावधानों के देखने के बाद JDU करेगी विचार, विजय चौधरी बोले- विवाद हुआ तो..
+[1] [DB] 214 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.13 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 33.052643701s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.5-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '33s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Unterminated string starting at: line 29 column 17 (char 1809)
+[1] Raw text was: {
+[1]   "overall_situation": "बिहार में वर्तमान में भाजपा‑सहयोगी गठबंधन को यूसीसी विरोधी मोर्चे पर एकजुट दिखना है, जबकि राज्य‑स्तरीय बुनियादी ढाँचे (टोल, रोपवे, नियोजन मेले) और प्रशासनिक बदलावों पर ध्यान केंद्रित किया जा रहा है। साथ ही, कई जिलों में जलजमाव, बाढ़ राहत और अपराध‑संबंधी घटनाओं से जनता की अस...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] PlugSky Fallback Error: HTTPSConnectionPool(host='api.plugsky.com', port=443): Read timed out. (read timeout=30)
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Monolithisch India secures quartzite stone block in Bihar - Construction Week India
+[1] [Dainik Bhaskar] Inserted: बेगूसराय- एसपी मनीष ने 82 अनुसंधान पदाधिकारी का किया तबादला:48 घंटे में नए थाने में योगदान का आदेश, देखें ट्रांसफर-पोस्टिंग की पूरी लिस्ट
+[1] [Dainik Bhaskar] Inserted: गोपालगंज में आज 90 प्रतिशत बारिश की संभावना:चारों ओर बादल छाए, अधिकतम तापमान 33°C
+[1] [Dainik Bhaskar] Inserted: जनसंवाद में विधायक ने सुनीं लोगों की समस्याएं, मदद का आश्वासन
+[1] [Dainik Bhaskar] Inserted: 30 दिन में निपटाएं सहयोग शिविर के आवेदन, लापरवाही पर होगी कार्रवाई : लेशी सिंह
+[1] [Dainik Bhaskar] Inserted: महानंदा नदी में डूबे 8 वर्षीय अंशु कुमार का शव बरामद
+[1] [Dainik Bhaskar] Inserted: नाबालिग हत्या मामले में दो आरोपी को उम्रकैद की सजा
+[1] [Dainik Bhaskar] Inserted: विश्वकर्मा पूजा पर मिठाई में मिलावट रोकने को खाद्य विभाग की छापेमारी
+[1] [Dainik Bhaskar] Inserted: वज्रपात से 10 वर्षीय बालिका समेत चार मवेशियों की मौत
+[1] [Dainik Bhaskar] Inserted: असियानी घाट हादसे के बाद भी सबक नहीं, दोहमनी पुल का बैरिकेड टूटा
+[1] [Dainik Bhaskar] Inserted: जिले की विभिन्न पंचायतों और सात नगर निकायों में आयोजित हुआ सहयोग शिविर
+[1] [Dainik Bhaskar] Inserted: विकसित भारत के लक्ष्य को हासिल करने में ऊर्जा क्षेत्र की भूमिका होगी सबसे महत्वपूर्ण
+[1] [Dainik Bhaskar] Inserted: सर्दी-खांसी, वायरल और एलर्जी बढ़ने की आशंका
+[1] [Live Hindustan] Inserted: नवादा: कादिरगंज में सकरी नदी से लापता 8 साल के बच्चे रौशन कुमार का शव बरामद, 15 सितंबर को नहाने के दौरान हुआ था लापता
+[1] [DB] 14 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.25 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 26.322983811s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '26s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Unterminated string starting at: line 57 column 5 (char 3129)
+[1] Raw text was: {
+[1]   "overall_situation": "बिहार में वर्तमान में विकास‑केन्द्रित कार्यों और क़ानून‑व्यवस्था को प्रमुखता दी जा रही है। भाजपा सरकार के प्रमुख प्रोजेक्ट्स (विष्णुपद कॉरिडोर, टोल टैक्स, STP) का प्रचार हो रहा है, जबकि यूसीसी पर सामाजिक‑धार्मिक बहस और जेडीयू‑आरजेडी गठबंधन की संभावनाएँ राजनीतिक माहौल को जटि...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] PlugSky Fallback Error: HTTPSConnectionPool(host='api.plugsky.com', port=443): Read timed out. (read timeout=30)
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar Cabinet approves ₹3,516 crore for Vishnupad Temple area development, Son-Falgu river link - The Hindu
+[1] [Google News] Inserted: Floods hit 49 lakh people in 15 Bihar districts as rivers keep swelling - The Hindu
+[1] [Google News] Inserted: Will consider Bihar’s concerns before Ganga treaty renewal, says Jaishankar - The Hindu
+[1] [Google News] Inserted: Rift within NDA over implementation of UCC in Bihar - The Hindu
+[1] [Google News] Inserted: Bihar floods: Congress urges Govt to carry out relief, rescue operations without delay - The Hindu
+[1] [Google News] Inserted: Uniform Civil Code: Bihar sees Rift within NDA over implementation of UCC after AMIT shAH'S - The Hindu
+[1] [Google News] Inserted: JD(U) clarifies stance on UCC, proposal to rename party and RJD’s invitation to join hands - The Hindu
+[1] [Google News] Inserted: Bihar becomes first state in India to launch dedicated investment policy for sugar industry - ChiniMandi
+[1] [Google News] Inserted: Four Myanmar nationals detained in Bihar over lack of valid documents - The Hindu
+[1] [Google News] Inserted: Bihar CM transfers ₹579 crore in relief to flood-affected people - The Hindu
+[1] [Google News] Inserted: Bihar Temple Vandalism: Police detain 3 minor Muslim boys for stone-throwing, urination at Hanuman murti in Nalanda - Organiser
+[1] [Google News] Inserted: Central team to visit Bihar on September 16 to assess flood damage - The Hindu
+[1] [Google News] Inserted: Bihar targets drone spraying across 2.85 lakh acres in 2026-27, sanctions Rs 11.81 crore in subsidy - ChiniMandi
+[1] [Google News] Inserted: NMC seeks report on Rs 3.75 lakh hostel fee demand from Bihar MBBS interns - tribuneindia.com
+[1] [Dainik Bhaskar] Inserted: मोतिहारी में खाद कालाबाजारी पर छापेमारी, SAO की भूमिका संदिग्ध:DM-SP के निर्देश पर हुई कार्रवाई, कृषि पदाधिकारी ने अवैध गोदाम को बताया था वैध
+[1] [Dainik Bhaskar] Inserted: शिवाजीनगर के शिवरामा में 51 कन्याओं ने निकाली कलश यात्रा, पूजा का शुभारंभ
+[1] [Dainik Bhaskar] Inserted: आठ परिवारों को मिला कबीर अन्त्येष्टि लाभ
+[1] [Dainik Bhaskar] Inserted: हिंदी की समृद्ध परंपरा के साथ रोजगार अवसरों पर चर्चा
+[1] [Dainik Bhaskar] Inserted: सफायत अंसारी के शहादत दिवस पर सम्मेलन, मजदूर व शिक्षा के मुद्दे उठे
+[1] [Dainik Bhaskar] Inserted: देवरिया में नि:शुल्क स्वास्थ्य शिविर, बच्चों की हुई जांच
+[1] [Live Hindustan] Inserted: गया जंक्शन पर 13010 डाउन दून एक्सप्रेस से RPF-GRP टीम ने जिंदा कछुओं की खेप बरामद की
+[1] [DB] 21 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.38 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 36.839398982s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '36s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Unterminated string starting at: line 59 column 5 (char 3193)
+[1] Raw text was: {
+[1]   "overall_situation": "बिहार इस समय गंभीर बाढ़ के बाद राहत एवं पुनर्वास कार्यों में लगा है, जहाँ 49 लाख लोगों को प्रभावित किया गया है और केंद्र‑राज्य स्तर पर बड़ी राशि का हस्तांतरण किया गया है। साथ ही, यूसीसी को लेकर एनडीए में वैचारिक टकराव उभरा है, जहाँ जेडी(यू) ने अपने रुख को स्पष्ट किया है। रा...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] PlugSky Fallback Error: HTTPSConnectionPool(host='api.plugsky.com', port=443): Read timed out. (read timeout=30)
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: “Where were you for a month?”: Bihar flood-hit woman's blunt question to leaders goes viral - The Times of India
+[1] [Google News] Inserted: Floods in India’s Bihar state affect nearly 5 million people — Dawn - ua.news
+[1] [Google News] Inserted: Giant crocodile wanders into Bihar village, forest team captures it in tense rescue - indiatoday.in
+[1] [Google News] Inserted: ‘No UCC in Bihar’: JD(U) reacts to Shah’s 2029 deadline statement | Hindustan Times - hindustantimes.com
+[1] [Google News] Inserted: ‘Don’t eat, buy or sell fish caught in Nepal floodwaters': Bihar warns citizens | India News - hindustantimes.com
+[1] [Google News] Inserted: UCC in Bihar? JD(U) says no, despite backing Bill in Parliament - indiatoday.in
+[1] [Google News] Inserted: Bihar man, 72, defies age to paraglide from 24,000 feet in Himachal Pradesh - indiatoday.in
+[1] [Google News] Inserted: Patna: Students Block Railway Track Over Bihar Police SI, BPSC Exam Row | Videos - hindustantimes.com
+[1] [Dainik Bhaskar] Inserted: जिंदा बेटी की घर वालों ने निकाली अर्थी:पुतला बनाकर पिता ने मुखाग्नि दी; लड़की ने घर से भागकर बॉयफ्रेंड से शादी की है
+[1] [Dainik Bhaskar] Inserted: समस्तीपुर- रामजानकी मेडिकल कॉलेज के गार्ड की हादसे में मौत:घटहो-सरायरंजन सड़क पर तेज रफ्तार पिकअप ने कुचला; घटनास्थल पर तोड़ा दम, साथी गंभीर
+[1] [Dainik Bhaskar] Inserted: बच्चों ने सीखी गणेश जी की मिथिला पेंटिंग
+[1] [Dainik Bhaskar] Inserted: सात सहयोग शिविरों में मिले 444 आवेदन
+[1] [Live Hindustan] Inserted: गोपालगंज: मांझागढ़ में NH-27 पर पथरा गांव के पास अज्ञात वाहन की चपेट में आने से सड़क पार कर रही महिला की मौके पर मौत
+[1] [DB] 13 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.49 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 38.01554458s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '38s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Expecting value: line 60 column 112 (char 3682)
+[1] Raw text was: {
+[1]   "overall_situation": "Bihar currently grapples with massive flood damage affecting nearly 5 million people across 15 districts, while the state government has transferred ₹579 crore for relief and approved ₹3,516 crore for temple-area development and river-link projects. Simultaneously, the Unif...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] JSON parse failed: Expecting value: line 1 column 1 (char 0)
+[1] Raw text was: We need to produce JSON with fields: overall_situation, bjp_action_points (list), political_risks (list of dicts), opposition_activity (list of dicts), counter_strategy_points (list), election_watch_items (list). Must base only on given headlines. No speculation beyond what is in headlines. Must be ...
+[1] PlugSky response parse nahi hua.
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Bihar DGP Vinay Kumar goes on long leave, Preeta Verma to serve as acting DGP - The BuckStopper
+[1] [Google News] Inserted: Nepal floods revive Bihar’s annual nightmare: Why the state faces flooding every year - The Times of India
+[1] [Google News] Inserted: ‘Murdered’ woman in Bihar turns up alive in Jharkhand, was living with lover | India News - hindustantimes.com
+[1] [Dainik Bhaskar] Inserted: 'सुशांत सिंह राजपूत के कातिल अब पकड़े जाएंगे':एक्टर के MLA भाई बोले-उद्धव सरकार ने सबूत मिटाए; दिशा सालियान केस में CBI ने की है FIR
+[1] [Live Hindustan] Inserted: भोजपुर: हसनबाजार थाने के कचनथ में 28 वर्षीय युवक चुनू यादव की हत्या, शव मिलने से गांव में सनसनी
+[1] [DB] 5 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.63 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 24.61072142s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '24s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Expecting ',' delimiter: line 59 column 96 (char 3358)
+[1] Raw text was: {
+[1]   "overall_situation": "Bihar इस समय गंभीर बाढ़ से जूझ रहा है, जिसके कारण 5 करोड़ से अधिक लोगों को प्रभावित किया गया है और राज्य सरकार ने बड़े पैमाने पर राहत राशि एवं विकास परियोजनाएँ शुरू की हैं। साथ ही, यूनिफ़ॉर्म सिविल कोड (UCC) को लेकर NDA गठबंधन में तनाव बढ़ा है, जहाँ JD(U) ने स्पष्ट रूप से व...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] PlugSky Fallback Error: HTTPSConnectionPool(host='api.plugsky.com', port=443): Read timed out. (read timeout=30)
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
