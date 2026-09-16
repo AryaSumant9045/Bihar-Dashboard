@@ -1193,3 +1193,94 @@ Error fetching RSS Live Hindustan: getaddrinfo ENOTFOUND api.livehindustan.com
 [1] [ERROR] Gemini analysis failed or returned empty result.
 [1] [INFO] Waiting for next cycle...
 [1] 
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Will JD-U Blink On UCC In Bihar? - Rediff
+[1] [Google News] Inserted: Ahead of central team visit, Bihar CM transfers ₹579 crore in flood relief - thehindu.com
+[1] [Google News] Inserted: Avoid ‘unfamiliar, unusual’ fish from Nepal’s flood waters, Bihar govt. advisory cautions - thehindu.com
+[1] [Dainik Bhaskar] Inserted: पूर्णिया- भवन निर्माण विभाग के एग्जिक्यूटिव इंजीनियर के घर छापेमारी:विजिलेंस ने आय से अधिक संपत्ति के मामले में की रेड, पटना में भी घर खंगाल रही टीम
+[1] [DB] 4 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.45 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 11.165215603s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '11s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Expecting value: line 30 column 17 (char 1513)
+[1] Raw text was: {
+[1]   "overall_situation": "Bihar इस समय गंभीर बाढ़ संकट से जूझ रहा है, जहाँ 5 मिलियन से अधिक लोग प्रभावित हुए हैं और कई जिलों में अलर्ट जारी हैं। राज्य सरकार ने राहत पैकेट, फंड ट्रांसफ़र और DNA परीक्षण सहित कई आपातकालीन उपाय लागू किए हैं। साथ ही, कृषि अनुदान, हवाई अड्डा अपग्रेड और धार्मिक‑आधारभूत परि...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] JSON parse failed: Expecting value: line 1 column 1 (char 0)
+[1] Raw text was: We need to produce JSON with fields: overall_situation (3-4 lines), bjp_action_points (array of 3-5 strings), political_risks (list of objects with issue, risk_level, reason), opposition_activity (list of objects with party_or_leader, action_summary, potential_impact), counter_strategy_points (array...
+[1] PlugSky response parse nahi hua.
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: West Bengal Medical Council cancels registrations of Bihar doctors accused of using fake documents - News On AIR
+[1] [Dainik Bhaskar] Inserted: ट्रैक्टर से बाढ़ पीड़ितों के बीच पहुंचे CM सम्राट, शिवराज:हवाई सर्वे भी करेंगे, तेजस्वी का तंज - सहयोग लाए हैं या फोटो खिंचाने आए हैं
+[1] [Dainik Bhaskar] Inserted: दरभंगा- मुरैठा में महाकवि विद्यापति की मूर्ति का सिर तोड़ा:असामाजिक तत्वों की तलाश में जुटी पुलिस, लोगों ने तत्काल कड़ी कार्रवाई की मांग की
+[1] [Dainik Bhaskar] Inserted: नाबालिग दिव्यांग किशोरी से पड़ोस के अधेड़ ने किया रेप:गर्भवती होने पर जबरन गर्भपात कराया; पुलिस ने महिला आरोपी को लिया हिरासत में
+[1] [Live Hindustan] Inserted: गोपालगंज के कोईनी बाजार में अज्ञात वाहन की चपेट में युवक की मौत, जांच में जुटी पुलिस
+[1] [DB] 5 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.60 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Gemini Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 41.105031263s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '41s'}]}}. Fallback to Groq...
+[1] Analyzing UI Rendered News via Groq AI (Fallback 1)...
+[1] JSON parse failed: Unterminated string starting at: line 56 column 27 (char 3235)
+[1] Raw text was: {
+[1]   "overall_situation": "बिहार इस समय लगातार बाढ़ से जूझ रहा है, जिससे लाखों लोगों की जीविका प्रभावित हुई है और राहत‑सहायता कार्य तेज़ी से चल रहा है। साथ ही अपराध, लैंगिक हिंसा और पुलिस नेतृत्व में बदलाव जैसी law‑and‑order चुनौतियों का सामना किया जा रहा है। स्वास्थ्य क्षेत्र में झूठे दस्तावेज़ों से...
+[1] Groq response parse nahi hua, PlugSky fallback try karenge...
+[1] Analyzing UI Rendered News via PlugSky AI (Fallback 2)...
+[1] JSON parse failed: Expecting value: line 1 column 1 (char 0)
+[1] Raw text was: We need to produce JSON with fields: overall_situation (3-4 lines), bjp_action_points (3-5 bullet points), political_risks (list of objects with issue, risk_level, reason), opposition_activity (list of objects with party_or_leader, action_summary, potential_impact), counter_strategy_points (3-5 bull...
+[1] PlugSky response parse nahi hua.
+[1] Teeno AI engines (Gemini, Groq, PlugSky) fail ho gaye.
+[1] [ERROR] Gemini analysis failed or returned empty result.
+[1] [INFO] Waiting for next cycle...
+[1] 
+[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
+[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
+[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
+[0]   246 |         .limit(safeBatch);
+[0]   247 |
+[0] > 248 |     if (selectError) throw new Error(selectError.message);
+[0]       |                            ^
+[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
+[0]   250 |
+[0]   251 |     if (!candidateIds.length) {
+[1] 
+[1] ==================================================
+[1] [DB] Checking for new news articles to fetch...
+[1] [Google News] Inserted: Amit Shah’s Uniform Civil Code plan hits a bump in Bihar - indianexpress.com
+[1] [Google News] Inserted: Her husband went to jail for her murder. Now, Bihar woman found alive in Jharkhand - indianexpress.com
+[1] [Google News] Inserted: Bihar court issues non-bailable warrants against nine cops in eight-year-old case - indianexpress.com
+[1] [Google News] Inserted: In Bihar, cost of a campus surges Rs 488 crore, CAG flags lapses; findings not final, says varsity - indianexpress.com
+[1] [Google News] Inserted: Bihar is flooded despite poor rains. Nepal is not the reason - indianexpress.com
+[1] [Google News] Inserted: As Bihar gets over 200 new colleges, what’s next for its teachers? Training at Oxford - indianexpress.com
+[1] [Google News] Inserted: Bihar government issues advisory against consuming fish washed in by Nepal floods - indianexpress.com
+[1] [Dainik Bhaskar] Inserted: भवन निर्माण विभाग के एग्जीक्यूटिव इंजीनियर के ठिकानों पर रेड:पूर्णिया से पटना तक निगरानी का छापा,आय से अधिक संपत्ति मामले में एक्शन
+[1] [DB] 8 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.77 hours old (threshold is 0.01). Generating new...
+[1] [GEMINI] Gemini is analyzing the top news headlines...
+[1] Analyzing UI Rendered News via Gemini AI...
+[1] Successfully analyzed UI news using Gemini!
+[1] [GEMINI] Analysis completed!
+[1] Structured insight saved to news_insights table!
+[1] [INFO] Waiting for next cycle...
+[1] 

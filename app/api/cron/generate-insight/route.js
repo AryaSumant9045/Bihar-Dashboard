@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 const SYSTEM_PROMPT = `
 आप Bihar politics के एक Senior Political Analyst और BJP Strategy Expert हैं। आपको 
-50 news headlines/summaries दी जाएंगी। इनका विश्लेषण करके एक structured "News Insight Report" तैयार करें।
+pichle 8 ghanto ki news headlines/summaries दी जाएंगी। इनका विश्लेषण करके एक structured "News Insight Report" तैयार करें।
 
 ## सख्त नियम
 1. सिर्फ दिए गए headlines के facts पर आधारित रहें — कोई speculation न करें जो article में स्पष्ट न हो।
@@ -141,16 +141,21 @@ async function handleCron(request) {
       }
     }
 
-    // 5. Fetch Top 50 News for AI Analysis
+    // 5. Fetch News from the last 8 hours for AI Analysis
+    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString();
     const { data: uiNews } = await supabase
       .from('bihar_news')
       .select('heading, district')
-      .order('created_at', { ascending: false })
-      .limit(50);
+      .gte('created_at', eightHoursAgo)
+      .order('created_at', { ascending: false });
 
     if (!uiNews || uiNews.length === 0) {
-      return NextResponse.json({ status: 'success', message: 'No news to analyze.' });
+      return NextResponse.json({ status: 'success', message: 'No new news in the last 8 hours to analyze.' });
     }
+
+    // Optional: Log token usage estimation (approx 15 tokens per headline)
+    const estimatedTokens = uiNews.length * 15;
+    console.log(`[GEMINI] Fetching ${uiNews.length} news items for analysis. Estimated tokens: ${estimatedTokens} (Well below 250k TPM limit).`);
 
     // 6. Generate Insight via Gemini
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
