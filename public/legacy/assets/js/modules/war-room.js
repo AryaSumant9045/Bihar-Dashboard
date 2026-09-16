@@ -275,16 +275,10 @@ async function loadIntelligenceSummary(forceRefresh = false) {
     if (history.length && histDiv && historyList) {
       histDiv.style.display = 'block';
       historyList.innerHTML = history.map((s) => {
-        const inf = s.inference || {};
-        const session = s.cron_sessions || {};
-        const slot = session.schedule_slot || 'manual';
-        const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
-        const temp = inf.political_temperature || '';
-        const tempColor = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--green)' }[temp] || 'var(--text-muted)';
+        const dateStr = new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
         return `<div style="padding:.45rem .65rem;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;">
-          <span style="color:var(--text-secondary);">${slotEmoji} ${slot} · ${new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-          ${temp ? `<span style="color:${tempColor};font-weight:700;">● ${temp.toUpperCase()}</span>` : ''}
-          <span style="color:var(--text-muted);">${s.batch_size || 0} items · ${s.llm_provider}</span>
+          <span style="color:var(--text-secondary);">📡 AI Insight · ${dateStr}</span>
+          <span style="color:var(--text-muted);">${s.news_count || 0} news analyzed</span>
         </div>`;
       }).join('');
     }
@@ -299,127 +293,108 @@ async function loadIntelligenceSummary(forceRefresh = false) {
  * Render a single intelligence summary into the target container.
  */
 function renderIntelligenceSummary(summary, container) {
-  const inf = summary.inference || {};
-  const session = summary.cron_sessions || {};
+  const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-  const tempColor = {
-    high:   { bg: 'rgba(230,57,70,0.08)',   border: 'rgba(230,57,70,0.3)',  color: 'var(--red)',   label: '🔴 HIGH' },
-    medium: { bg: 'rgba(255,159,67,0.08)',  border: 'rgba(255,159,67,0.3)', color: 'var(--amber)', label: '🟠 MEDIUM' },
-    low:    { bg: 'rgba(38,222,129,0.06)',  border: 'rgba(38,222,129,0.2)', color: 'var(--green)', label: '🟢 LOW' },
-  }[inf.political_temperature || 'medium'] || { bg: 'rgba(168,85,247,0.06)', border: 'rgba(168,85,247,0.2)', color: '#c084fc', label: '🟣' };
+  let bjpActionPointsHTML = '';
+  if (Array.isArray(summary.bjp_action_points) && summary.bjp_action_points.length > 0) {
+    bjpActionPointsHTML = `
+      <div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(38,222,129,0.06);border:1px solid rgba(38,222,129,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--green);margin-bottom:.2rem;">✅ BJP Strategic Action & Improvements</div>
+        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${summary.bjp_action_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
 
-  const districtHTML = inf.district_situation && Object.keys(inf.district_situation).length
-    ? `<div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📍 District Situation</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.35rem;">
-          ${Object.entries(inf.district_situation).slice(0, 8).map(([d, s]) =>
-            `<div style="padding:.35rem .55rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);">
-               <div style="font-size:.67rem;font-weight:700;color:var(--text-primary);">📍 ${wrEscape(d)}</div>
-               <div style="font-size:.65rem;color:var(--text-muted);line-height:1.4;margin-top:.15rem;">${wrEscape(s)}</div>
-             </div>`
-          ).join('')}
-        </div>
-      </div>`
-    : '';
-
-  const partyHTML = inf.party_activities && Object.keys(inf.party_activities).length
-    ? `<div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🏛️ Party Activities</div>
-        <div style="display:flex;flex-direction:column;gap:.3rem;">
-          ${Object.entries(inf.party_activities).filter(([, v]) => v).slice(0, 6).map(([party, activity]) => {
-            const partyColors = { BJP: '#ff9933', RJD: '#1a8f3c', JDU: '#0070b8', INC: '#138808', 'Jan Suraaj': '#6b21a8' };
-            const pColor = partyColors[party] || 'var(--text-muted)';
-            return `<div style="padding:.35rem .55rem;background:var(--glass-bg);border-left:3px solid ${pColor};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
-               <span style="font-size:.67rem;font-weight:800;color:${pColor};">${wrEscape(party)}</span>
-               <span style="font-size:.65rem;color:var(--text-secondary);margin-left:.4rem;">${wrEscape(activity)}</span>
+  let risksHTML = '';
+  if (Array.isArray(summary.political_risks) && summary.political_risks.length > 0) {
+    risksHTML = `
+      <div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Political Risks & Weak Points</div>
+        <div style="display:flex;flex-direction:column;gap:.35rem;">
+          ${summary.political_risks.map(r => {
+            const rLevel = (r.risk_level || '').toLowerCase();
+            const rc = rLevel === 'critical' ? 'var(--red)' : rLevel === 'high' ? 'var(--amber)' : rLevel === 'medium' ? 'var(--gold)' : 'var(--green)';
+            const bgc = rLevel === 'critical' ? 'rgba(230,57,70,0.06)' : rLevel === 'high' ? 'rgba(255,159,67,0.06)' : 'rgba(38,222,129,0.06)';
+            return `
+            <div style="padding:.4rem .55rem;background:${bgc};border-left:3px solid ${rc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                 <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">${wrEscape(r.issue)}</span>
+                 <span style="font-size:.55rem;font-weight:700;padding:2px 5px;background:${rc};color:#fff;border-radius:3px;">${wrEscape(r.risk_level)}</span>
+               </div>
+               <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(r.reason)}</div>
              </div>`;
           }).join('')}
         </div>
-      </div>`
-    : '';
+      </div>
+    `;
+  }
 
-  const problemsHTML = Array.isArray(inf.problem_areas) && inf.problem_areas.length
-    ? `<div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Problem Areas</div>
-        <div style="display:flex;flex-direction:column;gap:.25rem;">
-          ${inf.problem_areas.slice(0, 5).map((p) =>
-            `<div style="padding:.3rem .55rem;background:rgba(230,57,70,0.06);border-left:2px solid var(--red);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.68rem;color:var(--text-secondary);">${wrEscape(p)}</div>`
-          ).join('')}
+  let oppHTML = '';
+  if (Array.isArray(summary.opposition_activity) && summary.opposition_activity.length > 0) {
+    oppHTML = `
+      <div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🎯 Opposition Strategy</div>
+        <div style="display:flex;flex-direction:column;gap:.35rem;">
+          ${summary.opposition_activity.map(o => {
+            const oImpact = (o.potential_impact || '').toLowerCase();
+            const borderCol = oImpact === 'high' ? 'var(--red)' : oImpact === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+            return `
+            <div style="padding:.4rem .55rem;background:var(--glass-bg);border-left:3px solid ${borderCol};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                 <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">${wrEscape(o.party_or_leader)}</span>
+                 <span style="font-size:.55rem;color:var(--text-muted);">Impact: ${wrEscape(o.potential_impact)}</span>
+               </div>
+               <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(o.action_summary)}</div>
+             </div>`;
+          }).join('')}
         </div>
-      </div>`
-    : '';
+      </div>
+    `;
+  }
 
-  const criticalHTML = Array.isArray(inf.critical_issues) && inf.critical_issues.length
-    ? `<div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🚨 Critical Issues</div>
-        <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
-          ${inf.critical_issues.slice(0, 6).map((i) =>
-            `<span style="padding:.25rem .5rem;background:rgba(255,159,67,0.1);border:1px solid rgba(255,159,67,0.3);border-radius:999px;font-size:.65rem;color:var(--amber);">${wrEscape(i)}</span>`
-          ).join('')}
-        </div>
-      </div>`
-    : '';
+  let counterStrategyHTML = '';
+  if (Array.isArray(summary.counter_strategy_points) && summary.counter_strategy_points.length > 0) {
+    counterStrategyHTML = `
+      <div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);margin-bottom:.2rem;">🛡️ Counter Strategy for BJP</div>
+        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${summary.counter_strategy_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
 
-  const keyEventsHTML = Array.isArray(inf.key_events) && inf.key_events.length
-    ? `<div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">📅 Key Events</div>
-        <ol style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
-          ${inf.key_events.slice(0, 5).map((e) =>
-            `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(e)}</li>`
-          ).join('')}
-        </ol>
-      </div>`
-    : '';
+  let electionWatchHTML = '';
+  if (Array.isArray(summary.election_watch_items) && summary.election_watch_items.length > 0) {
+    electionWatchHTML = `
+      <div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🗳️ Election Watch Items</div>
+        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${summary.election_watch_items.map(i => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(i)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
 
-  const narrativeHTML = inf.narrative_threats
-    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(230,57,70,0.05);border:1px dashed rgba(230,57,70,0.3);border-radius:var(--radius-md);">
-        <div style="font-size:.65rem;font-weight:800;color:var(--red);margin-bottom:.2rem;">🎯 Narrative Threats</div>
-        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.narrative_threats)}</div>
-      </div>`
-    : '';
-
-  const actionsHTML = inf.recommended_actions
-    ? `<div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-md);">
-        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);margin-bottom:.2rem;">⚡ Recommended Actions</div>
-        <div style="font-size:.7rem;color:var(--text-secondary);">${wrEscape(inf.recommended_actions)}</div>
-      </div>`
-    : '';
-
-  const slot   = session.schedule_slot || 'manual';
-  const slotEmoji = { morning: '🌅', noon: '🌞', evening: '🌆', manual: '⚡' }[slot] || '📡';
-  const batchInfo = `Batch ${summary.batch_number} · ${summary.batch_size} items · ${summary.llm_provider}`;
-  const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-
-  container.innerHTML = `<div style="padding:.85rem;border:1px solid ${tempColor.border};border-left:4px solid ${tempColor.color};border-radius:var(--radius-md);background:${tempColor.bg};">
+  container.innerHTML = `<div style="padding:.85rem;border:1px solid rgba(255,159,67,0.3);border-left:4px solid var(--amber);border-radius:var(--radius-md);background:rgba(255,159,67,0.05);">
     <!-- Top bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.35rem;">
       <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:.65rem;font-weight:800;color:${tempColor.color};letter-spacing:.05em;">POLITICAL TEMPERATURE ${tempColor.label}</span>
-        <span class="tag" style="font-size:.6rem;">${slotEmoji} ${slot.charAt(0).toUpperCase() + slot.slice(1)}</span>
+        <span style="font-size:.65rem;font-weight:800;color:var(--amber);letter-spacing:.05em;">LATEST INTELLIGENCE</span>
       </div>
-      <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${batchInfo}</span>
+      <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${summary.news_count || 0} news analyzed</span>
     </div>
 
     <!-- Overall situation -->
-    ${inf.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid ${tempColor.border};padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(inf.overall_situation)}</div>` : ''}
+    ${summary.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid rgba(255,159,67,0.3);padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(summary.overall_situation)}</div>` : ''}
 
-    <!-- Opposition critique -->
-    ${inf.opposition_critique ? `<div style="margin-top:.65rem;padding:.4rem .6rem;background:rgba(168,85,247,0.06);border-left:3px solid rgba(168,85,247,0.4);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:.7rem;color:var(--text-secondary);"><span style="font-weight:700;color:#c084fc;">विपक्ष: </span>${wrEscape(inf.opposition_critique)}</div>` : ''}
-
-    ${districtHTML}
-    ${partyHTML}
-    ${problemsHTML}
-    ${criticalHTML}
-    ${keyEventsHTML}
-    ${narrativeHTML}
-    ${actionsHTML}
-
-    <!-- Session stats footer -->
-    <div style="margin-top:.75rem;padding-top:.5rem;border-top:1px solid ${tempColor.border};display:flex;gap:1rem;flex-wrap:wrap;">
-      <span style="font-size:.62rem;color:var(--text-muted);">📡 ${session.total_fetched || 0} fetched</span>
-      <span style="font-size:.62rem;color:var(--text-muted);">✅ ${session.total_processed || 0} processed</span>
-      <span style="font-size:.62rem;color:var(--text-muted);">📦 ${summary.input_tokens || '—'} in · ${summary.output_tokens || '—'} out tokens</span>
-    </div>
+    ${bjpActionPointsHTML}
+    ${risksHTML}
+    ${oppHTML}
+    ${counterStrategyHTML}
+    ${electionWatchHTML}
   </div>`;
 }
 
@@ -876,7 +851,8 @@ function toggleWarRoomRss() {
 function openAlertDetail(id) {
   const item = wrDisplayedNews.find(news => String(news.id) === String(id));
   if (!item) return;
-  openModal(`<p style="line-height:1.7;color:var(--text-secondary);">${wrEscape(item.body)}</p><p style="font-size:.78rem;color:var(--text-muted);">📍 ${wrEscape(item.district)} · 📡 ${wrEscape(item.source)} · ${wrTimeAgo(item.created_at)}</p>`, wrEscape(item.title));
+  const bestSum=wrBestSummary(item);const insightHtml=bestSum?`<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(245,197,24,0.1);border-left:4px solid var(--gold);border-radius:4px;"><strong style="color:var(--gold);font-size:0.8rem;text-transform:uppercase;">Executive Insight</strong><p style="margin:0.25rem 0 0 0;font-size:0.9rem;line-height:1.5;">${wrEscape(bestSum)}</p></div>`:"";
+  openModal(`${insightHtml}<p style="line-height:1.7;color:var(--text-secondary);">${wrEscape(item.body)}</p><p style="font-size:.78rem;color:var(--text-muted);">📍 ${wrEscape(item.district)} · 📡 ${wrEscape(item.source)} · ${wrTimeAgo(item.created_at)}</p>`, wrEscape(item.title));
 }
 
 function renderWarRoomError(message) {

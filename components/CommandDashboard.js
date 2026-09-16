@@ -32,7 +32,7 @@ function ago(value) { const time = new Date(value).getTime(); if (Number.isNaN(t
 function matches(article, terms) { return terms.some(term => text(article).includes(term)); }
 
 function NewsList({ articles, empty }) {
-  return articles.length ? <ul className="news-list">{articles.map((article, i) => <li key={article.id || `${article.title}-${i}`}><span className={`severity ${level(article)}`}>{level(article).toUpperCase()}</span><div><b>{article.title || 'Untitled update'}</b><small>📍 {article.author || 'General'} · {ago(article.created_at)}</small></div></li>)}</ul> : <p className="empty">{empty}</p>;
+  return articles.length ? <ul className="news-list">{articles.map((article, i) => <li key={article.id || `${article.title}-${i}`}><span className={`severity ${level(article)}`}>{level(article).toUpperCase()}</span><div><b>{article.title || 'Untitled update'}</b><p className="news-summary" style={{ margin: '4px 0', fontSize: '0.85em', color: 'var(--text-secondary, #888)', lineHeight: 1.4 }}>{article.content || article.summary || article.insight || ''}</p><small>📍 {article.author || 'General'} · {ago(article.created_at)}</small></div></li>)}</ul> : <p className="empty">{empty}</p>;
 }
 
 export default function CommandDashboard() {
