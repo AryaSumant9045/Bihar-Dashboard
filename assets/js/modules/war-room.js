@@ -270,17 +270,26 @@ async function loadIntelligenceSummary(forceRefresh = false) {
     }
 
     // Render previous sessions history (summaries[1..])
-    const history     = summaries.slice(1);
+    let history = summaries.slice(1);
+    
+    // Only show summaries from TODAY, and limit to max 2 items (so total max 3 on page)
+    const todayStr = new Date().toDateString();
+    history = history.filter(s => new Date(s.created_at).toDateString() === todayStr).slice(0, 2);
+
     const historyList = document.getElementById('wr-intel-history-list');
-    if (history.length && histDiv && historyList) {
-      histDiv.style.display = 'block';
-      historyList.innerHTML = history.map((s) => {
-        const dateStr = new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-        return `<div style="padding:.45rem .65rem;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;">
-          <span style="color:var(--text-secondary);">📡 AI Insight · ${dateStr}</span>
-          <span style="color:var(--text-muted);">${s.news_count || 0} news analyzed</span>
-        </div>`;
-      }).join('');
+    if (histDiv && historyList) {
+      if (history.length) {
+        histDiv.style.display = 'block';
+        historyList.innerHTML = history.map((s) => {
+          const dateStr = new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          return `<div style="padding:.45rem .65rem;border:1px solid var(--border-subtle);border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;">
+            <span style="color:var(--text-secondary);">📡 AI Insight · ${dateStr}</span>
+            <span style="color:var(--text-muted);">${s.news_count || s.batch_size || 0} news analyzed</span>
+          </div>`;
+        }).join('');
+      } else {
+        histDiv.style.display = 'none';
+      }
     }
 
   } catch (e) {
