@@ -1,351 +1,574 @@
 
 > bihar-political-dashboard@1.0.0 dev
-> concurrently "next dev" "python3 backend/news_insight_worker.py"
+> next dev
 
-[0]  ⚠ Port 3000 is in use by process 65338, using available port 3001 instead.
-[0]    ▲ Next.js 15.5.25
-[0]    - Local:        http://localhost:3001
-[0]    - Network:      http://10.54.48.211:3001
-[0]    - Environments: .env
-[0] 
-[0]  ✓ Starting...
-[1] [SYSTEM] Starting background worker thread for news insights...
-[1] [SYSTEM] Starting Flask app on port 5555...
-[1]  * Serving Flask app 'news_insight_worker'
-[1]  * Debug mode: off
-[1] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
-[1]  * Running on all addresses (0.0.0.0)
-[1]  * Running on http://127.0.0.1:5555
-[1]  * Running on http://10.54.48.211:5555
-[1] Press CTRL+C to quit
-[1] 
+ ⚠ Port 3000 is in use by process 70308, using available port 3002 instead.
+   ▲ Next.js 15.5.25
+   - Local:        http://localhost:3002
+   - Network:      http://10.54.48.211:3002
+   - Environments: .env
+
+ ✓ Starting...
+[Browserslist] Could not parse /Users/aryasumant/package.json. Ignoring it.
+ ✓ Compiled /instrumentation in 424ms (20 modules)
+ ✓ Ready in 1525ms
+ ○ Compiling /api/cron/generate-insight ...
+ ⨯ ./app/api/cron/generate-insight/route.js
+Error:   [31mx[0m Unterminated template
+     ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m 74[0m |         
+ [2m 75[0m |         // Check if it's from Upstash or manual cron secret
+ [2m 76[0m |         const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m 77[0m | [35;1m,[0m[35;1m-[0m[35;1m>[0m     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+ [2m 78[0m | [35;1m|[0m   
+ [2m 79[0m | [35;1m|[0m       if (!isAuthorized) {
+ [2m 80[0m | [35;1m|[0m         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ [2m 81[0m | [35;1m|[0m       }
+ [2m 82[0m | [35;1m|[0m   
+ [2m 83[0m | [35;1m|[0m       console.log("[CRON] Starting Serverless AI Insight Generation Cycle...");
+ [2m 84[0m | [35;1m|[0m   
+ [2m 85[0m | [35;1m|[0m       // 2. Initialize Supabase (Service Role to bypass RLS)
+ [2m 86[0m | [35;1m|[0m       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+ [2m 87[0m | [35;1m|[0m       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+ [2m 88[0m | [35;1m|[0m       if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials missing");
+ [2m 89[0m | [35;1m|[0m       const supabase = createClient(supabaseUrl, supabaseKey);
+ [2m 90[0m | [35;1m|[0m   
+ [2m 91[0m | [35;1m|[0m       // 3. Fetch RSS Feeds
+ [2m 92[0m | [35;1m|[0m       const parser = new Parser();
+ [2m 93[0m | [35;1m|[0m       const feedSources = [
+ [2m 94[0m | [35;1m|[0m         { name: "Google News", url: process.env.GOOGLE_NEWS_RSS_URL },
+ [2m 95[0m | [35;1m|[0m         { name: "Dainik Bhaskar", url: process.env.BHASKAR_BIHAR_RSS_URL },
+ [2m 96[0m | [35;1m|[0m         { name: "Live Hindustan", url: process.env.HINDUSTAN_BIHAR_RSS_URL },
+ [2m 97[0m | [35;1m|[0m       ];
+ [2m 98[0m | [35;1m|[0m   
+ [2m 99[0m | [35;1m|[0m       let insertedCount = 0;
+ [2m100[0m | [35;1m|[0m       
+ [2m101[0m | [35;1m|[0m       for (const source of feedSources) {
+ [2m102[0m | [35;1m|[0m         if (!source.url) continue;
+ [2m103[0m | [35;1m|[0m         try {
+ [2m104[0m | [35;1m|[0m           const feed = await parser.parseURL(source.url);
+ [2m105[0m | [35;1m|[0m           for (const item of feed.items) {
+ [2m106[0m | [35;1m|[0m             if (!item.title) continue;
+ [2m107[0m | [35;1m|[0m             
+ [2m108[0m | [35;1m|[0m             // Check if exists
+ [2m109[0m | [35;1m|[0m             const { data: existing } = await supabase
+ [2m110[0m | [35;1m|[0m               .from('bihar_news')
+ [2m111[0m | [35;1m|[0m               .select('id')
+ [2m112[0m | [35;1m|[0m               .eq('heading', item.title.trim())
+ [2m113[0m | [35;1m|[0m               .limit(1);
+ [2m114[0m | [35;1m|[0m   
+ [2m115[0m | [35;1m|[0m             if (!existing || existing.length === 0) {
+ [2m116[0m | [35;1m|[0m               await supabase.from('bihar_news').insert({
+ [2m117[0m | [35;1m|[0m                 heading: item.title.trim(),
+ [2m118[0m | [35;1m|[0m                 content: item.contentSnippet || item.content || item.summary || '',
+ [2m119[0m | [35;1m|[0m                 district: source.name
+ [2m120[0m | [35;1m|[0m               });
+ [2m121[0m | [35;1m|[0m               insertedCount++;
+ [2m122[0m | [35;1m|[0m             }
+ [2m123[0m | [35;1m|[0m           }
+ [2m124[0m | [35;1m|[0m         } catch (err) {
+ [2m125[0m | [35;1m|[0m           console.error(\`Error fetching RSS \${source.name}:\`, err.message);
+ [2m126[0m | [35;1m|[0m         }
+ [2m127[0m | [35;1m|[0m       }
+ [2m128[0m | [35;1m|[0m       
+ [2m129[0m | [35;1m|[0m       console.log(\`[DB] \${insertedCount} new articles fetched and saved.\`);
+ [2m130[0m | [35;1m|[0m   
+ [2m131[0m | [35;1m|[0m       // 4. Check time since last insight
+ [2m132[0m | [35;1m|[0m       const { data: lastInsight } = await supabase
+ [2m133[0m | [35;1m|[0m         .from('news_insights')
+ [2m134[0m | [35;1m|[0m         .select('created_at')
+ [2m135[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m136[0m | [35;1m|[0m         .limit(1);
+ [2m137[0m | [35;1m|[0m   
+ [2m138[0m | [35;1m|[0m       if (lastInsight && lastInsight.length > 0) {
+ [2m139[0m | [35;1m|[0m         const lastCreated = new Date(lastInsight[0].created_at);
+ [2m140[0m | [35;1m|[0m         const hoursDiff = (new Date() - lastCreated) / (1000 * 60 * 60);
+ [2m141[0m | [35;1m|[0m         if (hoursDiff < 1) { // 1 hour safety threshold
+ [2m142[0m | [35;1m|[0m           return NextResponse.json({ 
+ [2m143[0m | [35;1m|[0m             status: 'skipped', 
+ [2m144[0m | [35;1m|[0m             message: \`Last insight generated \${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.\` 
+ [2m145[0m | [35;1m|[0m           });
+ [2m146[0m | [35;1m|[0m         }
+ [2m147[0m | [35;1m|[0m       }
+ [2m148[0m | [35;1m|[0m   
+ [2m149[0m | [35;1m|[0m       // 5. Fetch Top 50 News for AI Analysis
+ [2m150[0m | [35;1m|[0m       const { data: uiNews } = await supabase
+ [2m151[0m | [35;1m|[0m         .from('bihar_news')
+ [2m152[0m | [35;1m|[0m         .select('heading, district')
+ [2m153[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m154[0m | [35;1m|[0m         .limit(50);
+ [2m155[0m | [35;1m|[0m   
+ [2m156[0m | [35;1m|[0m       if (!uiNews || uiNews.length === 0) {
+ [2m157[0m | [35;1m|[0m         return NextResponse.json({ status: 'success', message: 'No news to analyze.' });
+ [2m158[0m | [35;1m|[0m       }
+ [2m159[0m | [35;1m|[0m   
+ [2m160[0m | [35;1m|[0m       // 6. Generate Insight via Gemini
+ [2m161[0m | [35;1m|[0m       console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
+ [2m162[0m | [35;1m|[0m       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+ [2m163[0m | [35;1m|[0m       
+ [2m164[0m | [35;1m|[0m       const headlinesText = uiNews.map(n => \`- [\${n.district || 'General'}] \${n.heading}\`).join('\n');
+ [2m165[0m | [35;1m|[0m       const userContent = \`Yahan Website UI par render hone wali Top News Headlines hain:\n\n\${headlinesText}\`;
+ [2m166[0m | [35;1m|[0m       const prompt = \`\${SYSTEM_PROMPT}\n\n\${userContent}\`;
+ [2m167[0m | [35;1m|[0m   
+ [2m168[0m | [35;1m|[0m       const response = await aiClient.models.generateContent({
+ [2m169[0m | [35;1m|[0m         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
+ [2m170[0m | [35;1m|[0m         contents: prompt,
+ [2m171[0m | [35;1m|[0m       });
+ [2m172[0m | [35;1m|[0m   
+ [2m173[0m | [35;1m|[0m       const parsedJson = extractJson(response.text);
+ [2m174[0m | [35;1m|[0m   
+ [2m175[0m | [35;1m|[0m       if (!parsedJson) {
+ [2m176[0m | [35;1m|[0m         throw new Error("Failed to parse Gemini response as JSON");
+ [2m177[0m | [35;1m|[0m       }
+ [2m178[0m | [35;1m|[0m   
+ [2m179[0m | [35;1m|[0m       console.log("[GEMINI] Analysis completed successfully!");
+ [2m180[0m | [35;1m|[0m   
+ [2m181[0m | [35;1m|[0m       // 7. Save insight to Supabase
+ [2m182[0m | [35;1m|[0m       const payload = {
+ [2m183[0m | [35;1m|[0m         overall_situation: parsedJson.overall_situation || "",
+ [2m184[0m | [35;1m|[0m         bjp_action_points: parsedJson.bjp_action_points || [],
+ [2m185[0m | [35;1m|[0m         political_risks: parsedJson.political_risks || [],
+ [2m186[0m | [35;1m|[0m         opposition_activity: parsedJson.opposition_activity || [],
+ [2m187[0m | [35;1m|[0m         counter_strategy_points: parsedJson.counter_strategy_points || [],
+ [2m188[0m | [35;1m|[0m         election_watch_items: parsedJson.election_watch_items || [],
+ [2m189[0m | [35;1m|[0m         news_count: uiNews.length,
+ [2m190[0m | [35;1m|[0m       };
+ [2m191[0m | [35;1m|[0m   
+ [2m192[0m | [35;1m|[0m       const { error: insertError } = await supabase.from('news_insights').insert(payload);
+ [2m193[0m | [35;1m|[0m       if (insertError) {
+ [2m194[0m | [35;1m|[0m         throw insertError;
+ [2m195[0m | [35;1m|[0m       }
+ [2m196[0m | [35;1m|[0m   
+ [2m197[0m | [35;1m|[0m       console.log("[DB] Structured insight saved to news_insights table!");
+ [2m198[0m | [35;1m|[0m   
+ [2m199[0m | [35;1m|[0m       return NextResponse.json({ 
+ [2m200[0m | [35;1m|[0m         status: 'success', 
+ [2m201[0m | [35;1m|[0m         inserted_articles: insertedCount,
+ [2m202[0m | [35;1m|[0m         insight_generated: true 
+ [2m203[0m | [35;1m|[0m       });
+ [2m204[0m | [35;1m|[0m   
+ [2m205[0m | [35;1m|[0m     } catch (err) {
+ [2m206[0m | [35;1m|[0m       console.error("[CRON ERROR]:", err);
+ [2m207[0m | [35;1m|[0m       return NextResponse.json({ error: err.message }, { status: 500 });
+ [2m208[0m | [35;1m|[0m     }
+ [2m209[0m | [35;1m`[0m[35;1m-[0m[35;1m>[0m }
+     `----
+  [31mx[0m Expected unicode escape
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+  [31mx[0m Expression expected
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/api/cron/generate-insight/route.js
+ ⨯ ./app/api/cron/generate-insight/route.js
+Error:   [31mx[0m Unterminated template
+     ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m 74[0m |         
+ [2m 75[0m |         // Check if it's from Upstash or manual cron secret
+ [2m 76[0m |         const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m 77[0m | [35;1m,[0m[35;1m-[0m[35;1m>[0m     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+ [2m 78[0m | [35;1m|[0m   
+ [2m 79[0m | [35;1m|[0m       if (!isAuthorized) {
+ [2m 80[0m | [35;1m|[0m         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ [2m 81[0m | [35;1m|[0m       }
+ [2m 82[0m | [35;1m|[0m   
+ [2m 83[0m | [35;1m|[0m       console.log("[CRON] Starting Serverless AI Insight Generation Cycle...");
+ [2m 84[0m | [35;1m|[0m   
+ [2m 85[0m | [35;1m|[0m       // 2. Initialize Supabase (Service Role to bypass RLS)
+ [2m 86[0m | [35;1m|[0m       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+ [2m 87[0m | [35;1m|[0m       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+ [2m 88[0m | [35;1m|[0m       if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials missing");
+ [2m 89[0m | [35;1m|[0m       const supabase = createClient(supabaseUrl, supabaseKey);
+ [2m 90[0m | [35;1m|[0m   
+ [2m 91[0m | [35;1m|[0m       // 3. Fetch RSS Feeds
+ [2m 92[0m | [35;1m|[0m       const parser = new Parser();
+ [2m 93[0m | [35;1m|[0m       const feedSources = [
+ [2m 94[0m | [35;1m|[0m         { name: "Google News", url: process.env.GOOGLE_NEWS_RSS_URL },
+ [2m 95[0m | [35;1m|[0m         { name: "Dainik Bhaskar", url: process.env.BHASKAR_BIHAR_RSS_URL },
+ [2m 96[0m | [35;1m|[0m         { name: "Live Hindustan", url: process.env.HINDUSTAN_BIHAR_RSS_URL },
+ [2m 97[0m | [35;1m|[0m       ];
+ [2m 98[0m | [35;1m|[0m   
+ [2m 99[0m | [35;1m|[0m       let insertedCount = 0;
+ [2m100[0m | [35;1m|[0m       
+ [2m101[0m | [35;1m|[0m       for (const source of feedSources) {
+ [2m102[0m | [35;1m|[0m         if (!source.url) continue;
+ [2m103[0m | [35;1m|[0m         try {
+ [2m104[0m | [35;1m|[0m           const feed = await parser.parseURL(source.url);
+ [2m105[0m | [35;1m|[0m           for (const item of feed.items) {
+ [2m106[0m | [35;1m|[0m             if (!item.title) continue;
+ [2m107[0m | [35;1m|[0m             
+ [2m108[0m | [35;1m|[0m             // Check if exists
+ [2m109[0m | [35;1m|[0m             const { data: existing } = await supabase
+ [2m110[0m | [35;1m|[0m               .from('bihar_news')
+ [2m111[0m | [35;1m|[0m               .select('id')
+ [2m112[0m | [35;1m|[0m               .eq('heading', item.title.trim())
+ [2m113[0m | [35;1m|[0m               .limit(1);
+ [2m114[0m | [35;1m|[0m   
+ [2m115[0m | [35;1m|[0m             if (!existing || existing.length === 0) {
+ [2m116[0m | [35;1m|[0m               await supabase.from('bihar_news').insert({
+ [2m117[0m | [35;1m|[0m                 heading: item.title.trim(),
+ [2m118[0m | [35;1m|[0m                 content: item.contentSnippet || item.content || item.summary || '',
+ [2m119[0m | [35;1m|[0m                 district: source.name
+ [2m120[0m | [35;1m|[0m               });
+ [2m121[0m | [35;1m|[0m               insertedCount++;
+ [2m122[0m | [35;1m|[0m             }
+ [2m123[0m | [35;1m|[0m           }
+ [2m124[0m | [35;1m|[0m         } catch (err) {
+ [2m125[0m | [35;1m|[0m           console.error(\`Error fetching RSS \${source.name}:\`, err.message);
+ [2m126[0m | [35;1m|[0m         }
+ [2m127[0m | [35;1m|[0m       }
+ [2m128[0m | [35;1m|[0m       
+ [2m129[0m | [35;1m|[0m       console.log(\`[DB] \${insertedCount} new articles fetched and saved.\`);
+ [2m130[0m | [35;1m|[0m   
+ [2m131[0m | [35;1m|[0m       // 4. Check time since last insight
+ [2m132[0m | [35;1m|[0m       const { data: lastInsight } = await supabase
+ [2m133[0m | [35;1m|[0m         .from('news_insights')
+ [2m134[0m | [35;1m|[0m         .select('created_at')
+ [2m135[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m136[0m | [35;1m|[0m         .limit(1);
+ [2m137[0m | [35;1m|[0m   
+ [2m138[0m | [35;1m|[0m       if (lastInsight && lastInsight.length > 0) {
+ [2m139[0m | [35;1m|[0m         const lastCreated = new Date(lastInsight[0].created_at);
+ [2m140[0m | [35;1m|[0m         const hoursDiff = (new Date() - lastCreated) / (1000 * 60 * 60);
+ [2m141[0m | [35;1m|[0m         if (hoursDiff < 1) { // 1 hour safety threshold
+ [2m142[0m | [35;1m|[0m           return NextResponse.json({ 
+ [2m143[0m | [35;1m|[0m             status: 'skipped', 
+ [2m144[0m | [35;1m|[0m             message: \`Last insight generated \${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.\` 
+ [2m145[0m | [35;1m|[0m           });
+ [2m146[0m | [35;1m|[0m         }
+ [2m147[0m | [35;1m|[0m       }
+ [2m148[0m | [35;1m|[0m   
+ [2m149[0m | [35;1m|[0m       // 5. Fetch Top 50 News for AI Analysis
+ [2m150[0m | [35;1m|[0m       const { data: uiNews } = await supabase
+ [2m151[0m | [35;1m|[0m         .from('bihar_news')
+ [2m152[0m | [35;1m|[0m         .select('heading, district')
+ [2m153[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m154[0m | [35;1m|[0m         .limit(50);
+ [2m155[0m | [35;1m|[0m   
+ [2m156[0m | [35;1m|[0m       if (!uiNews || uiNews.length === 0) {
+ [2m157[0m | [35;1m|[0m         return NextResponse.json({ status: 'success', message: 'No news to analyze.' });
+ [2m158[0m | [35;1m|[0m       }
+ [2m159[0m | [35;1m|[0m   
+ [2m160[0m | [35;1m|[0m       // 6. Generate Insight via Gemini
+ [2m161[0m | [35;1m|[0m       console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
+ [2m162[0m | [35;1m|[0m       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+ [2m163[0m | [35;1m|[0m       
+ [2m164[0m | [35;1m|[0m       const headlinesText = uiNews.map(n => \`- [\${n.district || 'General'}] \${n.heading}\`).join('\n');
+ [2m165[0m | [35;1m|[0m       const userContent = \`Yahan Website UI par render hone wali Top News Headlines hain:\n\n\${headlinesText}\`;
+ [2m166[0m | [35;1m|[0m       const prompt = \`\${SYSTEM_PROMPT}\n\n\${userContent}\`;
+ [2m167[0m | [35;1m|[0m   
+ [2m168[0m | [35;1m|[0m       const response = await aiClient.models.generateContent({
+ [2m169[0m | [35;1m|[0m         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
+ [2m170[0m | [35;1m|[0m         contents: prompt,
+ [2m171[0m | [35;1m|[0m       });
+ [2m172[0m | [35;1m|[0m   
+ [2m173[0m | [35;1m|[0m       const parsedJson = extractJson(response.text);
+ [2m174[0m | [35;1m|[0m   
+ [2m175[0m | [35;1m|[0m       if (!parsedJson) {
+ [2m176[0m | [35;1m|[0m         throw new Error("Failed to parse Gemini response as JSON");
+ [2m177[0m | [35;1m|[0m       }
+ [2m178[0m | [35;1m|[0m   
+ [2m179[0m | [35;1m|[0m       console.log("[GEMINI] Analysis completed successfully!");
+ [2m180[0m | [35;1m|[0m   
+ [2m181[0m | [35;1m|[0m       // 7. Save insight to Supabase
+ [2m182[0m | [35;1m|[0m       const payload = {
+ [2m183[0m | [35;1m|[0m         overall_situation: parsedJson.overall_situation || "",
+ [2m184[0m | [35;1m|[0m         bjp_action_points: parsedJson.bjp_action_points || [],
+ [2m185[0m | [35;1m|[0m         political_risks: parsedJson.political_risks || [],
+ [2m186[0m | [35;1m|[0m         opposition_activity: parsedJson.opposition_activity || [],
+ [2m187[0m | [35;1m|[0m         counter_strategy_points: parsedJson.counter_strategy_points || [],
+ [2m188[0m | [35;1m|[0m         election_watch_items: parsedJson.election_watch_items || [],
+ [2m189[0m | [35;1m|[0m         news_count: uiNews.length,
+ [2m190[0m | [35;1m|[0m       };
+ [2m191[0m | [35;1m|[0m   
+ [2m192[0m | [35;1m|[0m       const { error: insertError } = await supabase.from('news_insights').insert(payload);
+ [2m193[0m | [35;1m|[0m       if (insertError) {
+ [2m194[0m | [35;1m|[0m         throw insertError;
+ [2m195[0m | [35;1m|[0m       }
+ [2m196[0m | [35;1m|[0m   
+ [2m197[0m | [35;1m|[0m       console.log("[DB] Structured insight saved to news_insights table!");
+ [2m198[0m | [35;1m|[0m   
+ [2m199[0m | [35;1m|[0m       return NextResponse.json({ 
+ [2m200[0m | [35;1m|[0m         status: 'success', 
+ [2m201[0m | [35;1m|[0m         inserted_articles: insertedCount,
+ [2m202[0m | [35;1m|[0m         insight_generated: true 
+ [2m203[0m | [35;1m|[0m       });
+ [2m204[0m | [35;1m|[0m   
+ [2m205[0m | [35;1m|[0m     } catch (err) {
+ [2m206[0m | [35;1m|[0m       console.error("[CRON ERROR]:", err);
+ [2m207[0m | [35;1m|[0m       return NextResponse.json({ error: err.message }, { status: 500 });
+ [2m208[0m | [35;1m|[0m     }
+ [2m209[0m | [35;1m`[0m[35;1m-[0m[35;1m>[0m }
+     `----
+  [31mx[0m Expected unicode escape
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+  [31mx[0m Expression expected
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/api/cron/generate-insight/route.js
+ ⨯ ./app/api/cron/generate-insight/route.js
+Error:   [31mx[0m Unterminated template
+     ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m 74[0m |         
+ [2m 75[0m |         // Check if it's from Upstash or manual cron secret
+ [2m 76[0m |         const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m 77[0m | [35;1m,[0m[35;1m-[0m[35;1m>[0m     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+ [2m 78[0m | [35;1m|[0m   
+ [2m 79[0m | [35;1m|[0m       if (!isAuthorized) {
+ [2m 80[0m | [35;1m|[0m         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ [2m 81[0m | [35;1m|[0m       }
+ [2m 82[0m | [35;1m|[0m   
+ [2m 83[0m | [35;1m|[0m       console.log("[CRON] Starting Serverless AI Insight Generation Cycle...");
+ [2m 84[0m | [35;1m|[0m   
+ [2m 85[0m | [35;1m|[0m       // 2. Initialize Supabase (Service Role to bypass RLS)
+ [2m 86[0m | [35;1m|[0m       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+ [2m 87[0m | [35;1m|[0m       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+ [2m 88[0m | [35;1m|[0m       if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials missing");
+ [2m 89[0m | [35;1m|[0m       const supabase = createClient(supabaseUrl, supabaseKey);
+ [2m 90[0m | [35;1m|[0m   
+ [2m 91[0m | [35;1m|[0m       // 3. Fetch RSS Feeds
+ [2m 92[0m | [35;1m|[0m       const parser = new Parser();
+ [2m 93[0m | [35;1m|[0m       const feedSources = [
+ [2m 94[0m | [35;1m|[0m         { name: "Google News", url: process.env.GOOGLE_NEWS_RSS_URL },
+ [2m 95[0m | [35;1m|[0m         { name: "Dainik Bhaskar", url: process.env.BHASKAR_BIHAR_RSS_URL },
+ [2m 96[0m | [35;1m|[0m         { name: "Live Hindustan", url: process.env.HINDUSTAN_BIHAR_RSS_URL },
+ [2m 97[0m | [35;1m|[0m       ];
+ [2m 98[0m | [35;1m|[0m   
+ [2m 99[0m | [35;1m|[0m       let insertedCount = 0;
+ [2m100[0m | [35;1m|[0m       
+ [2m101[0m | [35;1m|[0m       for (const source of feedSources) {
+ [2m102[0m | [35;1m|[0m         if (!source.url) continue;
+ [2m103[0m | [35;1m|[0m         try {
+ [2m104[0m | [35;1m|[0m           const feed = await parser.parseURL(source.url);
+ [2m105[0m | [35;1m|[0m           for (const item of feed.items) {
+ [2m106[0m | [35;1m|[0m             if (!item.title) continue;
+ [2m107[0m | [35;1m|[0m             
+ [2m108[0m | [35;1m|[0m             // Check if exists
+ [2m109[0m | [35;1m|[0m             const { data: existing } = await supabase
+ [2m110[0m | [35;1m|[0m               .from('bihar_news')
+ [2m111[0m | [35;1m|[0m               .select('id')
+ [2m112[0m | [35;1m|[0m               .eq('heading', item.title.trim())
+ [2m113[0m | [35;1m|[0m               .limit(1);
+ [2m114[0m | [35;1m|[0m   
+ [2m115[0m | [35;1m|[0m             if (!existing || existing.length === 0) {
+ [2m116[0m | [35;1m|[0m               await supabase.from('bihar_news').insert({
+ [2m117[0m | [35;1m|[0m                 heading: item.title.trim(),
+ [2m118[0m | [35;1m|[0m                 content: item.contentSnippet || item.content || item.summary || '',
+ [2m119[0m | [35;1m|[0m                 district: source.name
+ [2m120[0m | [35;1m|[0m               });
+ [2m121[0m | [35;1m|[0m               insertedCount++;
+ [2m122[0m | [35;1m|[0m             }
+ [2m123[0m | [35;1m|[0m           }
+ [2m124[0m | [35;1m|[0m         } catch (err) {
+ [2m125[0m | [35;1m|[0m           console.error(\`Error fetching RSS \${source.name}:\`, err.message);
+ [2m126[0m | [35;1m|[0m         }
+ [2m127[0m | [35;1m|[0m       }
+ [2m128[0m | [35;1m|[0m       
+ [2m129[0m | [35;1m|[0m       console.log(\`[DB] \${insertedCount} new articles fetched and saved.\`);
+ [2m130[0m | [35;1m|[0m   
+ [2m131[0m | [35;1m|[0m       // 4. Check time since last insight
+ [2m132[0m | [35;1m|[0m       const { data: lastInsight } = await supabase
+ [2m133[0m | [35;1m|[0m         .from('news_insights')
+ [2m134[0m | [35;1m|[0m         .select('created_at')
+ [2m135[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m136[0m | [35;1m|[0m         .limit(1);
+ [2m137[0m | [35;1m|[0m   
+ [2m138[0m | [35;1m|[0m       if (lastInsight && lastInsight.length > 0) {
+ [2m139[0m | [35;1m|[0m         const lastCreated = new Date(lastInsight[0].created_at);
+ [2m140[0m | [35;1m|[0m         const hoursDiff = (new Date() - lastCreated) / (1000 * 60 * 60);
+ [2m141[0m | [35;1m|[0m         if (hoursDiff < 1) { // 1 hour safety threshold
+ [2m142[0m | [35;1m|[0m           return NextResponse.json({ 
+ [2m143[0m | [35;1m|[0m             status: 'skipped', 
+ [2m144[0m | [35;1m|[0m             message: \`Last insight generated \${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.\` 
+ [2m145[0m | [35;1m|[0m           });
+ [2m146[0m | [35;1m|[0m         }
+ [2m147[0m | [35;1m|[0m       }
+ [2m148[0m | [35;1m|[0m   
+ [2m149[0m | [35;1m|[0m       // 5. Fetch Top 50 News for AI Analysis
+ [2m150[0m | [35;1m|[0m       const { data: uiNews } = await supabase
+ [2m151[0m | [35;1m|[0m         .from('bihar_news')
+ [2m152[0m | [35;1m|[0m         .select('heading, district')
+ [2m153[0m | [35;1m|[0m         .order('created_at', { ascending: false })
+ [2m154[0m | [35;1m|[0m         .limit(50);
+ [2m155[0m | [35;1m|[0m   
+ [2m156[0m | [35;1m|[0m       if (!uiNews || uiNews.length === 0) {
+ [2m157[0m | [35;1m|[0m         return NextResponse.json({ status: 'success', message: 'No news to analyze.' });
+ [2m158[0m | [35;1m|[0m       }
+ [2m159[0m | [35;1m|[0m   
+ [2m160[0m | [35;1m|[0m       // 6. Generate Insight via Gemini
+ [2m161[0m | [35;1m|[0m       console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
+ [2m162[0m | [35;1m|[0m       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+ [2m163[0m | [35;1m|[0m       
+ [2m164[0m | [35;1m|[0m       const headlinesText = uiNews.map(n => \`- [\${n.district || 'General'}] \${n.heading}\`).join('\n');
+ [2m165[0m | [35;1m|[0m       const userContent = \`Yahan Website UI par render hone wali Top News Headlines hain:\n\n\${headlinesText}\`;
+ [2m166[0m | [35;1m|[0m       const prompt = \`\${SYSTEM_PROMPT}\n\n\${userContent}\`;
+ [2m167[0m | [35;1m|[0m   
+ [2m168[0m | [35;1m|[0m       const response = await aiClient.models.generateContent({
+ [2m169[0m | [35;1m|[0m         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
+ [2m170[0m | [35;1m|[0m         contents: prompt,
+ [2m171[0m | [35;1m|[0m       });
+ [2m172[0m | [35;1m|[0m   
+ [2m173[0m | [35;1m|[0m       const parsedJson = extractJson(response.text);
+ [2m174[0m | [35;1m|[0m   
+ [2m175[0m | [35;1m|[0m       if (!parsedJson) {
+ [2m176[0m | [35;1m|[0m         throw new Error("Failed to parse Gemini response as JSON");
+ [2m177[0m | [35;1m|[0m       }
+ [2m178[0m | [35;1m|[0m   
+ [2m179[0m | [35;1m|[0m       console.log("[GEMINI] Analysis completed successfully!");
+ [2m180[0m | [35;1m|[0m   
+ [2m181[0m | [35;1m|[0m       // 7. Save insight to Supabase
+ [2m182[0m | [35;1m|[0m       const payload = {
+ [2m183[0m | [35;1m|[0m         overall_situation: parsedJson.overall_situation || "",
+ [2m184[0m | [35;1m|[0m         bjp_action_points: parsedJson.bjp_action_points || [],
+ [2m185[0m | [35;1m|[0m         political_risks: parsedJson.political_risks || [],
+ [2m186[0m | [35;1m|[0m         opposition_activity: parsedJson.opposition_activity || [],
+ [2m187[0m | [35;1m|[0m         counter_strategy_points: parsedJson.counter_strategy_points || [],
+ [2m188[0m | [35;1m|[0m         election_watch_items: parsedJson.election_watch_items || [],
+ [2m189[0m | [35;1m|[0m         news_count: uiNews.length,
+ [2m190[0m | [35;1m|[0m       };
+ [2m191[0m | [35;1m|[0m   
+ [2m192[0m | [35;1m|[0m       const { error: insertError } = await supabase.from('news_insights').insert(payload);
+ [2m193[0m | [35;1m|[0m       if (insertError) {
+ [2m194[0m | [35;1m|[0m         throw insertError;
+ [2m195[0m | [35;1m|[0m       }
+ [2m196[0m | [35;1m|[0m   
+ [2m197[0m | [35;1m|[0m       console.log("[DB] Structured insight saved to news_insights table!");
+ [2m198[0m | [35;1m|[0m   
+ [2m199[0m | [35;1m|[0m       return NextResponse.json({ 
+ [2m200[0m | [35;1m|[0m         status: 'success', 
+ [2m201[0m | [35;1m|[0m         inserted_articles: insertedCount,
+ [2m202[0m | [35;1m|[0m         insight_generated: true 
+ [2m203[0m | [35;1m|[0m       });
+ [2m204[0m | [35;1m|[0m   
+ [2m205[0m | [35;1m|[0m     } catch (err) {
+ [2m206[0m | [35;1m|[0m       console.error("[CRON ERROR]:", err);
+ [2m207[0m | [35;1m|[0m       return NextResponse.json({ error: err.message }, { status: 500 });
+ [2m208[0m | [35;1m|[0m     }
+ [2m209[0m | [35;1m`[0m[35;1m-[0m[35;1m>[0m }
+     `----
+  [31mx[0m Expected unicode escape
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+  [31mx[0m Expression expected
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:77:1]
+ [2m74[0m |     
+ [2m75[0m |     // Check if it's from Upstash or manual cron secret
+ [2m76[0m |     const isUpstash = request.headers.get('upstash-signature') ? true : false;
+ [2m77[0m |     const isAuthorized = isUpstash || authHeader === \`Bearer \${cronSecret}\` || secret === cronSecret;
+    : [35;1m                                                     ^[0m
+ [2m78[0m | 
+ [2m79[0m |     if (!isAuthorized) {
+ [2m80[0m |       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/api/cron/generate-insight/route.js
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 500 in 2524ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/aryasumant/Desktop/Bihar Dashboard/.next/cache/webpack/client-development/3.pack.gz_' -> '/Users/aryasumant/Desktop/Bihar Dashboard/.next/cache/webpack/client-development/3.pack.gz'
+ ⨯ ./app/api/cron/generate-insight/route.js
+Error:   [31mx[0m Expected a semicolon
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:23:1]
+ [2m20[0m | 4. अगर headlines में किसी section के लिए पर्याप्त data नहीं है, तो उस field में 
+ [2m21[0m |    "इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली" लिखें, खाली मत छोड़ें और न ही बनावटी 
+ [2m22[0m |    content भरें।
+ [2m23[0m | 5. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (```json), कोई 
+    : [35;1m                                                                   ^^^^[0m
+ [2m24[0m |    preamble, कोई extra text नहीं। पहला character सीधे { होना चाहिए।
+ [2m25[0m | 
+ [2m26[0m | ## Output JSON structure
+    `----
+  [31mx[0m Expected ';', '}' or <eof>
+    ,-[[36;1;4m/Users/aryasumant/Desktop/Bihar Dashboard/app/api/cron/generate-insight/route.js[0m:24:1]
+ [2m21[0m |    "इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली" लिखें, खाली मत छोड़ें और न ही बनावटी 
+ [2m22[0m |    content भरें।
+ [2m23[0m | 5. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (```json), कोई 
+ [2m24[0m |    preamble, कोई extra text नहीं। पहला character सीधे { होना चाहिए।
+    : [35;1m   ^^^^^^|^^^^^^[0m[33;1m ^^^^^[0m
+    :          [35;1m`-- [35;1mThis is the expression part of an expression statement[0m[0m
+ [2m25[0m | 
+ [2m26[0m | ## Output JSON structure
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/api/cron/generate-insight/route.js
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 500 in 20ms
+ ✓ Compiled /_error in 1178ms (778 modules)
+[CRON] Starting Serverless AI Insight Generation Cycle...
+Error fetching RSS Google News: getaddrinfo ENOTFOUND news.google.com
+(node:76991) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Error fetching RSS Dainik Bhaskar: getaddrinfo ENOTFOUND www.bhaskar.com
+Error fetching RSS Live Hindustan: getaddrinfo ENOTFOUND api.livehindustan.com
+[DB] 0 new articles fetched and saved.
+ GET /api/cron/generate-insight?secret=bihar-cron-secret-2026 200 in 14622ms
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                [1] 
 [1] ==================================================
 [1] [DB] Checking for new news articles to fetch...
-[0]  ✓ Compiled /instrumentation in 534ms (112 modules)
-[0]  ✓ Ready in 5.2s
-[1] [DB] No new articles found. DB is up to date.
-[1] [INFO] Latest insight is 10.18 hours old (threshold is 0.01). Generating new...
+[1] [Dainik Bhaskar] Inserted: नालंदा में नाबालिग ने खाया जहर, प्रेमिका लेकर पहुंची अस्पताल:बोली- आधारकार्ड बनवाने साथ निकले थे; मां ने कहा- हमारा इनसे कोई रिश्ता नहीं
+[1] [Dainik Bhaskar] Inserted: दिव्यांगजनों के लिए विशेष रोजगार कैंप 18 को आयोजित
+[1] [DB] 2 news articles fetched and saved to DB.
+[1] [INFO] Latest insight is 0.11 hours old (threshold is 0.01). Generating new...
 [1] [GEMINI] Gemini is analyzing the top news headlines...
 [1] Analyzing UI Rendered News via Gemini AI...
-[1] Direct use of automatic function calling (AFC) in Models.generate_content is not recommended. Instead, we recommend to use AFC in Chat.send_message. Similarly, direct use of AFC in Models.generate_content_stream is not recommended. Instead, we recommend to use AFC in Chat.send_message_stream.
 [1] Successfully analyzed UI news using Gemini!
 [1] [GEMINI] Analysis completed!
 [1] Structured insight saved to news_insights table!
 [1] [INFO] Waiting for next cycle...
 [1] 
-[0]  ○ Compiling /api/news-summaries ...
-[0]  ✓ Compiled /api/news-summaries in 653ms (370 modules)
-[0] [UI] Analysis insight fetched from DB and rendered on UI (Items: 0)
-[0]  GET /api/news-summaries 200 in 2391ms
-[0]  ✓ Compiled in 178ms (53 modules)
-[0]  ✓ Compiled /api/news-summaries in 213ms (175 modules)
-[0] [UI] Analysis insight fetched from DB and rendered on UI (Items: 2)
-[0]  GET /api/news-summaries 200 in 810ms
-[1] 
-[1] ==================================================
-[1] [DB] Checking for new news articles to fetch...
-[1] [Google News] Inserted: Amit Shah’s Uniform Civil Code plan hits a bump in Bihar - The Indian Express
-[1] [Google News] Inserted: JD-U softens stand on UCC, says 'will not oppose for no reason' - Rediff
-[1] [Google News] Inserted: UCC Push Before 2029: Allies TDP, Shiv Sena Back Amit Shah, But JD(U) Says 'Not In Bihar' - News18
-[1] [Google News] Inserted: 38 kg Marijuana Seized From School Bags In Bihar, 3 Minors Among 5 Detained - NDTV
-[1] [Google News] Inserted: ‘He wanted divorce after becoming IPS’: Bihar SP Bhanu Pratap Singh’s wife alleges husband and in-laws ke - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Her husband went to jail for her murder. Now, Bihar woman found alive in Jharkhand - The Indian Express
-[1] [Google News] Inserted: Swept away by Ganga 15 days ago, Bihar woman found in UP - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar Cabinet approves ₹3,516 crore for Vishnupad Temple area development, Son-Falgu river link - The Hindu
-[1] [Google News] Inserted: Bihar floods: More than 49 lakh hit in 15 districts as rivers swell - Rediff
-[1] [Google News] Inserted: Bihar man killed by wife and in-laws, buried in graveyard; body exhumed after viral video - timesofindia.indiatimes.com
-[1] [Google News] Inserted: From one glass of milk to a 35-year legacy: How one Bihar tea seller’s kindness to babies became a family - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar MLA invited to Russia as public election observer - timesofindia.indiatimes.com
-[1] [Google News] Inserted: School under water, classroom on a boat: Bihar teacher keeps lessons afloat - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Chouhan to visit Bihar today to assess flood situation - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Floods disrupt studies of 3.73 lakh students in Bihar - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar facing severe floods despite low rainfall: CM - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar court issues non-bailable warrants against nine cops in eight-year-old case - The Indian Express
-[1] [Google News] Inserted: Bihar first state to open 211 degree colleges in a day: CM - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar UCC War: JD(U) Rejects Implementation Plan, RJD Slams BJP After Amit Shah’s Big Announcement - timesofindia.indiatimes.com
-[1] [Google News] Inserted: In Bihar, cost of a campus surges Rs 488 crore, CAG flags lapses; findings not final, says varsity - The Indian Express
-[1] [Google News] Inserted: Bihar is flooded despite poor rains. Nepal is not the reason - The Indian Express
-[1] [Google News] Inserted: Floods in India’s Bihar state affect nearly 5 million people — Dawn - UA.NEWS
-[1] [Google News] Inserted: Millions hit by floods in India's Bihar | DW News - Modern Ghana
-[1] [Google News] Inserted: Millions affected as floods strike India's Bihar - The Express Tribune
-[1] [Google News] Inserted: Millions affected as floods strike India’s Bihar - Times of Suriname
-[1] [Google News] Inserted: Koch Bihar air quality map - IQAir
-[1] [Google News] Inserted: From Jharkhand and Bihar to India’s chip lines: why semiconductor jobs are open to everyone - YourStory.com
-[1] [Google News] Inserted: Bihar Floods Displace Millions and Submerge Farmland, Prompting Emergency Relief and Federal Assessment - RTV News
-[1] [Google News] Inserted: Bihar to conduct DNA tests on relatives to identify victims of Nepal flash flood - Greater Kashmir
-[1] [Google News] Inserted: BJP Allies in Andhra Pradesh, Bihar Strike Cautious Note as Shah Promises UCC in 21 NDA-Ruled States - thewire.in
-[1] [Google News] Inserted: Bihar plans Oxford, Harvard training for 100 professors as it opens 211 colleges - Moneycontrol.com
-[1] [Google News] Inserted: Air quality in Koch Bihar - IQAir
-[1] [Google News] Inserted: Dozens Injured As Beam Launches Used For Bridge Construction Crashes In Bihar - NDTV
-[1] [Google News] Inserted: Three-day yellow alert for rain, thunderstorm in Bihar - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar Sharif air quality map - IQAir
-[1] [Google News] Inserted: Floods hit 49 lakh people in 15 Bihar districts as rivers keep swelling - The Hindu
-[1] [Google News] Inserted: Will consider Bihar’s concerns before Ganga treaty renewal, says Jaishankar - The Hindu
-[1] [Google News] Inserted: As Bihar gets over 200 new colleges, what’s next for its teachers? Training at Oxford - The Indian Express
-[1] [Google News] Inserted: Rift within NDA over implementation of UCC in Bihar - The Hindu
-[1] [Google News] Inserted: Bihar floods: Congress urges Govt to carry out relief, rescue operations without delay - The Hindu
-[1] [Google News] Inserted: Bihar: Children At Work, Poverty At Play - ETV Bharat
-[1] [Google News] Inserted: Bihar Celebrates 114th Foundation Day - News On AIR
-[1] [Google News] Inserted: Uniform Civil Code: Bihar sees Rift within NDA over implementation of UCC after AMIT shAH'S - The Hindu
-[1] [Google News] Inserted: Power Off, Flashlight On: Bihar Doctors Use Torches To Operate On Pregnant Woman - NDTV
-[1] [Google News] Inserted: Bihar DGP Vinay Kumar goes on long leave, Preeta Verma to serve as acting DGP - thebuckstopper.com
-[1] [Google News] Inserted: Bihar CM transfers Rs 579 crore relief to 8.27 lakh flood-hit families - Daily Pioneer
-[1] [Google News] Inserted: Students protesting alleged irregularities in Bihar SI, BPSC exams detained; SSP says disrupting public movement - ANI News
-[1] [Google News] Inserted: Rahul Gandhi urges swift relief as Bihar floods affect nearly 50 lakh people - National Herald
-[1] [Google News] Inserted: JD(U) clarifies stance on UCC, proposal to rename party and RJD’s invitation to join hands - The Hindu
-[1] [Google News] Inserted: UCC in Bihar? JD(U) opposes implementation despite backing Bill in Parliament - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar CM transfers ₹579 crore in relief to flood-affected people - The Hindu
-[1] [Google News] Inserted: Nearly 50 lakh hit by floods in Bihar as swollen rivers breach danger marks - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar Temple Vandalism: Police detain 3 minor Muslim boys for stone-throwing, urination at Hanuman murti in Nalanda - organiser.org
-[1] [Google News] Inserted: Bihar becomes first state in India to launch dedicated investment policy for sugar industry - ChiniMandi
-[1] [Google News] Inserted: Four Myanmar nationals detained in Bihar over lack of valid documents - The Hindu
-[1] [Google News] Inserted: NDA partners in Bihar differ over Shah’s UCC announcement - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Students detained after blocking rail track in Bihar over SI and BPSC exam irregularities - The News Mill
-[1] [Google News] Inserted: The men from Bihar who live among Kashmir’s apple trees - Deccan Herald
-[1] [Google News] Inserted: ‘No UCC in Bihar’: JD(U) reacts to Shah’s 2029 deadline statement | Hindustan Times - Hindustan Times
-[1] [Google News] Inserted: SC lawyers Ashwarya Sinha, Keshav Ranjan appointed as Bihar government's AAGs - The New Indian Express
-[1] [Google News] Inserted: Bihar approves ₹3,516 crore for Son-Falgu river link, Vishnupad Temple redevelopment - ET Infra
-[1] [Google News] Inserted: Bihar clears Rs 3,516 crore plan to develop Gaya’s Vishnupad Temple area like Kashi corridor - The New Indian Express
-[1] [Google News] Inserted: Bihar Declared Naxal-Free After Surrender of Last Armed Maoist in Munger - News On AIR
-[1] [Google News] Inserted: NDA allies divided over Amit Shah UCC push in Andhra, Bihar - Daily Pioneer
-[1] [Google News] Inserted: 'Stepmotherly treatment': Tejashwi seeks 'national disaster' tag for Bihar floods, slams Centre's respons - timesofindia.indiatimes.com
-[1] [Google News] Inserted: Bihar To Develop Famous Vishnupad Temple At Gaya On Lines Of Kashi-Vishwanath Corridor - ETV Bharat
-[1] [Google News] Inserted: Central team likely to visit Bihar on September 16 to assess flood situation - The New Indian Express
-[1] [Google News] Inserted: Tense scenes in Patna as job aspirants breach barricades during march to CM’s residence - The New Indian Express
-[1] [Google News] Inserted: Bihar Comes Up With Silt Management Policy Amid Protests Against Farakka Barrage And Ganga Water Sharing Treaty With Bangladesh - ETV Bharat
-[1] [Google News] Inserted: Bihar floods: Rahul Gandhi urges govt to carry out relief, rescue operations with full promptness - The Economic Times
-[1] [Google News] Inserted: AAI invites bids for INR 42.52 crore Saharsa airport upgrade in Bihar - Prop News Time
-[1] [Google News] Inserted: JD(U) says it supports UCC, but won’t allow it to be implemented in Bihar - Scroll.in
-[1] [Google News] Inserted: Bihar Cabinet okays Rs 3,516 cr for Son-Falgu river link project, Vishnupad temple development - ThePrint
-[1] [Google News] Inserted: Agriculture Minister to visit flood-hit Bihar on Wednesday, take aerial survey of affected areas - Daily Excelsior
-[1] [Google News] Inserted: Central team to visit Bihar on September 16 to assess flood damage - The Hindu
-[1] [Google News] Inserted: Nearly five million people affected by floods in India’s Bihar - TheReport.live
-[1] [Google News] Inserted: Nishith Prakash’s Research Shapes Debate on Bihar’s Economic Development - Northeastern University
-[1] [Google News] Inserted: Bihar tough test for BJP’s UCC plan as JD(U) seeks talks amid differing voices - The Statesman
-[1] [Google News] Inserted: JD(U) to oppose Centre's fresh move to implement UCC in Bihar - The New Indian Express
-[1] [Google News] Inserted: Rahul Gandhi, Kharge Express Concern Over Bihar Floods, Urge Prompt Relief - News Mobile
-[1] [Google News] Inserted: JD(U) won't oppose UCC if provisions are okay: Bihar Deputy Chief Minister - The Economic Times
-[1] [Google News] Inserted: Bihar's Sattu, Odisha's Coffee And More: What's Inside BRICS Goodie Bag - NDTV
-[1] [Google News] Inserted: Monolithisch India secures quartzite stone block in Bihar - Construction Week India
-[1] [Google News] Inserted: Bihar CM transfers Rs 579 cr in relief to flood-affected people - ThePrint
-[1] [Google News] Inserted: Bihar: Job Aspirants March In Patna Seeking Cancellation Of Recruitment Exams - ETV Bharat
-[1] [Google News] Inserted: Situation Report 7 - Extreme Weather Events in India - Bihar and Uttar Pradesh (Date: 5th September 2026) - ReliefWeb
-[1] [Google News] Inserted: Bihar targets drone spraying across 2.85 lakh acres in 2026-27, sanctions Rs 11.81 crore in subsidy - ChiniMandi
-[1] [Google News] Inserted: ‘Don’t eat, buy or sell fish caught in Nepal floodwaters': Bihar warns citizens | India News - Hindustan Times
-[1] [Google News] Inserted: BharatBenz expands presence in Bihar’s Koshi belt with new Supaul dealership - ET Auto
-[1] [Google News] Inserted: 6-Year-Old Protester Taken Away By Cops In Bihar's 'Gen Alpha' Moment - NDTV
-[1] [Google News] Inserted: Four Myanmar nationals detained in Bihar’s Katihar district - ThePrint
-[1] [Google News] Inserted: Union Minister Shivraj Singh Chouhan to visit Bihar on Sep 16 - ANI News
-[1] [Google News] Inserted: Students protest in Patna over alleged irregularities in Bihar SI and 70th BPSC exams - The News Mill
-[1] [Google News] Inserted: Bihar: 50 quintals of banned Chinese Thai catfish seized, 3 detained - ThePrint
-[1] [Google News] Inserted: Bihar: Job aspirants march in Patna seeking cancellation of recruitment exams - ThePrint
-[1] [Google News] Inserted: Bihar CM Samrat Chaudhary releases Rs 579.23 cr ex-gratia to over 8 lakh flood-hit families - ANI News
-[1] [Google News] Inserted: UCC in Bihar? JD(U) says no, despite backing Bill in Parliament - indiatoday.in
-[1] [Google News] Inserted: Bihar man, 72, defies age to paraglide from 24,000 feet in Himachal Pradesh - indiatoday.in
-[1] [Google News] Inserted: Bihar floods: Rahul urges govt to carry out relief, rescue operations with full promptness - DT Next
-[1] [Google News] Inserted: Bihar Received Less Than 30 Pc Of Rainfall This Year, But Still Facing Flood: CM - ETV Bharat
-[1] [Google News] Inserted: Patna: Students Block Railway Track Over Bihar Police SI, BPSC Exam Row | Videos - Hindustan Times
-[1] [Google News] Inserted: Bihar received less than 30 % of rainfall this year: CM - MillenniumPost
-[1] [Google News] Inserted: Central Team to Visit Bihar to Assess Flood Situation - Deccan Chronicle
-[1] [Google News] Inserted: Central team to visit Bihar tomorrow to assess flood damage, says Samrat - timesofindia.indiatimes.com
-[1] [Dainik Bhaskar] Inserted: बिहार :50 लाख आबादी बाढ़ में घिरी;आज आएगी केंद्रीय टीम:कटिहार में नाव पर पढ़ रहे बच्चे; 26 जिलों में बारिश का यलो अलर्ट
-[1] [Dainik Bhaskar] Inserted: बॉयफ्रेंड से मिलने अमेरिका से 13000km दूर आई लड़की:फ्लाइट से भूटान फिर सड़क के रास्ते नेपाल पहुंची, भारत में मार्केटिंग करते पकड़ी गई
-[1] [Dainik Bhaskar] Inserted: मनोरमा देवी का विधायक बनने का फॉर्मूला:मंत्री जी की चेतावनी से सांसद जी अलर्ट!, मोबाइल की चमक से चमका इलाज!
-[1] [Dainik Bhaskar] Inserted: बिहार में बाढ़ः 15 जिले...21 शहर, 50 लाख लोग प्रभावित:लोग बोले-रोटी नहीं मिल रही, दाल में पानी ही पानी, खाने का टाइम टेबल भी नहीं
-[1] [Dainik Bhaskar] Inserted: 4KM तक गूंजती है दहाड़...एक झटके में तोड़ती है गर्दन:बिहार की खूंखार बाघिन बंगाल क्यों जा रही, नए जंगल में कैसे रहेगी
-[1] [Dainik Bhaskar] Inserted: UCC बिल पर बिहार में क्या हो रहा है?:JDU के समर्थन के बिना बिल लागू करना कितना मुश्किल, जानिए भाजपा के साथ खींचतान क्यों
-[1] [Dainik Bhaskar] Inserted: बाढ़ में ऑफिस नहीं, ग्राउंड पर बिहार की लेडी सिंघम:ट्रैक्टर से गांव पहुंचीं भागलपुर CO, जहानाबाद की DM भूटिया खेतों में; अक्षरा सिंह-हेगड़े बांट रहीं राहत
-[1] [Dainik Bhaskar] Inserted: बिहार में बाढ़ का जायजा लेंगे केंद्रीय मंत्री शिवराज:CM सम्राट के साथ प्रभावित इलाकों का करेंगे हवाई सर्वे; राहत शिविरों में पीड़ितों से करेंगे मुलाकात
-[1] [Dainik Bhaskar] Inserted: CM सम्राट चौधरी और शिवराज सिंह चौहान मुंगेर दौरे पर:बाढ़ की स्थिति का हवाई सर्वेक्षण कर राहत सामग्री बांटेंगे, पीड़ित परिवारों से करेंगे बात
-[1] [Dainik Bhaskar] Inserted: जिंदा बेटी की घर वालों ने निकाली अर्थी:पुतला बनाकर पिता ने मुखाग्नि दी; बेटी ने बॉयफ्रेंड से भागकर की है शादी
-[1] [Dainik Bhaskar] Inserted: समस्तीपुर- SNCU में रहकर नवजातों को ब्रेस्ट फिडिंग करा सकेंगी:कुल 60 बेड की बनेगी मदर न्यूबॉर्थ केयर यूनिट, सदर समेत अनुमंडलीय अस्पतालों में मिलेगी सुविधा
-[1] [Dainik Bhaskar] Inserted: रिफ्लेक्टर नहीं, रात में जानलेवा बन रहे डिवाइडर:2 दिन पहले मधुबनी पुलिस की गाड़ी का एक्सीडेंट हुआ था, लोगों को हादसे का रहता डर
-[1] [Dainik Bhaskar] Inserted: नालंदा- महाबोधि कॉलेज की बिल्डिंग का उद्घाटन करेंगे नीतीश कुमार:आईटीईपी सत्र 2026-30 का भी होगा औपचारिक शुभारंभ; ग्रामीण विकास मंत्री, सांसद भी रहेंगे मौजूद
-[1] [Dainik Bhaskar] Inserted: मशीन लगी है, लेकिन रेडियोलॉजिस्ट नहीं:पटना के न्यू गार्डिनर अस्पताल में 2 साल से अल्ट्रासाउंड सेवा बंद, मरीजों को निजी केंद्रों का सहारा
-[1] [Dainik Bhaskar] Inserted: समस्तीपुर- लोजपा (रामविलास) नेता को एसटीएफ ने किया अरेस्ट:2 घंटे तक छापेमारी चली, बेड के पीछे छिपे मिले अंटू इस्सर; हत्या मामले में हुई गिरफ्तारी
-[1] [Dainik Bhaskar] Inserted: 'चेत जाएं, आने वाला समय गड़बड़ होगा':भागलपुर में मंत्री शैलेंद्र की सांसद अजय मंडल को चेतावनी, कहा- जनता सब देख रही है
-[1] [Dainik Bhaskar] Inserted: शिक्षिका से दुर्व्यवहार-अश्लील हरकत के आरोप में प्रधान शिक्षक निलंबित:SC/ST एक्ट में FIR, दरभंगा में शिक्षा विभाग ने की कार्रवाई
-[1] [Dainik Bhaskar] Inserted: दरभंगा में केंद्र से 100 मीटर तक पाबंदी:सुबह 7 से शाम 6 बजे तक लाउडस्पीकर बंद, 16 से 26 सितंबर तक होगी परीक्षा
-[1] [Dainik Bhaskar] Inserted: ट्यूशन टीचर से 2 साल तक अफेयर के बाद शादी:पढ़ाई के दौरान दोनों में नजदीकियां बढ़ीं, परिजन ने रात में दोनों को एक साथ पकड़ा
-[1] [Dainik Bhaskar] Inserted: 'पीएम मोदी के जन्मदिन पर जलाएं आशीर्वाद का दीपक':गिरिराज सिंह ने की अपील, 17 सितंबर से चलेगा सेवा संकल्प अभियान
-[1] [Dainik Bhaskar] Inserted: सम्राट ने कहा बाढ़ से 50 लाख पीड़ित, जल्द पुनर्निर्माण:सीएम ने बाढ़ पीड़ित 8.27 लाख परिवारों को 7-7 हजार रुपए दिए
-[1] [Dainik Bhaskar] Inserted: राजद का नीतीश को ऑफर-साथ आएं:राजद ने नीतीश से कहा-आपके लोग बर्बाद कर रहे, सरकार बनाएं...जदयू बोला-बेतुकी बात
-[1] [Dainik Bhaskar] Inserted: दारोगा बहाली धांधली:बीपीएसएससी की ओर से जारी मुख्य परीक्षा परिणाम में अभ्यर्थी ‘हॉल मैनेजमेंट’ और कतारबद्ध सेटिंग का आरोप लगा रहे
-[1] [Dainik Bhaskar] Inserted: पाटलिपुत्र टाउनशिप; 273 गांवों की जमीन लेना चुनौती:पहले चरण में कोर एरिया के 19 गांवों की जमीन को विकसित करने की योजना
-[1] [Dainik Bhaskar] Inserted: मोकामा; डबल लाइन रेल ब्रिज का काम तेज:1700 करोड़ की लागत से बने पुल पर 140 किलोमीटर की रफ्तार से फर्राटा भरेंगी ट्रेनें
-[1] [Dainik Bhaskar] Inserted: संक्रमण तेजी से बढ़ रहा है:पटना में डेंगू के मामले बढ़े, दो हफ्तों में 76 नए मरीज
-[1] [Dainik Bhaskar] Inserted: 26 वर्षों में 18 साल सामान्य से कम बारिश हुई:बिहार में बारिश का ट्रेंड 2.5 दशकों में तेजी से बदला
-[1] [Dainik Bhaskar] Inserted: गिरे मंगल ग्रह के उल्कापिंड से बनी घड़ी:लुई मोइनेट की ‘द ओनली इंडिया’ घड़ी में 18 कैरेट रेड गोल्ड और 4 माणिक का इस्तेमाल
-[1] [Dainik Bhaskar] Inserted: मोबाइल छीनने का विरोध करने पर युवक को मारी गोली:अररिया में साइकिल सवार घायल, 3 बदमाश फरार
-[1] [Dainik Bhaskar] Inserted: नालंदा- अल्पसंख्यक आवासीय विद्यालय में शैक्षणिक सत्र का आज शुभारंभ:नेतरहाट जैसी मिलेंगी सुविधाएं, 56 करोड़ रुपए है लागत; 8 साल के इंतजार के बाद बिल्डिंग तैयार
-[1] [Dainik Bhaskar] Inserted: नालंदा- विकसित भारत यंग लीडर्स डायलॉग 2027 का आगाज:पार्टिसिपेंट्स को सीधा पीएम मोदी से संवाद का मौका मिलेगा, 'MY Bharat' पोर्टल पर करा सकते हैं रजिस्ट्रेशन
-[1] [Dainik Bhaskar] Inserted: मोतिहारी में 3 घंटे बिजली रहेगी बंद:सुबह 10:30 से दोपहर 1:30 बजे तक पावर कट, ग्रिड सबस्टेशन में मेंटेनेंस के कारण कटौती
-[1] [Dainik Bhaskar] Inserted: मधुबनी में आर्केस्ट्रा से 40 नाबालिग लड़कियां बचाई गई:2 रात पुलिस ने चलाया अभियान, शोषण के आरोप में संचालक और 3 महिला समेत 15 गिरफ्तार
-[1] [Dainik Bhaskar] Inserted: सहेली के घर गई युवती 2 महीने से लापता:पुलिस को दिल्ली में मिल रहा लोकेशन, बेटी की तलाश में मां का पैर टूटा
-[1] [Dainik Bhaskar] Inserted: 20 फीट की जगह में बना आधुनिक पार्क:ओपन जिम और मॉर्निंग वॉक पाथ की सुविधा, मेयर ने किया उद्घाटन
-[1] [Dainik Bhaskar] Inserted: औरंगाबाद में किराना दुकानदार ने की आत्महत्या:बेटी की शादी के लिए लोन लिया था, 10 लाख कर्ज से परेशान रहते थे
-[1] [Dainik Bhaskar] Inserted: राजभाषा सम्मेलन में बरौनी रिफाइनरी को मिला राष्ट्रीय सम्मान:मुंबई में सम्मानित हुए रिफाइनरी के कार्यकारी निदेशक, हिंदी के प्रचार-प्रसार में किया बेहतर
-[1] [Dainik Bhaskar] Inserted: प्रॉपर्टी टैक्स तय करने गई टीम से बदसलूकी:बिल्डर पर केस; निगम ने एक दिन में 93.68 लाख का संपत्ति कर वसूला
-[1] [Dainik Bhaskar] Inserted: 15 जिलों की 575 पंचायतों में 49.71 लाख आबादी प्रभावित:सात नदियां अभी लाल निशान से ऊपर, 88 प्रखंडों में बाढ़ का पानी
-[1] [Dainik Bhaskar] Inserted: सेवादार बालगोविंद दास का निधन, श्रद्धांजलि सभा
-[1] [Dainik Bhaskar] Inserted: देवरिया में नि:शुल्क स्वास्थ्य शिविर, बच्चों की हुई जांच
-[1] [Dainik Bhaskar] Inserted: बुलडोजर चला : खुदाबक्श चौक से छावनी तक 60 अतिक्रमणकारियों पर कार्रवाई
-[1] [Dainik Bhaskar] Inserted: पीएम आवास योजना की प्रतीक्षा सूची में शामिल करने की पहल
-[1] [Dainik Bhaskar] Inserted: बलुआ-छतरौल में बनेगा पावर सब-स्टेशन
-[1] [Dainik Bhaskar] Inserted: जिले के प्रारंभिक विद्यालयों में अर्द्धवार्षिक मूल्यांकन शुरू, 20 तक चलेगी परीक्षा, 26 को प्रगति रिपोर्ट
-[1] [Dainik Bhaskar] Inserted: गंडक का कटाव बढ़ा, सिसवा में घर और खेत पर बढ़ा खतरा
-[1] [Dainik Bhaskar] Inserted: तरुअनवा में किसान गोष्ठी, वैज्ञानिक विधि से गन्ना उत्पादन की दी जानकारी
-[1] [Dainik Bhaskar] Inserted: पत्रकारों की सुरक्षा और सम्मान से समझौता नहीं, उठाएंगे आवाज
-[1] [Dainik Bhaskar] Inserted: स्वतंत्रता सेनानी बिंदेश्वरी प्रसाद राव की स्मृति दिवस आज
-[1] [Dainik Bhaskar] Inserted: ऋ षि पंचमी पर महिलाओं ने की सप्तर्षियों व अरुंधति की पूजा, व्रत रख कर सुनी कथा
-[1] [Dainik Bhaskar] Inserted: ईश्वर शांति महाविद्यालय परिसर में रोजगार मेला का आयोजन, 300 का कैंपस सेलेक्शन
-[1] [Dainik Bhaskar] Inserted: एमवीआई पर कार्रवाई, दो वेतन वृद्धि रोकने का आदेश
-[1] [Dainik Bhaskar] Inserted: चूल्हे की चिंगारी से लगी आग जरलपुर में दो घर जलकर राख
-[1] [Dainik Bhaskar] Inserted: हजारी में हो रहे अवैध निर्माण पर चला बुलडोजर
-[1] [Dainik Bhaskar] Inserted: पश्चिम चंपारण में मशाल 2.0 के लिए जिला ट्रेनर का प्रशिक्षण शुरू किया गया
-[1] [Dainik Bhaskar] Inserted: चोरी के आरोप में हिरासत में लिए 5 युवकों के साथ थाना हाजत में बर्बरता, एक गंभीर
-[1] [Dainik Bhaskar] Inserted: ओपीडी से दवा वितरण तक मजबूत होगी व्यवस्था, ओटी में 3, ईसीजी में 3 और फार्मेसी में 5 कर्मियों ने किया योगदान
-[1] [Dainik Bhaskar] Inserted: बीसीए की डिग्री काफी नहीं, कोडिंग-प्रोग्रामिंग भी सीखना जरूरी
-[1] [Dainik Bhaskar] Inserted: फ्लैट से 4 साइबर ठग धराए, 2.20 लाख बरामद
-[1] [Dainik Bhaskar] Inserted: भागवत कथा ज्ञान महायज्ञ के साथ शुरू हुआ गणेश जन्मोत्सव महोत्सव
-[1] [Live Hindustan] Inserted: बिहार में DGP का प्रभार संभालने वाली IPS प्रीता वर्मा कौन हैं, यह अहम पुरस्कार भी मिल चुका है
-[1] [Live Hindustan] Inserted: बिहार के 90 लाख जमाबंदियों में करें सुधार, मुख्य सचिव का फरमान; नाम, खाता-खेसरा के लिए डेडलाइन भी फिक्स
-[1] [Live Hindustan] Inserted: बिहार के डीजीपी और बीपीएससी अध्यक्ष समेत 3 बड़े अधिकारी अचानक छुट्टी पर गए, कौन संभालेगा जिम्मेदारी
-[1] [Live Hindustan] Inserted: पटना के बिहटा में श्राद्धकर्म का भोज खाकर 50 लोग बीमार, 6 लोगों की हालत चिंताजनक; जांच के लिए बनी टीम
-[1] [Live Hindustan] Inserted: बिहार: दारोगा बहाली में धांधली से जुड़े BPSC के जवाब से ईओयू नहीं संतुष्ट, टॉप परीक्षा केंद्रों की लिस्ट भी नहीं मिली
-[1] [Live Hindustan] Inserted: बिहार: पंचायत चुनाव में ईबीसी को 50 फीसदी के दायरे में ही आरक्षण, जल्द तय होंगे मानक; क्या होगी गाइडलाइन
-[1] [Live Hindustan] Inserted: बिहार: एलजेपीआर नेता अंट्टू ईस्सर को कमरे का ताला तोड़ कर उठा ले गई पुलिस, मर्डर केस में जारी हुआ था वारंट
-[1] [Live Hindustan] Inserted: शिवराज सिंह बाढ़ पीड़ितों के लिए सहयोग लेकर आ रहे या फोटो खिंचाने, बिहार दौरे से पहले तेजस्वी का तंज
-[1] [Live Hindustan] Inserted: टेंपो में बैठी महिला को ड्राइवर से हो गया इश्क, होटल में पकड़े गए दोनों; लोगों ने करा दी शादी
-[1] [Live Hindustan] Inserted: दारोगा भर्ती और बीपीएससी 70वीं रद्द कराने पहुंचे अभ्यर्थी, पटना में फिर भड़का छात्र आंदोलन
-[1] [Live Hindustan] Inserted: FIR में आरोपी नहीं, तो ईडी ने कैसे मारा छापा? हाईकोर्ट के 16 तीखे सवाल, संजीव हंस केस में रिशुश्री की याचिका
-[1] [Live Hindustan] Inserted: मुजफ्फरपुर के निजी अस्पताल में डिलीवरी के बाद महिला की मौत, परिजनों ने लगाया लापरवाही का आरोप
-[1] [Live Hindustan] Inserted: मुजफ्फरपुर में गैंग बनाकर टेंपो लूटते थे बदमाश, पहले यात्री बनकर करते थे गाड़ी रिजर्व
-[1] [Live Hindustan] Inserted: रोहतास के डेहरी होटल में पुलिस की छापेमारी, 4 युवतियों और 3 युवकों के बरामद होने की खबर
-[1] [Live Hindustan] Inserted: गोपालगंज में सांसद डॉ. आलोक कुमार सुमन का जनता दरबार, समस्याओं के जल्द समाधान के निर्देश
-[1] [Live Hindustan] Inserted: 35 रुपये किलो के भाव से मिलेंगे सस्ते प्याज, पटना में इन जगहों पर लगेंगी गाड़ियां; एक ग्राहक की लिमिट भी तय
-[1] [Live Hindustan] Inserted: गोपालगंज में निजी क्लिनिक में इलाज के दौरान 22 वर्षीय महिला की मौत, परिजनों ने लगाया लापरवाही का आरोप
-[1] [Live Hindustan] Inserted: बिहार में UCC पर BJP के सहयोगी दलों के कड़े तेवर, रुख एक- प्रावधान देखकर स्टैंड लेंगे
-[1] [Live Hindustan] Inserted: जेडीयू सांसद अजय मंडल पर भड़के भाजपा मंत्री शैलेंद्र, कहा- चेत जाइए, नहीं तो बहुत बुरा होगा
-[1] [Live Hindustan] Inserted: सासाराम मंडल कारा के विचाराधीन बंदी अमरजीत की सदर अस्पताल में इलाज के दौरान मौत
-[1] [Live Hindustan] Inserted: भोजपुर के सहार में हत्या के आरोपी चुल्लू पांडे गिरफ्तार, कई मामलों में है अभियुक्त
-[1] [Live Hindustan] Inserted: सासाराम के बेदा नहर के पास बनेगा STP, DM ने देर रात स्थल का किया निरीक्षण
-[1] [Live Hindustan] Inserted: भोजपुर के लसाढ़ी में राजकीय शहीद सम्मान समारोह, प्रभारी मंत्री व सांसद ने दी श्रद्धांजलि
-[1] [Live Hindustan] Inserted: भोजपुर के पीरो थाने का SP अवधेश दीक्षित ने किया निरीक्षण, ड्यूटी पर तैनात पुलिसकर्मियों की जांच
-[1] [Live Hindustan] Inserted: मुजफ्फरपुर में गांजा-स्मैक के खिलाफ पुलिस का अभियान तेज, 3 दिन में 6 केस और कई गिरफ्तार
-[1] [Live Hindustan] Inserted: विष्णुपद कॉरिडोर पर 2500 करोड़, सोन-फल्गु नदी जोड़ योजना को हरी झंडी; सम्राट कैबिनेट के 17 फैसले
-[1] [Live Hindustan] Inserted: राजद से जेडीयू को सरकार बनाने का न्योता, वीरेंद्र बोले- भाजपा का गठबंधन छोड़ साथ आएं समाजवादी
-[1] [Live Hindustan] Inserted: रोहतास के डेहरी में जलजमाव से गुस्साए लोगों ने सड़क जाम किया, नगर परिषद पर लगाए आरोप
-[1] [Live Hindustan] Inserted: नालंदा के बिहारशरीफ में नियोजन मेला, 25 कंपनियों ने लगाए स्टॉल, युवाओं को मिले नियुक्ति पत्र
-[1] [Live Hindustan] Inserted: रोहतास में निर्माणाधीन रोपवे का DM ने किया निरीक्षण, पर्यटन विकास पर जोर
-[1] [Live Hindustan] Inserted: गया जंक्शन पर नवनिर्मित RPF कार्यालय भवन का ECR IG ने किया निरीक्षण
-[1] [Live Hindustan] Inserted: गोपालगंज में हत्या, लूट और रंगदारी के खिलाफ सर्राफा कारोबारियों का मौन मार्च, सुरक्षा की मांग
-[1] [Live Hindustan] Inserted: रोहतास के गुनसेज में सहयोग शिविर, SDO दिलीप कुमार ने स्टॉलों का निरीक्षण कर दिए निर्देश
-[1] [Live Hindustan] Inserted: रोहतास के 2012 प्रारंभिक विद्यालयों में अर्द्धवार्षिक परीक्षा शुरू, 3.23 लाख बच्चे दे रहे परीक्षा
-[1] [Live Hindustan] Inserted: बिहटा-सरमेरा और उदाकिशुनगंज-भटगामा हाईवे पर सबसे पहले शुरू होगी टोल टैक्स की वसूली
-[1] [Live Hindustan] Inserted: रोहतास के उत्तरी बरांव में सहयोग शिविर, DDC डॉ. आकांक्षा आनंद ने सुनीं ग्रामीणों की समस्याएं
-[1] [Live Hindustan] Inserted: बेगूसराय में बदला मौसम का मिजाज, आंधी के साथ तेज बारिश से उमस भरी गर्मी से राहत
-[1] [Live Hindustan] Inserted: नवादा में शांति समिति की बैठक, SDM बोले- शहर का माहौल बिगाड़ने वालों पर होगी सख्त कार्रवाई
-[1] [Live Hindustan] Inserted: नवादा के नारदीगंज में करंट लगने से अधेड़ झुलसा, गंभीर हालत में सदर अस्पताल रेफर
-[1] [Live Hindustan] Inserted: रोहतास के समहुता में सहयोग शिविर, DM ने ग्रामीणों की समस्याएं सुन त्वरित समाधान के निर्देश दिए
-[1] [Live Hindustan] Inserted: नवादा के माधोपुर पंचायत में ग्राम सभा का आयोजन, BDO ने ग्रामीणों की समस्याएं सुनीं
-[1] [Live Hindustan] Inserted: रोहतास SP मिस्टर राज ने धौड़ाड थाना और गोलक्षणी टीओपी का किया निरीक्षण, दिए सख्त निर्देश
-[1] [Live Hindustan] Inserted: सासाराम में जलजमाव के खिलाफ जन सुराज का प्रदर्शन, नगर आयुक्त को सौंपा ज्ञापन
-[1] [Live Hindustan] Inserted: सासाराम के गंसाडीह में सहयोग शिविर, SDM ने सड़क, राशन और पेंशन की शिकायतें सुनीं
-[1] [Live Hindustan] Inserted: UCC के प्रावधानों के देखने के बाद JDU करेगी विचार, विजय चौधरी बोले- विवाद हुआ तो..
-[1] [Live Hindustan] Inserted: गोपालगंज में सड़क सुरक्षा को लेकर प्रशासन सख्त, हेलमेट-सीट बेल्ट और गति सीमा पर जोर
-[1] [Live Hindustan] Inserted: समस्तीपुर में नशे के लिए पैसे नहीं मिलने पर बेटे ने पिता की कुदाल से हत्या की, मां घायल
-[1] [Live Hindustan] Inserted: सीतामढ़ी में शराब लदे चारपहिया वाहन ने मारी टक्कर, 8 साल के बच्चे की मौत, दो घायल
-[1] [Live Hindustan] Inserted: गया जंक्शन पर पितृपक्ष मेला की सुरक्षा व्यवस्था का निरीक्षण, RPF IG ने CCTV कंट्रोल रूम देखा
-[1] [Live Hindustan] Inserted: पिता ने सूखा नशा करने के लिए पैसे नहीं दिए, बेटे ने कुदाल से हमला कर ले ली जान; मां को भी किया घायल
-[1] [DB] 214 news articles fetched and saved to DB.
-[1] [INFO] Latest insight is 0.13 hours old (threshold is 0.01). Generating new...
-[1] [GEMINI] Gemini is analyzing the top news headlines...
-[1] Analyzing UI Rendered News via Gemini AI...
-[1] Successfully analyzed UI news using Gemini!
-[1] [GEMINI] Analysis completed!
-[1] Structured insight saved to news_insights table!
-[1] [INFO] Waiting for next cycle...
-[1] 
-[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
-[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
-[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
-[0]   246 |         .limit(safeBatch);
-[0]   247 |
-[0] > 248 |     if (selectError) throw new Error(selectError.message);
-[0]       |                            ^
-[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
-[0]   250 |
-[0]   251 |     if (!candidateIds.length) {
-[1] 
-[1] ==================================================
-[1] [DB] Checking for new news articles to fetch...
-[1] [Google News] Inserted: The men from Bihar who live among Kashmir’s apple trees - deccanherald.com
-[1] [DB] 1 news articles fetched and saved to DB.
-[1] [INFO] Latest insight is 0.05 hours old (threshold is 0.01). Generating new...
-[1] [GEMINI] Gemini is analyzing the top news headlines...
-[1] Analyzing UI Rendered News via Gemini AI...
-[1] Successfully analyzed UI news using Gemini!
-[1] [GEMINI] Analysis completed!
-[1] Structured insight saved to news_insights table!
-[1] [INFO] Waiting for next cycle...
-[1] 
-[1] 
-[1] ==================================================
-[1] [DB] Checking for new news articles to fetch...
-[1] [Google News] Inserted: Bihar DGP Vinay Kumar goes on long leave, Preeta Verma to serve as acting DGP - The BuckStopper
-[1] [Google News] Inserted: Bihar Temple Vandalism: Police detain 3 minor Muslim boys for stone-throwing, urination at Hanuman murti in Nalanda - Organiser
-[1] [Google News] Inserted: AAI invites bids for INR 42.52 crore Saharsa airport upgrade in Bihar - propnewstime.com
-[1] [DB] 3 news articles fetched and saved to DB.
-[1] [INFO] Latest insight is 0.06 hours old (threshold is 0.01). Generating new...
-[1] [GEMINI] Gemini is analyzing the top news headlines...
-[1] Analyzing UI Rendered News via Gemini AI...
-[1] Successfully analyzed UI news using Gemini!
-[1] [GEMINI] Analysis completed!
-[1] Structured insight saved to news_insights table!
-[1] [INFO] Waiting for next cycle...
-[1] 
-[0] Background analysis cycle failed: Error: Could not find the table 'public.raw_items' in the schema cache
-[0]     at runAnalysisCycle (lib/gemini-analysis.js:248:28)
-[0]     at async Timeout.eval [as _onTimeout] (instrumentation.js:5:15)
-[0]   246 |         .limit(safeBatch);
-[0]   247 |
-[0] > 248 |     if (selectError) throw new Error(selectError.message);
-[0]       |                            ^
-[0]   249 |     const candidateIds = (candidates || []).map(r => r.id);
-[0]   250 |
-[0]   251 |     if (!candidateIds.length) {
-[1] 
-[1] ==================================================
-[1] [DB] Checking for new news articles to fetch...
-[1] [Google News] Inserted: Floods in India’s Bihar state affect nearly 5 million people — Dawn - ua.news
-[1] [Google News] Inserted: BJP Allies in Andhra Pradesh, Bihar Strike Cautious Note as Shah Promises UCC in 21 NDA-Ruled States - TheWire.in
-[1] [Google News] Inserted: Bihar Celebrates 114th Foundation Day - newsonair.gov.in
-[1] [Google News] Inserted: Bihar Declared Naxal-Free After Surrender of Last Armed Maoist in Munger - newsonair.gov.in
-[1] [Google News] Inserted: Avoid ‘unfamiliar, unusual’ fish from Nepal’s flood waters, Bihar govt. advisory cautions - The Hindu
-[1] [Google News] Inserted: NMC seeks report on Rs 3.75 lakh hostel fee demand from Bihar MBBS interns - The Tribune
-[1] [DB] 6 news articles fetched and saved to DB.
-[1] [INFO] Latest insight is 0.08 hours old (threshold is 0.01). Generating new...
-[1] [GEMINI] Gemini is analyzing the top news headlines...
-[1] Analyzing UI Rendered News via Gemini AI...
-[1] Successfully analyzed UI news using Gemini!
-[1] [GEMINI] Analysis completed!
-[1] Structured insight saved to news_insights table!
-[1] [INFO] Waiting for next cycle...
-[1] 
-[1] 
-[1] ==================================================
-[1] [DB] Checking for new news articles to fetch...
-[1] [Google News] Inserted: Bihar approves ₹3,516 crore for Son-Falgu river link, Vishnupad Temple redevelopment - infra.economictimes.indiatimes.com
-[1] [Google News] Inserted: Agriculture Minister to visit flood-hit Bihar on Wednesday, take aerial survey of affected areas - dailyexcelsior.com
-[1] [Google News] Inserted: Monolithisch India secures quartzite stone block in Bihar - constructionweekonline.in
-[1] [Dainik Bhaskar] Inserted: मुजफ्फरपुर- जमीन कब्जा मामले में सबूत नहीं दे पाई पुलिस:कोर्ट ने एक आरोपी को पीआर बॉन्ड पर छोड़ा, 5 अन्य आरोपियों को भी मिली जमानत
-[1] [Dainik Bhaskar] Inserted: जनसंवाद में विधायक ने सुनीं लोगों की समस्याएं, मदद का आश्वासन
-[1] [Dainik Bhaskar] Inserted: नाबालिग हत्या मामले में दो आरोपी को उम्रकैद की सजा
-[1] [Dainik Bhaskar] Inserted: दरवाजे से बाइक की चोरी
-[1] [Live Hindustan] Inserted: बाढ़ प्रभावित क्षेत्र में जंगल में फंसी सांसद पप्पू यादव की नाव, सुरक्षित निकले
-[1] [Live Hindustan] Inserted: कैमूर: अधौरा में अंचल कार्यालय निरीक्षण के बाद लोगों की समस्या सुन अधिकारियों को निर्देश देते डीएम कुमार अनुराग
-[1] [DB] 9 news articles fetched and saved to DB.
-[1] [INFO] Latest insight is 0.09 hours old (threshold is 0.01). Generating new...
-[1] [GEMINI] Gemini is analyzing the top news headlines...
-[1] Analyzing UI Rendered News via Gemini AI...
