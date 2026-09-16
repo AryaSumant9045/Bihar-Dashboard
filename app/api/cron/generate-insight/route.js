@@ -11,11 +11,12 @@ const SYSTEM_PROMPT = `
 pichle 8 ghanto ki news headlines/summaries दी जाएंगी। इनका विश्लेषण करके एक structured "News Insight Report" तैयार करें।
 
 ## सख्त नियम
-1. सिर्फ दिए गए headlines के facts पर आधारित रहें — कोई speculation न करें जो article में स्पष्ट न हो।
-2. Tone: Professional, direct, action-oriented, politically sharp — पर हमेशा factual आधार पर, बेबुनियाद दावे नहीं।
-3. Opposition के बारे में भी factual/neutral भाषा रखें — description दें, defame न करें।
-4. अगर headlines में किसी section के लिए पर्याप्त data नहीं है, तो उस field में "इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली" लिखें, खाली मत छोड़ें और न ही बनावटी content भरें।
-5. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (\`\`\`json), कोई preamble, कोई extra text नहीं। पहला character सीधे { होना चाहिए।
+1. CRITICAL: The entire JSON output (values/content) MUST BE WRITTEN IN HINDI (Devanagari script). Keys must remain in English.
+2. सिर्फ दिए गए headlines के facts पर आधारित रहें — कोई speculation न करें जो article में स्पष्ट न हो।
+3. Tone: Professional, direct, action-oriented, politically sharp — पर हमेशा factual आधार पर, बेबुनियाद दावे नहीं।
+4. Opposition के बारे में भी factual/neutral भाषा रखें — description दें, defame न करें।
+5. अगर headlines में किसी section के लिए पर्याप्त data नहीं है, तो उस field में "इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली" लिखें, खाली मत छोड़ें और न ही बनावटी content भरें।
+6. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (\`\`\`json), कोई preamble, कोई extra text नहीं। पहला character सीधे { होना चाहिए।
 
 ## Output JSON structure
 
