@@ -67,6 +67,18 @@ export async function GET(request) {
     const result = data || {};
     console.log('[Cron] cleanup result:', result);
 
+    // ── Clean opposition tables (not covered by the Postgres RPC) ──
+    const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000).toISOString();
+
+    const [oppNewsRes, oppSummaryRes] = await Promise.allSettled([
+      supabase.from('opposition_news').delete().lt('created_at', cutoffDate),
+      supabase.from('opposition_summary').delete().lt('created_at', cutoffDate),
+    ]);
+
+    const deletedOppNews    = oppNewsRes.status    === 'fulfilled' ? (oppNewsRes.value.count    || 0) : 0;
+    const deletedOppSummary = oppSummaryRes.status === 'fulfilled' ? (oppSummaryRes.value.count || 0) : 0;
+    console.log(`[Cron] opposition_news deleted: ${deletedOppNews}, opposition_summary deleted: ${deletedOppSummary}`);
+
     if (sessionData?.id) {
       await supabase
         .from('cron_sessions')
@@ -77,14 +89,16 @@ export async function GET(request) {
     return Response.json({
       status:       'success',
       days_kept:    daysToKeep,
-      cutoff:       result.cutoff,
+      cutoff:       result.cutoff || cutoffDate,
       deleted: {
-        raw_items:     result.deleted_raw_items     || 0,
-        analyzed:      result.deleted_analyzed      || 0,
-        summaries:     result.deleted_summaries     || 0,
-        sessions:      result.deleted_sessions      || 0,
-        alerts:        result.deleted_alerts        || 0,
-        errors:        result.deleted_errors        || 0,
+        raw_items:           result.deleted_raw_items     || 0,
+        analyzed:            result.deleted_analyzed      || 0,
+        summaries:           result.deleted_summaries     || 0,
+        sessions:            result.deleted_sessions      || 0,
+        alerts:              result.deleted_alerts        || 0,
+        errors:              result.deleted_errors        || 0,
+        opposition_news:     deletedOppNews,
+        opposition_summary:  deletedOppSummary,
       },
     });
   } catch (err) {

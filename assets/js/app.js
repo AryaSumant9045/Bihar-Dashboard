@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { id: 'war-room',           label: 'War Room',           icon: '🚨', badge: 3,  section: 'Command' },
   { id: 'political-map',      label: 'Bihar Map',          icon: '🗺',  badge: 0,  section: 'Intelligence' },
   { id: 'leadership',         label: 'Leadership',         icon: '👥', badge: 0,  section: 'Intelligence' },
-  { id: 'opposition',         label: 'Opposition',         icon: '🔍', badge: 2,  section: 'Intelligence' },
+  { id: 'opposition',         label: 'Opposition Live',    icon: '🔍', badge: 2,  section: 'Intelligence' },
   { id: 'pk-tracker',         label: 'PK Tracker',         icon: '🎯', badge: 1,  section: 'Intelligence' },
   { id: 'media-pulse',        label: 'Media & Social',     icon: '📱', badge: 0,  section: 'Analytics' },
   { id: 'speech-intelligence',label: 'Speech Intel',       icon: '🎙',  badge: 0,  section: 'Analytics' },
@@ -111,10 +111,20 @@ function setupSidebarToggle() {
   });
 }
 
+// ── Page Destroy Hooks (cleanup timers before page swap) ─────
+const PAGE_DESTROY_HOOKS = {
+  'opposition': () => typeof destroyOpposition === 'function' && destroyOpposition(),
+};
+
 // ── Router ────────────────────────────────────────────────────
 async function navigateTo(pageId) {
   const validPages = NAV_ITEMS.map(n => n.id);
   if (!validPages.includes(pageId)) pageId = 'home';
+
+  // Call destroy hook for old page (stop poll timers etc.)
+  if (AppState.currentPage && PAGE_DESTROY_HOOKS[AppState.currentPage]) {
+    try { PAGE_DESTROY_HOOKS[AppState.currentPage](); } catch (_) {}
+  }
 
   AppState.currentPage = pageId;
   

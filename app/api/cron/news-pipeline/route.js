@@ -46,7 +46,7 @@ import {
 } from '../../../../lib/news-summary-pipeline.js';
 import { getSupabase } from '../../../../lib/supabase.js';
 
-export const maxDuration = 30;
+export const maxDuration = 60; // Max allowed on Vercel Hobby
 
 export async function GET(request) {
   // ── Auth ────────────────────────────────────────────────────

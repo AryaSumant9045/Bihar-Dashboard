@@ -1,301 +1,445 @@
 /* ============================================================
-   OPPOSITION MODULE — Intel Cards + Analysis
+   OPPOSITION LIVE MODULE — v2 (live pipeline, slug-safe IDs)
+   ============================================================
+   Polls /api/opposition-live every 90 seconds.
+   Renders: AI Summary card + Party tabs (Jan Suraaj/INC/RJD/Tejashwi)
+   Design: War Room dark theme, orange accent, severity badges
    ============================================================ */
 
-let oppCurrentView = 'intel';
-let oppIntelFilter = 'all';
-let oppPartyFilter = 'all';
-let oppSentimentChartInst = null;
+// ── State ────────────────────────────────────────────────────
+let oppCurrentParty = 'Jan Suraaj';
+let oppPollTimer    = null;
+let oppNewsData     = {};
+let oppSummaryData  = null;
 
+// Party config — slug MUST match panel IDs in opposition.html
+const PARTY_CONFIG = {
+  'Jan Suraaj':     { slug: 'jansuraaj', color: 'var(--amber)', hex: '#ff9f43', icon: '🟠', label: 'Jan Suraaj' },
+  'INC':            { slug: 'inc',       color: 'var(--blue)',  hex: '#4a9eff', icon: '🔵', label: 'INC Bihar'  },
+  'RJD':            { slug: 'rjd',       color: 'var(--red)',   hex: '#e63946', icon: '🔴', label: 'RJD'        },
+  'Tejashwi Yadav': { slug: 'tejashwi',  color: '#c084fc',     hex: '#c084fc', icon: '🟣', label: 'Tejashwi'   },
+};
+
+const SEVERITY_CFG = {
+  Critical: { color: 'var(--red)',   bg: 'rgba(230,57,70,0.12)',  cls: 'tag-red',   icon: '🔴' },
+  High:     { color: 'var(--amber)', bg: 'rgba(255,159,67,0.12)', cls: 'tag-amber', icon: '🟠' },
+  Medium:   { color: 'var(--gold)',  bg: 'rgba(245,197,24,0.10)', cls: 'tag-gold',  icon: '🟡' },
+  Low:      { color: 'var(--green)', bg: 'rgba(38,222,129,0.08)', cls: 'tag-green', icon: '🟢' },
+};
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]
+  ));
+}
+
+// ── Entry Point ──────────────────────────────────────────────
 function initOpposition() {
-  loadLiveOppositionActivity();
   loadOppositionXActivity();
-  renderIntelCards();
-  renderPartyCards();
-  renderNarratives();
-  renderHeatmap();
-  renderSentimentChart();
-  renderCounterStrategy();
-  renderWeakness();
-  setupIntelFilters();
+  fetchAndRenderOppositionLive();   // immediate first load
+  startOppositionAutoPoll();        // auto-refresh every 90s
 }
 
-const OPPOSITION_X_ACCOUNTS = [
-  { party: 'INC', label: '@INCBihar', url: 'https://x.com/INCBihar' },
-  { party: 'RJD', label: '@RJDforIndia', url: 'https://x.com/RJDforIndia' },
-  { party: 'RJD', label: '@yadavtejashwi', url: 'https://x.com/yadavtejashwi' },
-  { party: 'Jan Suraaj', label: '@jansuraajonline', url: 'https://x.com/jansuraajonline' },
-  { party: 'Congress', label: '@RahulGandhi', url: 'https://x.com/RahulGandhi' }
-];
-
-const OPPOSITION_X_PARTIES = [
-  { name: 'Jan Suraaj', color: 'var(--amber)', description: 'Jan Suraaj / Prashant Kishor public updates', accounts: ['Jan Suraaj'] },
-  { name: 'INC / Congress', color: 'var(--blue)', description: 'Bihar Congress and national leadership', accounts: ['INC', 'Congress'] },
-  { name: 'RJD', color: 'var(--red)', description: 'Official RJD and Tejashwi Yadav', accounts: ['RJD'] }
-];
-
-function renderOppositionXAccounts() {
-  const el = document.getElementById('opp-x-accounts');
-  if (!el) return;
-  el.innerHTML = OPPOSITION_X_PARTIES.map(party => { const accounts = OPPOSITION_X_ACCOUNTS.filter(account => party.accounts.includes(account.party)); return `<article style="padding:.85rem;border:1px solid ${party.color}55;border-top:3px solid ${party.color};border-radius:var(--radius-lg);background:var(--glass-bg);"><div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.35rem;"><strong style="color:${party.color};font-size:.85rem;">𝕏 ${party.name}</strong><span class="tag">${accounts.length} accounts</span></div><div style="font-size:.7rem;color:var(--text-muted);line-height:1.4;margin-bottom:.65rem;">${party.description}</div><div style="display:flex;flex-direction:column;gap:.35rem;">${accounts.map(account => `<a class="tag" href="${account.url}" target="_blank" rel="noopener noreferrer" title="Open ${account.label}">↗ ${account.label}</a>`).join('')}</div></article>`; }).join('');
+// ── Auto-Poll ────────────────────────────────────────────────
+function startOppositionAutoPoll() {
+  if (oppPollTimer) clearInterval(oppPollTimer);
+  oppPollTimer = setInterval(fetchAndRenderOppositionLive, 90_000);
 }
 
-function loadOppositionXActivity() {
-  renderOppositionXAccounts();
-  const feed = document.getElementById('curator-feed-default-feed-layout');
-  if (!feed || feed.dataset.curatorLoaded === 'true') return;
-  feed.dataset.curatorLoaded = 'true';
-  feed.innerHTML = '<a href="https://curator.io" target="_blank" rel="noopener noreferrer" class="crt-logo crt-tag">Powered by Curator.io</a>';
-  const script = document.createElement('script');
-  script.async = true;
-  script.charset = 'UTF-8';
-  script.src = 'https://cdn.curator.io/published/9c99d3de-c526-4613-93e2-12ba597ad503.js';
-  feed.appendChild(script);
+// ── Cleanup (called by app.js destroy hook on page leave) ────
+function destroyOpposition() {
+  if (oppPollTimer) { clearInterval(oppPollTimer); oppPollTimer = null; }
 }
 
-let oppLiveExpanded = {};
+// ── Fetch & Render ───────────────────────────────────────────
+async function fetchAndRenderOppositionLive() {
+  try {
+    const res = await fetch('/api/opposition-live', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
 
-function renderLiveOppositionActivity(items) {
-  const el = document.getElementById('opp-live-feed');
-  if (!el) return;
-  const groups = [...new Map(items.map(item => [item.who, items.filter(video => video.who === item.who)])).values()];
-  if (!groups.length) { el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;padding:1rem;"><p class="empty-state-text">No live public activity available.</p></div>'; return; }
-  const colors = { RJD: 'var(--red)', INC: 'var(--blue)', 'Jan Suraaj': 'var(--amber)' };
-  el.innerHTML = groups.map(group => { const name = group[0].who; const visible = group.slice(0, oppLiveExpanded[name] ? 10 : 3); return `<div style="grid-column:1/-1;padding:.85rem;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);background:var(--glass-bg);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;"><strong style="color:${colors[group[0].party] || 'var(--text-primary)'};">▶ ${wrOppEscape(name)} <span class="tag">${wrOppEscape(group[0].party)}</span></strong><span class="tag tag-red">${group.length} updates</span></div><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;">${visible.map(item => `<article class="card card-shine" style="border-left:3px solid ${colors[item.party] || 'var(--red)'};"><div style="font-size:.8rem;font-weight:700;line-height:1.35;">${wrOppEscape(item.title)}</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.45rem;">📍 ${wrOppEscape(item.where)} · ${wrOppEscape(item.published)}</div><div style="display:flex;gap:.35rem;margin-top:.65rem;"><a class="btn btn-ghost btn-sm" href="${wrOppEscape(item.url)}" target="_blank" rel="noopener noreferrer">▶ Watch</a><button class="btn btn-ghost btn-sm" onclick="showToast('Public Activity','Added to opposition review queue','info')">Review</button></div></article>`).join('')}${group.length > 3 ? `<button class="btn btn-ghost btn-sm" style="grid-column:1/-1;justify-self:center;" onclick="toggleOppLive('${wrOppEscape(name)}')">${oppLiveExpanded[name] ? 'Show less' : `See more (${Math.min(group.length, 10) - 3} more)`}</button>` : ''}</div></div>`; }).join('');
-}
+    oppNewsData    = payload.news    || {};
+    oppSummaryData = payload.summary || null;
 
-function wrOppEscape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]); }
-function toggleOppLive(channel) { oppLiveExpanded[channel] = !oppLiveExpanded[channel]; loadLiveOppositionActivity(); }
-async function loadLiveOppositionActivity() {
-  try { const response = await fetch('/api/opposition', { cache: 'no-store' }); if (!response.ok) throw new Error('Live opposition feed unavailable'); renderLiveOppositionActivity((await response.json()).data || []); }
-  catch (error) { const el = document.getElementById('opp-live-feed'); if (el) el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:1rem;"><p class="empty-state-text">${wrOppEscape(error.message)}</p></div>`; }
-}
-
-/* ── View Switch ───────────────────────────────────────────── */
-function switchOppView(view) {
-  oppCurrentView = view;
-  document.querySelectorAll('#opp-view-tabs .filter-pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.view === view);
-  });
-  document.getElementById('opp-intel-view').style.display = view === 'intel' ? 'block' : 'none';
-  document.getElementById('opp-analysis-view').style.display = view === 'analysis' ? 'block' : 'none';
-  if (view === 'analysis') {
-    setTimeout(() => { renderSentimentChart(); }, 80);
+    updateStatCounts(payload.counts || {});
+    renderOppositionSummary(oppSummaryData);
+    renderPartyPanel(oppCurrentParty);  // re-render active tab
+  } catch (err) {
+    console.error('[Opposition] fetch failed:', err.message);
+    showSummaryError('Live data unavailable — ' + err.message);
   }
 }
 
-/* ── Intel Cards ────────────────────────────────────────────── */
-function renderIntelCards(filter = 'all', partyF = 'all') {
-  const el = document.getElementById('opp-intel-cards');
+// ── Stat Counts ──────────────────────────────────────────────
+function updateStatCounts(counts) {
+  const map = {
+    'Jan Suraaj':     'opp-count-jansuraaj',
+    'INC':            'opp-count-inc',
+    'RJD':            'opp-count-rjd',
+    'Tejashwi Yadav': 'opp-count-tejashwi',
+  };
+  for (const [party, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = counts[party] ?? 0;
+  }
+}
+
+// ── Party Tab Switch ─────────────────────────────────────────
+function switchOppParty(party) {
+  oppCurrentParty = party;
+  const cfg = PARTY_CONFIG[party];
+  if (!cfg) return;
+
+  // Update tab pills
+  document.querySelectorAll('#opp-party-tabs .filter-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.slug === cfg.slug);
+  });
+
+  // Update panel title
+  const titleEl = document.getElementById('opp-news-panel-title');
+  if (titleEl) titleEl.textContent = `${cfg.icon} ${cfg.label} — Live News`;
+
+  // Show/hide panels using slugs
+  document.querySelectorAll('.opp-party-panel').forEach(el => {
+    el.style.display = 'none';
+  });
+  const panel = document.getElementById(`opp-panel-${cfg.slug}`);
+  if (panel) panel.style.display = 'block';
+
+  renderPartyPanel(party);
+}
+
+// ── Render Party News Panel ──────────────────────────────────
+function renderPartyPanel(party) {
+  const cfg = PARTY_CONFIG[party];
+  if (!cfg) return;
+
+  const el = document.getElementById(`opp-panel-${cfg.slug}`);
   if (!el) return;
-  let data = OPPOSITION_DATA.intelCards;
-  if (filter !== 'all') data = data.filter(c => c.status === filter);
-  if (partyF !== 'all') data = data.filter(c => c.party === partyF);
-  if (!data.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><p>No intel cards match filter.</p></div>`;
+
+  const items = (oppNewsData[party] || []);
+
+  if (!items.length) {
+    el.innerHTML = `
+      <div class="empty-state" style="padding:1.5rem;">
+        <div class="empty-state-icon">📭</div>
+        <p class="empty-state-text">No news yet for ${esc(party)}.</p>
+        <p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">
+          Trigger the cron pipeline to fetch latest news from YouTube &amp; RSS.
+        </p>
+      </div>`;
     return;
   }
-  const statusConfig = {
-    critical: { color: 'var(--red)', bg: 'var(--red-dim)', label: '🔴 CRITICAL', glow: true },
-    developing: { color: 'var(--amber)', bg: 'var(--amber-dim)', label: '🟠 DEVELOPING', glow: false },
-    watch: { color: 'var(--gold)', bg: 'var(--gold-dim)', label: '🟡 WATCH', glow: false },
-    routine: { color: 'var(--green)', bg: 'var(--green-dim)', label: '🟢 ROUTINE', glow: false },
-  };
-  el.innerHTML = data.map((card, i) => {
-    const sc = statusConfig[card.status] || statusConfig.watch;
-    const partyColor = { RJD: '#e63946', INC: '#4a9eff', 'Jan Suraaj': '#ff9f43', Left: '#ff4d4d' }[card.party] || '#a855f7';
+
+  el.innerHTML = items.map((item, i) => {
+    const isYt    = item.source_type === 'youtube';
+    const srcIcon = isYt ? '▶️' : '📰';
+    const badgeClr = isYt ? '#e63946' : '#4a9eff';
+    const rawDate = item.published_at || item.created_at;
+    const dateStr = rawDate
+      ? new Date(rawDate).toLocaleString('en-IN', {
+          day: '2-digit', month: 'short',
+          hour: '2-digit', minute: '2-digit', hour12: true,
+        })
+      : '';
+
     return `
-      <div class="card card-shine" style="border-left:4px solid ${sc.color}; animation:slideInUp 0.35s ease both; animation-delay:${i * 0.08}s; ${sc.glow ? 'box-shadow:0 0 20px rgba(230,57,70,0.15)' : ''};">
-
-        <!-- Intel Card Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
-          <div style="display:flex;align-items:center;gap:0.75rem;">
-            <div style="padding:0.3rem 0.6rem;background:${partyColor}22;border:1px solid ${partyColor}44;border-radius:var(--radius-sm);font-size:0.72rem;font-weight:700;color:${partyColor};">${card.party}</div>
-            <span style="font-size:0.7rem;color:var(--text-muted);">${card.time}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <span style="padding:0.25rem 0.65rem;background:${sc.bg};border:1px solid ${sc.color}44;border-radius:var(--radius-full);font-size:0.68rem;font-weight:700;color:${sc.color};">${sc.label}</span>
-            <button class="btn btn-ghost btn-icon btn-sm" onclick="showToast('Brief Shared','Intel card sent to War Room','success')" title="Share">📤</button>
-          </div>
-        </div>
-
-        <!-- Intel Grid: WHO → WHERE → EVENT → ISSUE -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.6rem;margin-bottom:0.85rem;padding:0.75rem;background:var(--glass-bg);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-          ${[
-        { label: 'WHO', val: card.who, icon: '👤' },
-        { label: 'WHERE', val: card.where, icon: '📍' },
-        { label: 'EVENT', val: card.event, icon: '📅' },
-        { label: 'ISSUE', val: card.issue, icon: '⚠️' },
-      ].map(f => `
-            <div>
-              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.2rem;">${f.icon} ${f.label}</div>
-              <div style="font-size:0.78rem;font-weight:500;color:var(--text-primary);line-height:1.35;">${f.val}</div>
+      <div class="card card-shine"
+        style="border-left:3px solid ${cfg.hex}; margin-bottom:.55rem; padding:.7rem .95rem;
+               animation:slideInUp 0.3s ease both; animation-delay:${Math.min(i * 0.03, 0.4)}s;">
+        <div style="display:flex; align-items:flex-start; gap:.6rem;">
+          <span style="font-size:.85rem; flex-shrink:0; margin-top:.1rem;">${srcIcon}</span>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:.83rem; font-weight:600; color:var(--text-primary);
+                        line-height:1.42; margin-bottom:.3rem;">
+              ${item.url
+                ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"
+                      style="color:inherit; text-decoration:none;"
+                      onmouseover="this.style.color='${cfg.hex}'"
+                      onmouseout="this.style.color='inherit'">${esc(item.heading)}</a>`
+                : esc(item.heading)}
             </div>
-          `).join('')}
-        </div>
-
-        <!-- Statement -->
-        <div style="padding:0.65rem 0.9rem;background:rgba(230,57,70,0.06);border-radius:var(--radius-md);border-left:2px solid ${partyColor};margin-bottom:0.75rem;">
-          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${partyColor};margin-bottom:0.2rem;">💬 PUBLIC STATEMENT</div>
-          <p style="font-size:0.82rem;color:var(--text-primary);font-style:italic;line-height:1.55;">${card.statement}</p>
-        </div>
-
-        <!-- Reach + Context -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.75rem;">
-          <div>
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.25rem;">📡 REACH / TRACTION</div>
-            <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.45;">${card.reach}</div>
+            <div style="display:flex; align-items:center; gap:.45rem; flex-wrap:wrap;">
+              <span style="font-size:.62rem; font-weight:700; padding:.12rem .4rem;
+                           background:${badgeClr}22; border:1px solid ${badgeClr}44;
+                           border-radius:var(--radius-sm); color:${badgeClr};">
+                ${srcIcon} ${esc(item.source_name || (isYt ? 'YouTube' : 'RSS'))}
+              </span>
+              ${dateStr
+                ? `<span style="font-size:.66rem; color:var(--text-muted);">🕐 ${esc(dateStr)}</span>`
+                : ''}
+              ${item.url
+                ? `<a href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"
+                      class="btn btn-ghost btn-sm"
+                      style="font-size:.63rem; padding:.12rem .4rem; margin-left:auto;">
+                      ${isYt ? '▶ Watch' : '↗ Read'}
+                   </a>`
+                : ''}
+            </div>
           </div>
-          <div>
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.25rem;">🔎 FACTUAL CONTEXT</div>
-            <div style="font-size:0.78rem;color:var(--text-secondary);line-height:1.45;">${card.context}</div>
-          </div>
         </div>
-
-        <!-- Actions -->
-        <div style="display:flex;gap:0.5rem;padding-top:0.6rem;border-top:1px solid var(--border-subtle);">
-          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;" onclick="showToast('Counter Brief','Counter-narrative prepared for War Room','success')">🛡 Counter Brief</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;" onclick="navigateTo('speech-intelligence')">🎙 Speech Input</button>
-          <button class="btn btn-ghost btn-sm" style="font-size:0.7rem;" onclick="showToast('Flagged','Added to President attention list','info')">⭐ Flag for President</button>
-        </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
-function setupIntelFilters() {
-  document.querySelectorAll('#opp-intel-filter .filter-pill').forEach(pill => {
-    pill.addEventListener('click', () => {
-      document.querySelectorAll('#opp-intel-filter .filter-pill').forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
-      oppIntelFilter = pill.dataset.status;
-      renderIntelCards(oppIntelFilter, oppPartyFilter);
+// ── Render AI Summary Card ───────────────────────────────────
+function renderOppositionSummary(summary) {
+  const cardEl  = document.getElementById('opp-summary-card');
+  const timeEl  = document.getElementById('opp-summary-time');
+  const badgeEl = document.getElementById('opp-summary-badge');
+  if (!cardEl) return;
+
+  if (!summary) {
+    cardEl.innerHTML = `
+      <div class="empty-state" style="padding:.85rem;">
+        <div class="empty-state-icon">🤖</div>
+        <p class="empty-state-text">No AI summary yet.</p>
+        <p style="font-size:.72rem; color:var(--text-muted); margin-top:.25rem;">
+          Run <code style="background:rgba(255,255,255,0.07);padding:.1rem .3rem;border-radius:4px;">
+          /api/cron/opposition-pipeline</code> to generate one.
+        </p>
+      </div>`;
+    if (timeEl) timeEl.textContent = 'Not generated';
+    return;
+  }
+
+  // Timestamp + count badge
+  if (timeEl && summary.created_at) {
+    timeEl.textContent = new Date(summary.created_at).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true,
     });
-  });
+  }
+  if (badgeEl && summary.news_count) {
+    badgeEl.textContent = `${summary.news_count} headlines analysed`;
+    badgeEl.style.display = 'inline-flex';
+  }
+
+  const parts = [];
+
+  // ── Overall Situation ──
+  if (summary.overall_situation) {
+    parts.push(`
+      <div style="padding:.8rem 1rem; background:rgba(168,85,247,0.08);
+                  border:1px solid rgba(168,85,247,0.22); border-radius:var(--radius-md);
+                  margin-bottom:.85rem;">
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:#c084fc; margin-bottom:.35rem;">
+          📊 Overall Situation
+        </div>
+        <p style="font-size:.83rem; color:var(--text-primary); line-height:1.65; margin:0;">
+          ${esc(summary.overall_situation)}
+        </p>
+      </div>`);
+  }
+
+  // ── 3-column grid ──
+  const cols = [];
+
+  // Attacks on BJP
+  const attacks = Array.isArray(summary.attacks_on_bjp) ? summary.attacks_on_bjp : [];
+  if (attacks.length) {
+    cols.push(`
+      <div>
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:var(--red); margin-bottom:.45rem;">⚔️ BJP पर Attack</div>
+        <div style="display:flex; flex-direction:column; gap:.38rem;">
+          ${attacks.map(a => {
+            const s = SEVERITY_CFG[a.severity] || SEVERITY_CFG.Medium;
+            return `
+              <div style="padding:.5rem .7rem; background:${s.bg};
+                          border-radius:var(--radius-md); border-left:3px solid ${s.color};">
+                <div style="display:flex; align-items:center; gap:.35rem; margin-bottom:.18rem; flex-wrap:wrap;">
+                  <span class="tag ${s.cls}" style="font-size:.58rem;">${s.icon} ${esc(a.severity)}</span>
+                  <span style="font-size:.7rem; font-weight:600; color:var(--text-primary);">${esc(a.party)}</span>
+                </div>
+                <div style="font-size:.73rem; color:var(--text-secondary); line-height:1.48;">
+                  ${esc(a.attack_summary)}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`);
+  }
+
+  // Risk to BJP
+  const risks = Array.isArray(summary.risk_to_bjp) ? summary.risk_to_bjp : [];
+  if (risks.length) {
+    cols.push(`
+      <div>
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:var(--amber); margin-bottom:.45rem;">⚠️ BJP के लिए Risk</div>
+        <div style="display:flex; flex-direction:column; gap:.38rem;">
+          ${risks.map(r => {
+            const s = SEVERITY_CFG[r.risk_level] || SEVERITY_CFG.Medium;
+            return `
+              <div style="padding:.5rem .7rem; background:${s.bg};
+                          border-radius:var(--radius-md); border-left:3px solid ${s.color};">
+                <div style="margin-bottom:.18rem;">
+                  <span class="tag ${s.cls}" style="font-size:.58rem;">${s.icon} ${esc(r.risk_level)}</span>
+                </div>
+                <div style="font-size:.73rem; font-weight:600; color:var(--text-primary); margin-bottom:.15rem;">
+                  ${esc(r.issue)}
+                </div>
+                <div style="font-size:.7rem; color:var(--text-secondary); line-height:1.45;">
+                  ${esc(r.reason)}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`);
+  }
+
+  // Counter Strategy
+  const counter = Array.isArray(summary.counter_strategy_points) ? summary.counter_strategy_points : [];
+  if (counter.length) {
+    cols.push(`
+      <div>
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:var(--green); margin-bottom:.45rem;">🛡 Counter Strategy</div>
+        <div style="display:flex; flex-direction:column; gap:.38rem;">
+          ${counter.map((pt, i) => `
+            <div style="padding:.5rem .7rem; background:rgba(38,222,129,0.06);
+                        border-radius:var(--radius-md); border-left:3px solid rgba(38,222,129,0.4);
+                        display:flex; gap:.45rem; align-items:flex-start;">
+              <span style="font-size:.68rem; font-weight:700; color:var(--green); flex-shrink:0;">${i+1}.</span>
+              <span style="font-size:.73rem; color:var(--text-secondary); line-height:1.48;">${esc(pt)}</span>
+            </div>`).join('')}
+        </div>
+      </div>`);
+  }
+
+  if (cols.length) {
+    parts.push(`
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+                  gap:.8rem; margin-bottom:.85rem;">
+        ${cols.join('')}
+      </div>`);
+  }
+
+  // ── Party-wise Activity ──
+  const partyAct = Array.isArray(summary.party_wise_activity) ? summary.party_wise_activity : [];
+  if (partyAct.length) {
+    parts.push(`
+      <div style="border-top:1px solid var(--border-subtle); padding-top:.75rem; margin-top:.1rem;">
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:var(--text-muted); margin-bottom:.45rem;">
+          🏛️ Party-wise Activity
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:.45rem;">
+          ${partyAct.map(p => {
+            const cfg = PARTY_CONFIG[p.party] || { hex: '#a855f7', icon: '🔹' };
+            const issues = Array.isArray(p.key_issues_raised) ? p.key_issues_raised : [];
+            return `
+              <div style="padding:.6rem .8rem; background:var(--glass-bg);
+                          border:1px solid ${cfg.hex}33; border-top:2px solid ${cfg.hex};
+                          border-radius:var(--radius-md);">
+                <div style="font-size:.72rem; font-weight:700; color:${cfg.hex}; margin-bottom:.25rem;">
+                  ${cfg.icon} ${esc(p.party)}
+                </div>
+                <div style="font-size:.73rem; color:var(--text-secondary); line-height:1.48; margin-bottom:.25rem;">
+                  ${esc(p.activity_summary)}
+                </div>
+                ${issues.length
+                  ? `<div style="display:flex; flex-wrap:wrap; gap:.2rem;">
+                       ${issues.slice(0,3).map(iss => `<span class="tag" style="font-size:.58rem;">${esc(iss)}</span>`).join('')}
+                     </div>`
+                  : ''}
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`);
+  }
+
+  // ── BJP Advantage Points ──
+  const adv = Array.isArray(summary.bjp_advantage_points) ? summary.bjp_advantage_points : [];
+  if (adv.length) {
+    parts.push(`
+      <div style="border-top:1px solid var(--border-subtle); padding-top:.75rem; margin-top:.5rem;">
+        <div style="font-size:.62rem; font-weight:700; text-transform:uppercase;
+                    letter-spacing:.08em; color:var(--gold); margin-bottom:.45rem;">
+          ✅ BJP Advantage (Opposition Weakness)
+        </div>
+        <div style="display:flex; flex-direction:column; gap:.32rem;">
+          ${adv.map(pt => `
+            <div style="padding:.45rem .7rem; background:rgba(245,197,24,0.07);
+                        border-radius:var(--radius-md); border-left:3px solid rgba(245,197,24,0.4);
+                        display:flex; gap:.4rem; align-items:flex-start;">
+              <span style="color:var(--gold); flex-shrink:0; font-size:.75rem;">✓</span>
+              <span style="font-size:.73rem; color:var(--text-secondary); line-height:1.48;">${esc(pt)}</span>
+            </div>`).join('')}
+        </div>
+      </div>`);
+  }
+
+  cardEl.innerHTML = parts.join('') ||
+    `<p style="color:var(--text-muted); font-size:.8rem; padding:.5rem;">Summary data incomplete.</p>`;
 }
 
-function filterIntelCards() {
-  const sel = document.getElementById('opp-party-filter-sel');
-  oppPartyFilter = sel ? sel.value : 'all';
-  renderIntelCards(oppIntelFilter, oppPartyFilter);
+function showSummaryError(msg) {
+  const el = document.getElementById('opp-summary-card');
+  if (el) el.innerHTML = `
+    <div class="empty-state" style="padding:.75rem;">
+      <div class="empty-state-icon">⚠️</div>
+      <p class="empty-state-text">${esc(msg)}</p>
+    </div>`;
 }
 
-/* ── Analysis View ─────────────────────────────────────────── */
-function renderPartyCards() {
-  const el = document.getElementById('opp-party-cards');
-  if (!el) return;
-  el.innerHTML = OPPOSITION_DATA.parties.map(p => `
-    <div class="card-glass card-shine" style="padding:1rem;border-radius:var(--radius-lg);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div style="width:42px;height:42px;border-radius:var(--radius-md);background:${p.color}22;border:2px solid ${p.color}55;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:800;color:${p.color};">${p.name}</div>
-          <div>
-            <div style="font-weight:700;font-size:0.9rem;color:var(--text-primary);">${p.fullName}</div>
-            <div style="font-size:0.73rem;color:var(--text-muted);">Leader: ${p.leader}</div>
+// ── X Social Section ─────────────────────────────────────────
+const OPP_X_ACCOUNTS = [
+  { party: 'INC',        label: '@INCBihar',        url: 'https://x.com/INCBihar' },
+  { party: 'RJD',        label: '@RJDforIndia',     url: 'https://x.com/RJDforIndia' },
+  { party: 'RJD',        label: '@yadavtejashwi',   url: 'https://x.com/yadavtejashwi' },
+  { party: 'Jan Suraaj', label: '@jansuraajonline',  url: 'https://x.com/jansuraajonline' },
+  { party: 'INC',        label: '@RahulGandhi',     url: 'https://x.com/RahulGandhi' },
+];
+
+const OPP_X_PARTIES = [
+  { name: 'Jan Suraaj',    color: 'var(--amber)', desc: 'Prashant Kishor / Jan Suraaj', keys: ['Jan Suraaj'] },
+  { name: 'INC / Congress', color: 'var(--blue)', desc: 'Bihar Congress & Rahul Gandhi',  keys: ['INC'] },
+  { name: 'RJD',            color: 'var(--red)',  desc: 'RJD & Tejashwi Yadav',          keys: ['RJD'] },
+];
+
+function loadOppositionXActivity() {
+  const el = document.getElementById('opp-x-accounts');
+  if (el) {
+    el.innerHTML = OPP_X_PARTIES.map(p => {
+      const accs = OPP_X_ACCOUNTS.filter(a => p.keys.includes(a.party));
+      return `
+        <article style="padding:.8rem; border:1px solid ${p.color}55; border-top:3px solid ${p.color};
+                        border-radius:var(--radius-lg); background:var(--glass-bg);">
+          <div style="display:flex; justify-content:space-between; align-items:center;
+                      gap:.5rem; margin-bottom:.3rem;">
+            <strong style="color:${p.color}; font-size:.82rem;">𝕏 ${p.name}</strong>
+            <span class="tag">${accs.length} accounts</span>
           </div>
-        </div>
-        <div style="text-align:right;">
-          <span class="tag ${p.activityLevel === 'high' ? 'tag-red' : p.activityLevel === 'medium' ? 'tag-amber' : 'tag-green'}" style="font-size:0.65rem;">${p.activityLevel.toUpperCase()}</span>
-          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">${p.seats} seats</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.73rem;color:var(--text-muted);margin-bottom:0.3rem;">
-        <span>Party Strength</span><span style="color:${p.color};font-weight:600;">${p.strength}%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${p.strength}%;background:linear-gradient(90deg,${p.color},${p.color}aa);"></div></div>
-      <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-top:0.6rem;">
-        ${p.narratives.map(n => `<span class="tag" style="font-size:0.65rem;">${n}</span>`).join('')}
-      </div>
-    </div>
-  `).join('');
-}
+          <div style="font-size:.68rem; color:var(--text-muted); line-height:1.4; margin-bottom:.55rem;">
+            ${p.desc}
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.3rem;">
+            ${accs.map(a =>
+              `<a class="tag" href="${a.url}" target="_blank" rel="noopener noreferrer">↗ ${a.label}</a>`
+            ).join('')}
+          </div>
+        </article>`;
+    }).join('');
+  }
 
-function renderNarratives() {
-  const el = document.getElementById('opp-narratives');
-  if (!el) return;
-  el.innerHTML = OPPOSITION_DATA.attackNarratives.map((n, i) => `
-    <div style="animation:slideInUp 0.3s ease both;animation-delay:${i * 0.06}s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.3rem;">
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-          <span class="tag ${n.severity === 'high' ? 'tag-red' : n.severity === 'medium' ? 'tag-amber' : 'tag-green'}" style="font-size:0.65rem;">${n.severity.toUpperCase()}</span>
-          <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${n.topic}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:0.4rem;">
-          <span style="font-size:0.7rem;color:var(--text-muted);">${n.heat}%</span>
-          <span style="font-size:0.8rem;color:${n.trend === 'up' ? 'var(--red)' : n.trend === 'down' ? 'var(--green)' : 'var(--text-muted)'};">${n.trend === 'up' ? '↑' : n.trend === 'down' ? '↓' : '→'}</span>
-        </div>
-      </div>
-      <div class="progress-bar" style="height:5px;"><div class="progress-fill" style="width:${n.heat}%;background:${n.severity === 'high' ? 'linear-gradient(90deg,var(--red),var(--amber))' : n.severity === 'medium' ? 'linear-gradient(90deg,var(--amber),var(--gold))' : 'linear-gradient(90deg,var(--green),var(--blue))'}; animation:progressFill 1s ease both; animation-delay:${i * 0.1}s;"></div></div>
-      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;">${n.description}</div>
-    </div>
-  `).join('');
-}
-
-function renderHeatmap() {
-  const el = document.getElementById('opp-heatmap');
-  if (!el) return;
-  const colorMap = { 'very-high': '#7f1d1d', 'high': '#e63946', 'medium': '#ff9f43', 'low': 'rgba(38,222,129,0.15)' };
-  const textMap = { 'very-high': '#fca5a5', 'high': '#fca5a5', 'medium': '#fed7aa', 'low': '#6ee7b7' };
-  el.innerHTML = Object.entries(OPPOSITION_DATA.districtActivity).slice(0, 24).map(([dist, level]) => `
-    <div style="background:${colorMap[level] || '#1a2035'};border-radius:6px;padding:0.3rem 0.25rem;text-align:center;cursor:pointer;transition:transform 0.15s;" title="${dist}: ${level}" onclick="showToast('District','${dist} — ${level} opposition activity','info')" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-      <div style="font-size:0.58rem;font-weight:600;color:${textMap[level]};line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${dist.length > 8 ? dist.substring(0, 7) + '…' : dist}</div>
-    </div>
-  `).join('');
-}
-
-function renderSentimentChart() {
-  const canvas = document.getElementById('opp-sentiment-chart');
-  if (!canvas || typeof Chart === 'undefined') return;
-  if (oppSentimentChartInst) { oppSentimentChartInst.destroy(); oppSentimentChartInst = null; }
-  oppSentimentChartInst = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-      datasets: [{
-        label: 'Opp. Sentiment', data: [30, 38, 47, 55, 65, 75],
-        borderColor: '#e63946', backgroundColor: 'rgba(230,57,70,0.1)',
-        borderWidth: 2, pointRadius: 4, tension: 0.4, fill: true, pointBackgroundColor: '#e63946'
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#0f1829', titleColor: '#e8edf8', bodyColor: '#a8b4cc', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 } },
-      scales: {
-        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#5a6a84', font: { size: 10 } } },
-        x: { grid: { display: false }, ticks: { color: '#a8b4cc', font: { size: 10 } } }
-      }
+  // Load Twitter widget
+  const feedEl = document.getElementById('opp-twitter-feed');
+  if (feedEl) {
+    if (window.twttr && window.twttr.widgets) {
+      window.twttr.widgets.load(feedEl);
+    } else {
+      const s = document.createElement('script');
+      s.async = true; s.charset = 'UTF-8';
+      s.src = 'https://platform.twitter.com/widgets.js';
+      document.head.appendChild(s);
     }
-  });
+  }
 }
 
-function renderCounterStrategy() {
-  const el = document.getElementById('opp-strategy');
-  if (!el) return;
-  el.innerHTML = OPPOSITION_DATA.counterStrategies.map((s, i) => `
-    <div style="padding:0.75rem;border-radius:var(--radius-md);border-left:3px solid ${s.priority === 'red' ? 'var(--red)' : 'var(--amber)'};background:${s.priority === 'red' ? 'var(--red-dim)' : 'var(--amber-dim)'};animation:slideInUp 0.3s ease both;animation-delay:${i * 0.07}s;">
-      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem;">
-        <span class="tag ${s.priority === 'red' ? 'tag-red' : 'tag-amber'}" style="font-size:0.6rem;">${s.priority === 'red' ? '🔴 HIGH' : '🟠 MED'}</span>
-        <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${s.narrative}</span>
-      </div>
-      <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.5;">${s.action}</div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:0.5rem;font-size:0.7rem;padding:0.2rem 0.5rem;" onclick="showToast('Action','Strategy assigned to team','success')">→ Assign</button>
-    </div>
-  `).join('');
-}
-
-function renderWeakness() {
-  const el = document.getElementById('opp-weakness');
-  if (!el) return;
-  el.innerHTML = OPPOSITION_DATA.weaknesses.map((w, i) => `
-    <div style="padding:0.6rem 0.75rem;border-radius:var(--radius-md);background:var(--glass-bg);border:1px solid var(--border-subtle);animation:slideInUp 0.3s ease both;animation-delay:${i * 0.07}s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
-        <span style="font-size:0.82rem;font-weight:600;color:var(--text-primary);">${w.title}</span>
-        <span class="tag ${w.impact === 'high' ? 'tag-red' : 'tag-amber'}" style="font-size:0.6rem;">${w.impact.toUpperCase()}</span>
-      </div>
-      <div style="font-size:0.73rem;color:var(--text-secondary);line-height:1.5;">${w.desc}</div>
-    </div>
-  `).join('');
-}
-
-window.switchOppView = switchOppView;
-window.filterIntelCards = filterIntelCards;
+// ── Global Exports ───────────────────────────────────────────
+window.initOpposition    = initOpposition;
+window.destroyOpposition = destroyOpposition;
+window.switchOppParty    = switchOppParty;
