@@ -16,6 +16,7 @@ function initPKTracker() {
   loadPKCuratorFeed();
   loadPKInstagramFeed();
   loadPKFetchRssFeed();
+  loadPKXFeed();
 }
 
 function loadPKFetchRssFeed() {
@@ -312,4 +313,80 @@ function renderPKReachChart() {
       }
     }
   });
+}
+
+// ── Jan Suraaj X Feed (RSSHub) ───────────────────────────────────────────
+let pkXPage = 1;
+
+function loadPKXFeed() {
+  const grid = document.getElementById('pk-x-feed-grid');
+  if (!grid) return;
+  
+  pkXPage = 1;
+  fetch(`/api/x-social?table=xjansuraaj&limit=5`, { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      const data = payload.data || [];
+      if (data.length === 0) {
+        grid.innerHTML = `<div class="pk-news-empty">No X posts available yet.</div>`;
+        document.getElementById('pk-x-btn').style.display = 'none';
+        return;
+      }
+      grid.innerHTML = renderPKXPosts(data);
+    })
+    .catch(err => {
+      console.error('[PK-X-Feed] fetch error:', err);
+      grid.innerHTML = `<div class="pk-news-empty">Failed to load X feed.</div>`;
+    });
+}
+
+function renderPKXPosts(posts) {
+  return posts.map(post => {
+    const d = new Date(post.published_at);
+    const dateStr = isNaN(d.getTime()) ? 'Recent' : d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    // Assuming escapePKNewsValue is globally available in this module
+    return `
+      <article style="padding:0.75rem; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.2); border-radius:var(--radius-sm); transition:border-color 0.2s;">
+        <div style="font-size:0.85rem; color:var(--text-primary); margin-bottom:0.5rem; line-height:1.4;">
+          ${escapePKNewsValue(post.heading)}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted);">
+          <span>${dateStr}</span>
+          <a href="${escapePKNewsValue(post.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration:none;">Source ↗</a>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function loadMorePKXPosts() {
+  const btn = document.getElementById('pk-x-btn');
+  const grid = document.getElementById('pk-x-feed-grid');
+  if (!btn || !grid) return;
+  
+  btn.innerText = 'Loading...';
+  btn.disabled = true;
+  
+  const limit = 5;
+  const offset = pkXPage * limit;
+  
+  fetch(`/api/x-social?table=xjansuraaj&limit=${limit}&offset=${offset}`, { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      const data = payload.data || [];
+      if (data.length > 0) {
+        grid.insertAdjacentHTML('beforeend', renderPKXPosts(data));
+        pkXPage++;
+        btn.innerText = 'Read More ↓';
+        btn.disabled = false;
+      } else {
+        btn.innerText = 'No more posts';
+        btn.disabled = true;
+      }
+    })
+    .catch(err => {
+      console.error('[PK-X-Feed] loadMore error:', err);
+      btn.innerText = 'Error loading more';
+      setTimeout(() => { btn.innerText = 'Read More ↓'; btn.disabled = false; }, 2000);
+    });
 }

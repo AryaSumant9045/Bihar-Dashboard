@@ -46,25 +46,25 @@
 
 <!-- Stat Row -->
 <div class="stat-row stat-row-4" style="margin-bottom:1rem;">
-  <div id="opp-stat-jansuraaj" class="stat-card card-shine" title="Click to view Jan Suraaj news" style="border-color:rgba(255,159,67,0.35);">
+  <div class="stat-card card-shine" style="border-color:rgba(255,159,67,0.35);">
     <div class="stat-label">🟠 Jan Suraaj</div>
     <div class="stat-value" id="opp-count-jansuraaj" style="color:var(--amber);">—</div>
     <div class="stat-change">News items</div>
     <div class="stat-icon">📢</div>
   </div>
-  <div id="opp-stat-inc" class="stat-card card-shine" title="Click to view INC Bihar news" style="border-color:rgba(74,158,255,0.35);">
+  <div class="stat-card card-shine" style="border-color:rgba(74,158,255,0.35);">
     <div class="stat-label">🔵 INC Bihar</div>
     <div class="stat-value" id="opp-count-inc" style="color:var(--blue);">—</div>
     <div class="stat-change">News items</div>
     <div class="stat-icon">✊</div>
   </div>
-  <div id="opp-stat-rjd" class="stat-card card-shine" title="Click to view RJD news" style="border-color:rgba(230,57,70,0.35);">
+  <div class="stat-card card-shine" style="border-color:rgba(230,57,70,0.35);">
     <div class="stat-label">🔴 RJD</div>
     <div class="stat-value" id="opp-count-rjd" style="color:var(--red);">—</div>
     <div class="stat-change">News items</div>
     <div class="stat-icon">⚔️</div>
   </div>
-  <div id="opp-stat-tejashwi" class="stat-card card-shine" title="Click to view Tejashwi news" style="border-color:rgba(168,85,247,0.35);">
+  <div class="stat-card card-shine" style="border-color:rgba(168,85,247,0.35);">
     <div class="stat-label">🟣 Tejashwi</div>
     <div class="stat-value" id="opp-count-tejashwi" style="color:#c084fc;">—</div>
     <div class="stat-change">News items</div>
@@ -75,7 +75,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      PARTY NEWS PANELS
      ═══════════════════════════════════════════════════════════ -->
-<section id="opp-news-section" class="card" style="margin-bottom:1rem; border-color:rgba(255,255,255,0.07);">
+<section class="card" style="margin-bottom:1rem; border-color:rgba(255,255,255,0.07);">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem;">
     <div>
       <div class="card-title" style="margin:0;" id="opp-news-panel-title">📡 Jan Suraaj — Live News</div>
@@ -119,21 +119,85 @@
   </div>
 </section>
 
-<!-- X Social Pulse -->
+<!-- Opposition Social Links -->
 <section class="card" style="margin-bottom:1rem; border-color:rgba(74,158,255,0.25);">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.2rem;">
     <div>
       <div class="card-title" style="margin:0;">𝕏 Opposition Social Pulse</div>
-      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Official public accounts</div>
+      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Official accounts — click to monitor directly</div>
     </div>
     <span class="tag tag-blue">PUBLIC SOURCES</span>
   </div>
-  <div id="opp-x-accounts"
-    style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:.75rem; margin-bottom:.85rem;">
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:.75rem;">
+
+    <!-- Jan Suraaj -->
+    <div style="padding:.9rem 1rem; border:1px solid rgba(255,159,67,0.3); border-top:3px solid var(--amber);
+                border-radius:var(--radius-lg); background:var(--glass-bg);">
+      <div style="font-weight:700; color:var(--amber); font-size:.85rem; margin-bottom:.6rem;">🟠 Jan Suraaj</div>
+      <div style="display:flex; flex-direction:column; gap:.35rem;">
+        <a href="https://x.com/jansuraajonline" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @jansuraajonline
+        </a>
+        <a href="https://x.com/PrasanthKishor" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @PrasanthKishor
+        </a>
+        <a href="https://www.youtube.com/@JanSuraajOfficial" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          ▶ YouTube Channel
+        </a>
+      </div>
+    </div>
+
+    <!-- INC Bihar -->
+    <div style="padding:.9rem 1rem; border:1px solid rgba(74,158,255,0.3); border-top:3px solid var(--blue);
+                border-radius:var(--radius-lg); background:var(--glass-bg);">
+      <div style="font-weight:700; color:var(--blue); font-size:.85rem; margin-bottom:.6rem;">🔵 INC Bihar</div>
+      <div style="display:flex; flex-direction:column; gap:.35rem;">
+        <a href="https://x.com/INCBihar" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @INCBihar
+        </a>
+        <a href="https://x.com/RahulGandhi" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @RahulGandhi
+        </a>
+        <a href="https://www.youtube.com/@INCIndia" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          ▶ YouTube Channel
+        </a>
+      </div>
+    </div>
+
+    <!-- RJD -->
+    <div style="padding:.9rem 1rem; border:1px solid rgba(230,57,70,0.3); border-top:3px solid var(--red);
+                border-radius:var(--radius-lg); background:var(--glass-bg);">
+      <div style="font-weight:700; color:var(--red); font-size:.85rem; margin-bottom:.6rem;">🔴 RJD / Tejashwi</div>
+      <div style="display:flex; flex-direction:column; gap:.35rem;">
+        <a href="https://x.com/RJDforIndia" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @RJDforIndia
+        </a>
+        <a href="https://x.com/yadavtejashwi" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          𝕏 @yadavtejashwi
+        </a>
+        <a href="https://www.youtube.com/@RJDBihar" target="_blank" rel="noopener noreferrer"
+           class="tag" style="font-size:.72rem; text-decoration:none; justify-content:flex-start;">
+          ▶ YouTube Channel
+        </a>
+      </div>
+    </div>
+
   </div>
-  <div id="opp-twitter-feed" aria-live="polite"
-    style="padding:1rem; background:var(--glass-bg); border-radius:var(--radius-md);">
-    <a class="twitter-timeline" data-theme="dark"
-      href="https://x.com/jansuraajonline?ref_src=twsrc%5Etfw">Posts by jansuraajonline</a>
+
+  <div style="margin-top:.85rem; padding:.6rem .9rem; background:rgba(74,158,255,0.05);
+              border:1px solid rgba(74,158,255,0.15); border-radius:var(--radius-md);
+              font-size:.7rem; color:var(--text-muted); line-height:1.5;">
+    💡 <strong style="color:var(--text-secondary);">Note:</strong>
+    X (Twitter) live feed requires a paid API (\$100/month). Opposition news is already tracked via YouTube + RSS feeds above.
+    Click any account link to monitor directly on X.
   </div>
 </section>

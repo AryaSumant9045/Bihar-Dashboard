@@ -11,3 +11,5 @@ python-dotenv>=1.0.0
 flask
 groq
 google-genai
+apscheduler>=3.10.4
+pytz

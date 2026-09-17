@@ -3,6 +3,18 @@
     {
       "path": "/api/cron/generate-insight",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/x-social-pipeline",
+      "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/cron/x-social-pipeline",
+      "schedule": "30 10 * * *"
+    },
+    {
+      "path": "/api/cron/x-social-pipeline",
+      "schedule": "30 15 * * *"
     }
   ]
 }

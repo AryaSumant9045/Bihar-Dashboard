@@ -401,6 +401,8 @@ const OPP_X_PARTIES = [
 ];
 
 function loadOppositionXActivity() {
+  loadOppositionXSocialPulse();
+
   const el = document.getElementById('opp-x-accounts');
   if (el) {
     el.innerHTML = OPP_X_PARTIES.map(p => {
@@ -443,3 +445,136 @@ function loadOppositionXActivity() {
 window.initOpposition    = initOpposition;
 window.destroyOpposition = destroyOpposition;
 window.switchOppParty    = switchOppParty;
+
+
+// ── X Social Pulse ───────────────────────────────────────────
+let xSocialPages = {
+  xjansuraaj: 1,
+  xinc: 1,
+  xrahulgandi: 1,
+  xrjd: 1,
+  xtejwaniyd: 1
+};
+
+async function loadOppositionXSocialPulse(force = false) {
+  const container = document.getElementById('x-social-pulse-container');
+  if (!container) return;
+  
+  if (force) {
+    container.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="spinner"></div><p class="empty-state-text">Refreshing X Social Pulse...</p></div>';
+    // Reset pages
+    xSocialPages = { xjansuraaj: 1, xinc: 1, xrahulgandi: 1, xrjd: 1, xtejwaniyd: 1 };
+  }
+
+  try {
+    const res = await fetch('/api/x-social?limit=5', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
+
+    const data = payload.data || {};
+    
+    // Build groups
+    const groups = [
+      {
+        title: 'Jan Suraaj',
+        color: 'var(--amber)',
+        accounts: [
+          { handle: '@jansuraajonline', table: 'xjansuraaj', posts: data.jansuraaj || [] }
+        ]
+      },
+      {
+        title: 'INC Bihar',
+        color: 'var(--blue)',
+        accounts: [
+          { handle: '@INCBihar', table: 'xinc', posts: data.inc_bihar || [] },
+          { handle: '@RahulGandhi', table: 'xrahulgandi', posts: data.rahul_gandhi || [] }
+        ]
+      },
+      {
+        title: 'RJD',
+        color: 'var(--red)',
+        accounts: [
+          { handle: '@RJDforIndia', table: 'xrjd', posts: data.rjd_india || [] },
+          { handle: '@yadavtejashwi', table: 'xtejwaniyd', posts: data.tejashwi || [] }
+        ]
+      }
+    ];
+
+    container.innerHTML = groups.map(g => `
+      <div style="border-left: 2px solid ${g.color}; padding-left: 1rem;">
+        <h3 style="margin-top:0; margin-bottom:1rem; font-size:1.1rem; color:var(--text-primary);">${g.title}</h3>
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+          ${g.accounts.map(acc => `
+            <div id="x-group-${acc.table}">
+              <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.75rem;">${acc.handle}</div>
+              <div class="x-posts-grid" id="x-posts-${acc.table}" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:0.75rem;">
+                ${renderXPosts(acc.posts)}
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="loadMoreXPosts('${acc.table}')" id="x-btn-${acc.table}">Read More ↓</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('[X-Social] fetch failed:', err.message);
+    container.innerHTML = `<div class="empty-state" style="padding:1.5rem;"><p class="empty-state-text" style="color:var(--red);">Failed to load X Pulse: ${esc(err.message)}</p></div>`;
+  }
+}
+
+function renderXPosts(posts) {
+  if (!posts || posts.length === 0) {
+    return `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">No recent posts found.</div>`;
+  }
+  
+  return posts.map(post => {
+    const d = new Date(post.published_at);
+    const dateStr = isNaN(d.getTime()) ? 'Recent' : d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return `
+      <div style="padding:0.75rem; background:var(--glass-bg); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); transition:border-color 0.2s;">
+        <div style="font-size:0.85rem; color:var(--text-primary); margin-bottom:0.5rem; line-height:1.4;">
+          ${esc(post.heading)}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted);">
+          <span>${dateStr}</span>
+          <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none;">Source ↗</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadMoreXPosts(table) {
+  const btn = document.getElementById(`x-btn-${table}`);
+  const grid = document.getElementById(`x-posts-${table}`);
+  if (!btn || !grid) return;
+  
+  btn.innerText = 'Loading...';
+  btn.disabled = true;
+  
+  const page = xSocialPages[table] || 1;
+  const limit = 5;
+  const offset = page * limit;
+  
+  try {
+    const res = await fetch(`/api/x-social?table=${table}&limit=${limit}&offset=${offset}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const payload = await res.json();
+    
+    if (payload.data && payload.data.length > 0) {
+      grid.insertAdjacentHTML('beforeend', renderXPosts(payload.data));
+      xSocialPages[table] = page + 1;
+      btn.innerText = 'Read More ↓';
+      btn.disabled = false;
+    } else {
+      btn.innerText = 'No more posts';
+      btn.disabled = true;
+    }
+  } catch (err) {
+    console.error(`[X-Social] loadMore failed for ${table}:`, err.message);
+    btn.innerText = 'Error loading more';
+    setTimeout(() => { btn.innerText = 'Read More ↓'; btn.disabled = false; }, 2000);
+  }
+}

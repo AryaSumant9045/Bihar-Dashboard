@@ -11,10 +11,6 @@ let oppCurrentParty = 'Jan Suraaj';
 let oppPollTimer    = null;
 let oppNewsData     = {};
 let oppSummaryData  = null;
-// Pagination: how many items are visible per party
-const oppPageState  = { 'Jan Suraaj': 5, 'INC': 5, 'RJD': 5, 'Tejashwi Yadav': 5 };
-const OPP_INITIAL_COUNT = 5;
-const OPP_LOAD_MORE     = 10;
 
 // Party config — slug MUST match panel IDs in opposition.html
 const PARTY_CONFIG = {
@@ -75,28 +71,17 @@ async function fetchAndRenderOppositionLive() {
   }
 }
 
-// ── Stat Counts + Clickable Cards ────────────────────────────
+// ── Stat Counts ──────────────────────────────────────────────
 function updateStatCounts(counts) {
   const map = {
-    'Jan Suraaj':     { countId: 'opp-count-jansuraaj', cardId: 'opp-stat-jansuraaj' },
-    'INC':            { countId: 'opp-count-inc',        cardId: 'opp-stat-inc'        },
-    'RJD':            { countId: 'opp-count-rjd',        cardId: 'opp-stat-rjd'        },
-    'Tejashwi Yadav': { countId: 'opp-count-tejashwi',   cardId: 'opp-stat-tejashwi'   },
+    'Jan Suraaj':     'opp-count-jansuraaj',
+    'INC':            'opp-count-inc',
+    'RJD':            'opp-count-rjd',
+    'Tejashwi Yadav': 'opp-count-tejashwi',
   };
-  for (const [party, ids] of Object.entries(map)) {
-    const countEl = document.getElementById(ids.countId);
-    if (countEl) countEl.textContent = counts[party] ?? 0;
-
-    // Make the card clickable → switch party tab + scroll to news section
-    const cardEl = document.getElementById(ids.cardId);
-    if (cardEl) {
-      cardEl.style.cursor = 'pointer';
-      cardEl.onclick = () => {
-        switchOppParty(party);
-        const newsSection = document.getElementById('opp-news-section');
-        if (newsSection) newsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
-    }
+  for (const [party, id] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = counts[party] ?? 0;
   }
 }
 
@@ -147,18 +132,12 @@ function renderPartyPanel(party) {
     return;
   }
 
-  // How many to show right now
-  const visible = Math.min(oppPageState[party] || OPP_INITIAL_COUNT, items.length);
-  const shownItems = items.slice(0, visible);
-  const remaining  = items.length - visible;
-
-  // Build news cards HTML
-  const cardsHtml = shownItems.map((item, i) => {
-    const isYt     = item.source_type === 'youtube';
-    const srcIcon  = isYt ? '▶️' : '📰';
+  el.innerHTML = items.map((item, i) => {
+    const isYt    = item.source_type === 'youtube';
+    const srcIcon = isYt ? '▶️' : '📰';
     const badgeClr = isYt ? '#e63946' : '#4a9eff';
-    const rawDate  = item.published_at || item.created_at;
-    const dateStr  = rawDate
+    const rawDate = item.published_at || item.created_at;
+    const dateStr = rawDate
       ? new Date(rawDate).toLocaleString('en-IN', {
           day: '2-digit', month: 'short',
           hour: '2-digit', minute: '2-digit', hour12: true,
@@ -170,8 +149,6 @@ function renderPartyPanel(party) {
         style="border-left:3px solid ${cfg.hex}; margin-bottom:.55rem; padding:.7rem .95rem;
                animation:slideInUp 0.3s ease both; animation-delay:${Math.min(i * 0.03, 0.4)}s;">
         <div style="display:flex; align-items:flex-start; gap:.6rem;">
-          <span style="font-size:.72rem; font-weight:700; color:${cfg.hex}; flex-shrink:0;
-                       min-width:1.4rem; text-align:right; margin-top:.15rem;">${i + 1}.</span>
           <span style="font-size:.85rem; flex-shrink:0; margin-top:.1rem;">${srcIcon}</span>
           <div style="flex:1; min-width:0;">
             <div style="font-size:.83rem; font-weight:600; color:var(--text-primary);
@@ -204,32 +181,6 @@ function renderPartyPanel(party) {
         </div>
       </div>`;
   }).join('');
-
-  // "Load more" button if there are more items left
-  const loadMoreHtml = remaining > 0 ? `
-    <div style="text-align:center; margin-top:.75rem;">
-      <button
-        onclick="oppLoadMore('${party}')"
-        style="background:${cfg.hex}18; border:1px solid ${cfg.hex}44; color:${cfg.hex};
-               border-radius:var(--radius-md); padding:.55rem 1.4rem; font-size:.78rem;
-               font-weight:600; cursor:pointer; transition:background .2s;"
-        onmouseover="this.style.background='${cfg.hex}30'"
-        onmouseout="this.style.background='${cfg.hex}18'">
-        📰 Load ${Math.min(OPP_LOAD_MORE, remaining)} more
-        <span style="opacity:.6; font-weight:400;">(${remaining} remaining)</span>
-      </button>
-    </div>` : `
-    <div style="text-align:center; margin-top:.6rem;">
-      <span style="font-size:.7rem; color:var(--text-muted);">✅ All ${items.length} news items loaded</span>
-    </div>`;
-
-  el.innerHTML = cardsHtml + loadMoreHtml;
-}
-
-// ── Load More ────────────────────────────────────────────────
-function oppLoadMore(party) {
-  oppPageState[party] = (oppPageState[party] || OPP_INITIAL_COUNT) + OPP_LOAD_MORE;
-  renderPartyPanel(party);
 }
 
 // ── Render AI Summary Card ───────────────────────────────────
@@ -450,6 +401,8 @@ const OPP_X_PARTIES = [
 ];
 
 function loadOppositionXActivity() {
+  loadOppositionXSocialPulse();
+
   const el = document.getElementById('opp-x-accounts');
   if (el) {
     el.innerHTML = OPP_X_PARTIES.map(p => {
@@ -492,4 +445,136 @@ function loadOppositionXActivity() {
 window.initOpposition    = initOpposition;
 window.destroyOpposition = destroyOpposition;
 window.switchOppParty    = switchOppParty;
-window.oppLoadMore       = oppLoadMore;
+
+
+// ── X Social Pulse ───────────────────────────────────────────
+let xSocialPages = {
+  xjansuraaj: 1,
+  xinc: 1,
+  xrahulgandi: 1,
+  xrjd: 1,
+  xtejwaniyd: 1
+};
+
+async function loadOppositionXSocialPulse(force = false) {
+  const container = document.getElementById('x-social-pulse-container');
+  if (!container) return;
+  
+  if (force) {
+    container.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="spinner"></div><p class="empty-state-text">Refreshing X Social Pulse...</p></div>';
+    // Reset pages
+    xSocialPages = { xjansuraaj: 1, xinc: 1, xrahulgandi: 1, xrjd: 1, xtejwaniyd: 1 };
+  }
+
+  try {
+    const res = await fetch('/api/x-social?limit=5', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
+
+    const data = payload.data || {};
+    
+    // Build groups
+    const groups = [
+      {
+        title: 'Jan Suraaj',
+        color: 'var(--amber)',
+        accounts: [
+          { handle: '@jansuraajonline', table: 'xjansuraaj', posts: data.jansuraaj || [] }
+        ]
+      },
+      {
+        title: 'INC Bihar',
+        color: 'var(--blue)',
+        accounts: [
+          { handle: '@INCBihar', table: 'xinc', posts: data.inc_bihar || [] },
+          { handle: '@RahulGandhi', table: 'xrahulgandi', posts: data.rahul_gandhi || [] }
+        ]
+      },
+      {
+        title: 'RJD',
+        color: 'var(--red)',
+        accounts: [
+          { handle: '@RJDforIndia', table: 'xrjd', posts: data.rjd_india || [] },
+          { handle: '@yadavtejashwi', table: 'xtejwaniyd', posts: data.tejashwi || [] }
+        ]
+      }
+    ];
+
+    container.innerHTML = groups.map(g => `
+      <div style="border-left: 2px solid ${g.color}; padding-left: 1rem;">
+        <h3 style="margin-top:0; margin-bottom:1rem; font-size:1.1rem; color:var(--text-primary);">${g.title}</h3>
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+          ${g.accounts.map(acc => `
+            <div id="x-group-${acc.table}">
+              <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.75rem;">${acc.handle}</div>
+              <div class="x-posts-grid" id="x-posts-${acc.table}" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:0.75rem;">
+                ${renderXPosts(acc.posts)}
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="loadMoreXPosts('${acc.table}')" id="x-btn-${acc.table}">Read More ↓</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('[X-Social] fetch failed:', err.message);
+    container.innerHTML = `<div class="empty-state" style="padding:1.5rem;"><p class="empty-state-text" style="color:var(--red);">Failed to load X Pulse: ${esc(err.message)}</p></div>`;
+  }
+}
+
+function renderXPosts(posts) {
+  if (!posts || posts.length === 0) {
+    return `<div style="font-size:0.8rem; color:var(--text-muted); padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">No recent posts found.</div>`;
+  }
+  
+  return posts.map(post => {
+    const d = new Date(post.published_at);
+    const dateStr = isNaN(d.getTime()) ? 'Recent' : d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return `
+      <div style="padding:0.75rem; background:var(--glass-bg); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); transition:border-color 0.2s;">
+        <div style="font-size:0.85rem; color:var(--text-primary); margin-bottom:0.5rem; line-height:1.4;">
+          ${esc(post.heading)}
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted);">
+          <span>${dateStr}</span>
+          <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none;">Source ↗</a>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadMoreXPosts(table) {
+  const btn = document.getElementById(`x-btn-${table}`);
+  const grid = document.getElementById(`x-posts-${table}`);
+  if (!btn || !grid) return;
+  
+  btn.innerText = 'Loading...';
+  btn.disabled = true;
+  
+  const page = xSocialPages[table] || 1;
+  const limit = 5;
+  const offset = page * limit;
+  
+  try {
+    const res = await fetch(`/api/x-social?table=${table}&limit=${limit}&offset=${offset}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const payload = await res.json();
+    
+    if (payload.data && payload.data.length > 0) {
+      grid.insertAdjacentHTML('beforeend', renderXPosts(payload.data));
+      xSocialPages[table] = page + 1;
+      btn.innerText = 'Read More ↓';
+      btn.disabled = false;
+    } else {
+      btn.innerText = 'No more posts';
+      btn.disabled = true;
+    }
+  } catch (err) {
+    console.error(`[X-Social] loadMore failed for ${table}:`, err.message);
+    btn.innerText = 'Error loading more';
+    setTimeout(() => { btn.innerText = 'Read More ↓'; btn.disabled = false; }, 2000);
+  }
+}

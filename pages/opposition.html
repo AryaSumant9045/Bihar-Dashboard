@@ -119,21 +119,23 @@
   </div>
 </section>
 
-<!-- X Social Pulse -->
+<!-- X Social Pulse (Live from Supabase) -->
 <section class="card" style="margin-bottom:1rem; border-color:rgba(74,158,255,0.25);">
-  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem;">
     <div>
-      <div class="card-title" style="margin:0;">𝕏 Opposition Social Pulse</div>
-      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Official public accounts</div>
+      <div class="card-title" style="margin:0;">𝕏 X Social Pulse</div>
+      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Latest posts from official public accounts</div>
     </div>
-    <span class="tag tag-blue">PUBLIC SOURCES</span>
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <span class="tag tag-blue"><span class="live-dot" style="background:var(--blue);"></span>LIVE</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadOppositionXSocialPulse(true)">↻ Refresh</button>
+    </div>
   </div>
-  <div id="opp-x-accounts"
-    style="display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:.75rem; margin-bottom:.85rem;">
-  </div>
-  <div id="opp-twitter-feed" aria-live="polite"
-    style="padding:1rem; background:var(--glass-bg); border-radius:var(--radius-md);">
-    <a class="twitter-timeline" data-theme="dark"
-      href="https://x.com/jansuraajonline?ref_src=twsrc%5Etfw">Posts by jansuraajonline</a>
+
+  <div id="x-social-pulse-container" style="display:flex; flex-direction:column; gap:2rem;">
+    <div class="empty-state" style="padding:1.5rem;">
+      <div class="spinner"></div>
+      <p class="empty-state-text">Loading X Social Pulse...</p>
+    </div>
   </div>
 </section>

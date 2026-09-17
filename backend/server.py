@@ -16,7 +16,12 @@ import sys
 
 # Add current directory to path if running directly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fetchers import get_all_live_news, save_raw_items_to_db
+from fetch_x_social import fetch_all_x_accounts
+from apscheduler.schedulers.background import BackgroundScheduler
+import pytz
+
 
 app = FastAPI()
 
@@ -99,11 +104,41 @@ def rss_news(source: str = Query(...)):
     } for index, entry in enumerate(feed.entries)]
     return {"status": "success", "source": source_name, "data": items}
 
+
+@app.get("/api/x-social")
+def trigger_x_social_fetch():
+    """Trigger parallel fetch of 5 X (Twitter) accounts via RSSHub."""
+    # Start in background if we don't want to block, but for cron we can just return it.
+    # We will run it directly. Vercel will call this and might disconnect, but Python will finish it.
+    results = fetch_all_x_accounts()
+    return {"status": "success", "data": results}
+
 # Mount the static frontend directory (which is the parent directory of backend)
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 app.mount("/", StaticFiles(directory=base_dir, html=True), name="static")
 
+
+# Configure APScheduler for 3x daily fetch (5:00 AM, 4:00 PM, 9:00 PM IST)
+def start_scheduler():
+    ist = pytz.timezone('Asia/Kolkata')
+    scheduler = BackgroundScheduler(timezone=ist)
+    
+    # 5:00 AM IST
+    scheduler.add_job(fetch_all_x_accounts, 'cron', hour=5, minute=0)
+    # 4:00 PM (16:00) IST
+    scheduler.add_job(fetch_all_x_accounts, 'cron', hour=16, minute=0)
+    # 9:00 PM (21:00) IST
+    scheduler.add_job(fetch_all_x_accounts, 'cron', hour=21, minute=0)
+    
+    scheduler.start()
+    print("APScheduler started: X Social cron jobs scheduled at 5 AM, 4 PM, 9 PM IST.")
+
+@app.on_event("startup")
+def startup_event():
+    start_scheduler()
+
 if __name__ == "__main__":
+
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
 
