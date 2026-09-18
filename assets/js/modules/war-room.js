@@ -604,6 +604,7 @@ function renderTopAttention() {
   list.innerHTML = candidates.map((item, index) => {
     const level = WR_LEVEL_CONFIG[item.level];
     const bestSummary = wrBestSummary(item);
+    const districtLabel = /multiple/i.test(item.district || '') ? '🌐 All Sources' : `📍 ${item.district}`;
     const summaryBlock = bestSummary
       ? `<div style="margin-top:.45rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5;margin-top:.2rem;">${wrEscape(bestSummary)}</div></div>`
       : `<div style="margin-top:.4rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
@@ -611,7 +612,7 @@ function renderTopAttention() {
       <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start;"><span style="font-size:.68rem;font-weight:800;color:${level.color};">${index + 1}. ${level.label}</span><span style="font-size:.65rem;color:var(--text-muted);">${wrTimeAgo(item.created_at)}</span></div>
       <div style="font-size:.82rem;font-weight:700;line-height:1.35;margin-top:.55rem;">${wrEscape(item.title)}</div>
       ${summaryBlock}
-      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag">📡 ${wrEscape(item.source)}</span></div>
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">${wrEscape(districtLabel)}</span></div>
       <div style="display:flex;gap:.4rem;margin-top:.7rem;align-items:center;">${item.url ? `<a class="btn btn-ghost btn-sm" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ''}<button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div>
     </article>`;
   }).join('');

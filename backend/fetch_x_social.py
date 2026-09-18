@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import requests
 import feedparser
@@ -27,6 +28,25 @@ X_ACCOUNTS = [
 ]
 
 RSSHUB_BASE_URL = "https://rsshub-9o9d.onrender.com/twitter/user/"
+
+def extract_image_url(entry):
+    media = entry.get("media_content") or entry.get("media_thumbnail")
+    if media and media[0].get("url"):
+        return media[0]["url"]
+
+    html = entry.get("summary") or entry.get("description") or ""
+    if not html:
+        content = entry.get("content") or []
+        if content:
+            html = content[0].get("value", "")
+
+    img = re.search(r'<img[^>]+src="([^"]+)"', html)
+    if img:
+        return img.group(1)
+    poster = re.search(r'poster="([^"]+)"', html)
+    if poster:
+        return poster.group(1)
+    return None
 
 def fetch_one_account(account):
     handle = account["handle"]
@@ -67,15 +87,26 @@ def fetch_one_account(account):
                     "handle": handle,
                     "heading": heading,
                     "url": link,
-                    "published_at": pub_date
+                    "published_at": pub_date,
+                    "image_url": extract_image_url(entry)
                 })
                 
             if rows:
-                result = supabase.table(table).upsert(
-                    rows,
-                    on_conflict="handle, heading",
-                    ignore_duplicates=True
-                ).execute()
+                try:
+                    result = supabase.table(table).upsert(
+                        rows,
+                        on_conflict="handle, heading"
+                    ).execute()
+                except Exception as e:
+                    if "image_url" not in str(e):
+                        raise
+                    print(f"[X-Social] Warning: image_url column missing on {table}, upserting without it.")
+                    for row in rows:
+                        row.pop("image_url", None)
+                    result = supabase.table(table).upsert(
+                        rows,
+                        on_conflict="handle, heading"
+                    ).execute()
                 
                 inserted = len(result.data) if result.data else 0
                 print(f"[X-Social] Success: {handle} -> {inserted} new posts saved to {table}.")

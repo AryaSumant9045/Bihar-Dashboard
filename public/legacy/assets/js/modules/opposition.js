@@ -85,20 +85,24 @@ function updateStatCounts(counts) {
   }
 }
 
-// ── Party Tab Switch ─────────────────────────────────────────
+// ── Party Switch (via clickable stat cards) ──────────────────
 function switchOppParty(party) {
   oppCurrentParty = party;
   const cfg = PARTY_CONFIG[party];
   if (!cfg) return;
 
-  // Update tab pills
-  document.querySelectorAll('#opp-party-tabs .filter-pill').forEach(p => {
-    p.classList.toggle('active', p.dataset.slug === cfg.slug);
+  // Highlight active party card
+  document.querySelectorAll('.opp-stat-card').forEach(c => {
+    c.classList.toggle('opp-stat-active', c.dataset.party === party);
   });
 
   // Update panel title
   const titleEl = document.getElementById('opp-news-panel-title');
   if (titleEl) titleEl.textContent = `${cfg.icon} ${cfg.label} — Live News`;
+
+  // Update X pulse title
+  const xTitleEl = document.getElementById('x-pulse-title');
+  if (xTitleEl) xTitleEl.textContent = `𝕏 X Social Pulse — ${cfg.icon} ${cfg.label}`;
 
   // Show/hide panels using slugs
   document.querySelectorAll('.opp-party-panel').forEach(el => {
@@ -108,9 +112,52 @@ function switchOppParty(party) {
   if (panel) panel.style.display = 'block';
 
   renderPartyPanel(party);
+  renderXPulse();  // re-render X posts for the selected party
+}
+
+// ── News Category Filter (client-side classification) ────────
+let oppCategoryFilter = 'All';
+
+const CRITICAL_RE = /(attack|weaken|hasina|हमला|protest|प्रदर्शन|आंदोलन|agitation|arrest|गिरफ्तार|custody|scam|घोटाला|corrupt|भ्रष्ट|resign|इस्तीफा|strike|हिंसा|violence|clash|धरना|dharna|boycott|बहिष्कार|ultimatum|चेतावनी|warning|evm|election commission|चुनाव आयोग|bandh|बंद|riot|दागी|charge ?sheet|chargesheet|case filed|मुकदमा|ed\b|cbi|income tax|raid|छापा|threat|खतरा|warning)/i;
+const HIGH_RE = /(rally|रैली|jali?an|sabri?yatra|yatra|यात्रा|march|कूच|campaign|अभियान|alliance|गठबंधन|mahagathbandhan|महागठबंधन|seat sharing|सीट|press conference|प्रेस कॉन्फ्रेंस|presser|statement|बयान|bjp|nitish|modi|shah|जेडीयू|jd\(u\)|hijack|target|निशाना|slogan|नारे|poster|होर्डिंग|meeting|बैठक|convention|सम्मेलन|padayatra|जन सुराज यात्रा|claim|दावा|challenge|चुनौती)/i;
+
+function classifyNews(item) {
+  const text = `${item.heading || ''} ${item.source_name || ''}`;
+  if (CRITICAL_RE.test(text)) return 'Critical';
+  if (HIGH_RE.test(text)) return 'High';
+  return 'Normal';
+}
+
+function setOppCategory(cat) {
+  oppCategoryFilter = cat;
+  document.querySelectorAll('#opp-category-tabs .filter-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.cat === cat);
+  });
+  // Reset pagination for the current party when the filter changes
+  oppVisibleCounts[`${oppCurrentParty}|${cat}`] = OPP_PAGE_SIZE;
+  renderPartyPanel(oppCurrentParty);
 }
 
 // ── Render Party News Panel ──────────────────────────────────
+const OPP_PAGE_SIZE = 5;
+const oppVisibleCounts = {};
+
+function oppCountKey(party) {
+  return `${party}|${oppCategoryFilter}`;
+}
+
+function getOppVisibleCount(party) {
+  const key = oppCountKey(party);
+  if (typeof oppVisibleCounts[key] !== 'number') oppVisibleCounts[key] = OPP_PAGE_SIZE;
+  return oppVisibleCounts[key];
+}
+
+function loadMoreOppNews(party) {
+  const key = oppCountKey(party);
+  oppVisibleCounts[key] = getOppVisibleCount(party) + OPP_PAGE_SIZE;
+  renderPartyPanel(party);
+}
+
 function renderPartyPanel(party) {
   const cfg = PARTY_CONFIG[party];
   if (!cfg) return;
@@ -118,21 +165,31 @@ function renderPartyPanel(party) {
   const el = document.getElementById(`opp-panel-${cfg.slug}`);
   if (!el) return;
 
-  const items = (oppNewsData[party] || []);
+  const allItems = (oppNewsData[party] || []);
+  const items = oppCategoryFilter === 'All'
+    ? allItems
+    : allItems.filter(it => classifyNews(it) === oppCategoryFilter);
 
   if (!items.length) {
+    const msg = allItems.length && oppCategoryFilter !== 'All'
+      ? `No ${esc(oppCategoryFilter)} news for ${esc(party)}.`
+      : `No news yet for ${esc(party)}.`;
     el.innerHTML = `
       <div class="empty-state" style="padding:1.5rem;">
         <div class="empty-state-icon">📭</div>
-        <p class="empty-state-text">No news yet for ${esc(party)}.</p>
+        <p class="empty-state-text">${msg}</p>
+        ${allItems.length ? '' : `
         <p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">
           Trigger the cron pipeline to fetch latest news from YouTube &amp; RSS.
-        </p>
+        </p>`}
       </div>`;
     return;
   }
 
-  el.innerHTML = items.map((item, i) => {
+  const visibleCount = Math.min(getOppVisibleCount(party), items.length);
+  const remaining    = items.length - visibleCount;
+
+  const cards = items.slice(0, visibleCount).map((item, i) => {
     const isYt    = item.source_type === 'youtube';
     const srcIcon = isYt ? '▶️' : '📰';
     const badgeClr = isYt ? '#e63946' : '#4a9eff';
@@ -181,6 +238,16 @@ function renderPartyPanel(party) {
         </div>
       </div>`;
   }).join('');
+
+  const moreBtn = remaining > 0 ? `
+    <button class="btn btn-ghost" onclick="loadMoreOppNews('${party}')"
+            style="width:100%; margin-top:.5rem; padding:.55rem .9rem;
+                   font-size:.72rem; font-weight:700; letter-spacing:.02em;">
+      📰 Read ${Math.min(OPP_PAGE_SIZE, remaining)} More News ↓
+      <span style="font-weight:500; color:var(--text-muted);">(${remaining} remaining)</span>
+    </button>` : '';
+
+  el.innerHTML = cards + moreBtn;
 }
 
 // ── Render AI Summary Card ───────────────────────────────────
@@ -445,9 +512,11 @@ function loadOppositionXActivity() {
 window.initOpposition    = initOpposition;
 window.destroyOpposition = destroyOpposition;
 window.switchOppParty    = switchOppParty;
+window.loadMoreOppNews   = loadMoreOppNews;
+window.setOppCategory    = setOppCategory;
 
 
-// ── X Social Pulse ───────────────────────────────────────────
+// ── X Social Pulse (party-wise) ──────────────────────────────
 let xSocialPages = {
   xjansuraaj: 1,
   xinc: 1,
@@ -456,10 +525,21 @@ let xSocialPages = {
   xtejwaniyd: 1
 };
 
+let xSocialData = null;
+
+// Account → party mapping (party keys match PARTY_CONFIG)
+const X_PULSE_ACCOUNTS = [
+  { handle: '@jansuraajonline', table: 'xjansuraaj',   dataKey: 'jansuraaj',    party: 'Jan Suraaj' },
+  { handle: '@INCBihar',        table: 'xinc',         dataKey: 'inc_bihar',    party: 'INC' },
+  { handle: '@RahulGandhi',     table: 'xrahulgandi',  dataKey: 'rahul_gandhi', party: 'INC' },
+  { handle: '@RJDforIndia',     table: 'xrjd',         dataKey: 'rjd_india',    party: 'RJD' },
+  { handle: '@yadavtejashwi',   table: 'xtejwaniyd',   dataKey: 'tejashwi',     party: 'Tejashwi Yadav' },
+];
+
 async function loadOppositionXSocialPulse(force = false) {
   const container = document.getElementById('x-social-pulse-container');
   if (!container) return;
-  
+
   if (force) {
     container.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="spinner"></div><p class="empty-state-text">Refreshing X Social Pulse...</p></div>';
     // Reset pages
@@ -472,56 +552,44 @@ async function loadOppositionXSocialPulse(force = false) {
     const payload = await res.json();
     if (payload.error) throw new Error(payload.error);
 
-    const data = payload.data || {};
-    
-    // Build groups
-    const groups = [
-      {
-        title: 'Jan Suraaj',
-        color: 'var(--amber)',
-        accounts: [
-          { handle: '@jansuraajonline', table: 'xjansuraaj', posts: data.jansuraaj || [] }
-        ]
-      },
-      {
-        title: 'INC Bihar',
-        color: 'var(--blue)',
-        accounts: [
-          { handle: '@INCBihar', table: 'xinc', posts: data.inc_bihar || [] },
-          { handle: '@RahulGandhi', table: 'xrahulgandi', posts: data.rahul_gandhi || [] }
-        ]
-      },
-      {
-        title: 'RJD',
-        color: 'var(--red)',
-        accounts: [
-          { handle: '@RJDforIndia', table: 'xrjd', posts: data.rjd_india || [] },
-          { handle: '@yadavtejashwi', table: 'xtejwaniyd', posts: data.tejashwi || [] }
-        ]
-      }
-    ];
-
-    container.innerHTML = groups.map(g => `
-      <div style="border-left: 2px solid ${g.color}; padding-left: 1rem;">
-        <h3 style="margin-top:0; margin-bottom:1rem; font-size:1.1rem; color:var(--text-primary);">${g.title}</h3>
-        <div style="display:flex; flex-direction:column; gap:1.5rem;">
-          ${g.accounts.map(acc => `
-            <div id="x-group-${acc.table}">
-              <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.75rem;">${acc.handle}</div>
-              <div class="x-posts-grid" id="x-posts-${acc.table}" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:0.75rem;">
-                ${renderXPosts(acc.posts)}
-              </div>
-              <button class="btn btn-ghost btn-sm" onclick="loadMoreXPosts('${acc.table}')" id="x-btn-${acc.table}">Read More ↓</button>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
+    xSocialData = payload.data || {};
+    renderXPulse();
 
   } catch (err) {
     console.error('[X-Social] fetch failed:', err.message);
     container.innerHTML = `<div class="empty-state" style="padding:1.5rem;"><p class="empty-state-text" style="color:var(--red);">Failed to load X Pulse: ${esc(err.message)}</p></div>`;
   }
+}
+
+function renderXPulse() {
+  const container = document.getElementById('x-social-pulse-container');
+  if (!container) return;
+
+  if (!xSocialData) return; // still loading — fetch will render when done
+
+  const cfg = PARTY_CONFIG[oppCurrentParty] || {};
+  const accounts = X_PULSE_ACCOUNTS.filter(a => a.party === oppCurrentParty);
+
+  if (!accounts.length) {
+    container.innerHTML = `<div class="empty-state" style="padding:1.5rem;"><p class="empty-state-text">No X accounts mapped for ${esc(oppCurrentParty)}.</p></div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="border-left: 2px solid ${cfg.color || 'var(--blue)'}; padding-left: 1rem;">
+      <h3 style="margin-top:0; margin-bottom:1rem; font-size:1.1rem; color:var(--text-primary);">${cfg.icon || ''} ${esc(cfg.label || oppCurrentParty)}</h3>
+      <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        ${accounts.map(acc => `
+          <div id="x-group-${acc.table}">
+            <div style="font-size:0.85rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.75rem;">${acc.handle}</div>
+            <div class="x-posts-grid" id="x-posts-${acc.table}" style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:0.75rem;">
+              ${renderXPosts(xSocialData[acc.dataKey] || [])}
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadMoreXPosts('${acc.table}')" id="x-btn-${acc.table}">Read More ↓</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
 }
 
 function renderXPosts(posts) {
@@ -533,14 +601,18 @@ function renderXPosts(posts) {
     const d = new Date(post.published_at);
     const dateStr = isNaN(d.getTime()) ? 'Recent' : d.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     return `
-      <div style="padding:0.75rem; background:var(--glass-bg); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); transition:border-color 0.2s;">
-        <div style="font-size:0.85rem; color:var(--text-primary); margin-bottom:0.5rem; line-height:1.4;">
-          ${esc(post.heading)}
+      <div style="padding:0.75rem; background:var(--glass-bg); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); transition:border-color 0.2s; display:flex; gap:0.65rem; align-items:flex-start;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:0.85rem; color:var(--text-primary); margin-bottom:0.5rem; line-height:1.4;">
+            ${esc(post.heading)}
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted);">
+            <span>${dateStr}</span>
+            <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none;">Source ↗</a>
+          </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--text-muted);">
-          <span>${dateStr}</span>
-          <a href="${esc(post.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--blue); text-decoration:none;">Source ↗</a>
-        </div>
+        ${post.image_url ? `<img src="${esc(post.image_url)}" alt="" loading="lazy" onerror="this.style.display='none'"
+              style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border-subtle); flex-shrink:0;">` : ''}
       </div>
     `;
   }).join('');

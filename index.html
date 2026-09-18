@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
   <!-- CSS -->
-  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/main.css?v=light-20260919" />
   <link rel="stylesheet" href="assets/css/layout.css" />
   <link rel="stylesheet" href="assets/css/components.css" />
   <link rel="stylesheet" href="assets/css/animations.css" />
@@ -30,7 +30,7 @@
 
   <style>
     /* Inline critical styles to prevent FOUC */
-    body { background: #080d1a; }
+    body { background: var(--bg-primary, #080d1a); }
     #app { display: flex; height: 100vh; overflow: hidden; }
 
     /* Custom Leaflet dark theme */
@@ -39,6 +39,8 @@
       font-family: 'Inter', sans-serif !important;
     }
     .leaflet-tile-pane { filter: brightness(0.6) saturate(0.5); }
+    :root[data-theme="light"] .leaflet-container { background: #dfe6f0 !important; }
+    :root[data-theme="light"] .leaflet-tile-pane { filter: none; }
     .leaflet-popup-content-wrapper {
       background: #0f1829 !important;
       border: 1px solid rgba(255,255,255,0.1) !important;
@@ -47,6 +49,13 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
     }
     .leaflet-popup-tip { background: #0f1829 !important; }
+    :root[data-theme="light"] .leaflet-popup-content-wrapper {
+      background: #ffffff !important;
+      border: 1px solid rgba(23,35,59,0.15) !important;
+      color: #17233b !important;
+      box-shadow: 0 8px 32px rgba(23,35,59,0.25) !important;
+    }
+    :root[data-theme="light"] .leaflet-popup-tip { background: #ffffff !important; }
   </style>
 </head>
 
@@ -77,7 +86,7 @@
 
     <!-- User Footer -->
     <div class="sidebar-footer">
-      <div class="sidebar-user">
+      <div class="sidebar-user" onclick="navigateTo('home')" style="cursor:pointer;" title="President Home">
         <div class="user-avatar">A</div>
         <div class="user-info">
           <div class="user-name" id="user-name-display">President</div>
@@ -158,17 +167,20 @@
 
 <!-- ── Module Scripts ─────────────────────────────────────── -->
 <script src="assets/js/modules/home.js"></script>
-<script src="assets/js/modules/war-room.js?v=intel-pipeline-20260914-2"></script>
+<script src="assets/js/modules/war-room.js?v=wr-top3-20260919"></script>
 <script src="assets/js/modules/political-map.js"></script>
 <script src="assets/js/modules/leadership.js"></script>
-<script src="assets/js/modules/opposition.js?v=x-social-v3"></script>
-<script src="assets/js/modules/pk-tracker.js"></script>
+<script src="assets/js/modules/opposition.js?v=opp-cards-20260919"></script>
+<script src="assets/js/modules/pk-tracker.js?v=x-thumb-20260918"></script>
 <script src="assets/js/modules/media-pulse.js"></script>
 <script src="assets/js/modules/speech-intelligence.js"></script>
 <script src="assets/js/modules/issues.js"></script>
 
+<!-- ── i18n (Hindi default + toggle) ────────────────────────── -->
+<script src="assets/js/i18n.js?v=hi-20260919g"></script>
+
 <!-- ── Core App ───────────────────────────────────────────── -->
-<script src="assets/js/app.js?v=x-social-v3"></script>
+<script src="assets/js/app.js?v=theme-20260919"></script>
 
 <script>
   // Init Lucide icons after DOM

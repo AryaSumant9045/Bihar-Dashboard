@@ -9,54 +9,32 @@
     <p class="page-module-subtitle">Live news + AI intelligence from YouTube &amp; RSS — auto-refreshes every 90s</p>
   </div>
   <div class="page-header-actions">
-    <!-- Party Tab Pills -->
-    <div class="filter-group" id="opp-party-tabs">
-      <span class="filter-pill active" data-slug="jansuraaj"  onclick="switchOppParty('Jan Suraaj')">🟠 Jan Suraaj</span>
-      <span class="filter-pill"        data-slug="inc"        onclick="switchOppParty('INC')">🔵 INC</span>
-      <span class="filter-pill"        data-slug="rjd"        onclick="switchOppParty('RJD')">🔴 RJD</span>
-      <span class="filter-pill"        data-slug="tejashwi"   onclick="switchOppParty('Tejashwi Yadav')">🟣 Tejashwi</span>
-    </div>
     <div class="live-indicator"><span class="live-dot"></span>LIVE</div>
   </div>
 </div>
 
-<!-- Stat Row -->
-<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
-  <div class="stat-card card-shine" style="border-color:rgba(255,159,67,0.35);">
-    <div class="stat-label">🟠 Jan Suraaj</div>
-    <div class="stat-value" id="opp-count-jansuraaj" style="color:var(--amber);">—</div>
-    <div class="stat-change">News items</div>
-    <div class="stat-icon">📢</div>
-  </div>
-  <div class="stat-card card-shine" style="border-color:rgba(74,158,255,0.35);">
-    <div class="stat-label">🔵 INC Bihar</div>
-    <div class="stat-value" id="opp-count-inc" style="color:var(--blue);">—</div>
-    <div class="stat-change">News items</div>
-    <div class="stat-icon">✊</div>
-  </div>
-  <div class="stat-card card-shine" style="border-color:rgba(230,57,70,0.35);">
-    <div class="stat-label">🔴 RJD</div>
-    <div class="stat-value" id="opp-count-rjd" style="color:var(--red);">—</div>
-    <div class="stat-change">News items</div>
-    <div class="stat-icon">⚔️</div>
-  </div>
-  <div class="stat-card card-shine" style="border-color:rgba(168,85,247,0.35);">
-    <div class="stat-label">🟣 Tejashwi</div>
-    <div class="stat-value" id="opp-count-tejashwi" style="color:#c084fc;">—</div>
-    <div class="stat-change">News items</div>
-    <div class="stat-icon">🎯</div>
-  </div>
-</div>
+<style>
+  .opp-stat-card { cursor:pointer; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+  .opp-stat-card:hover { transform:translateY(-2px); }
+  .opp-stat-card.opp-stat-active {
+    transform:translateY(-2px);
+    background:rgba(255,255,255,0.05);
+    box-shadow:0 0 22px rgba(255,255,255,0.09), inset 0 0 0 1px rgba(255,255,255,0.22);
+  }
+  .opp-stat-card.opp-stat-active .stat-label::after {
+    content:' ▸'; color:var(--text-primary);
+  }
+</style>
 
 <!-- ═══════════════════════════════════════════════════════════
-     OPPOSITION AI SUMMARY CARD
+     OPPOSITION AI SUMMARY CARD (TOP PRIORITY ON MOBILE)
      ═══════════════════════════════════════════════════════════ -->
 <section id="opp-summary-section" class="card" style="margin-bottom:1rem; border-color:rgba(168,85,247,0.3);">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.85rem;">
     <div>
       <div class="card-title" style="margin:0;">⚡ Opposition AI Intelligence Summary</div>
       <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">
-        Auto-generated from latest 50 headlines · Gemini analysis
+        Auto-generated from latest ~150+ headlines · AI analysis
       </div>
     </div>
     <div style="display:flex; gap:.5rem; align-items:center;">
@@ -72,6 +50,34 @@
   </div>
 </section>
 
+<!-- Party Selector Cards (click to view party news + X posts below) -->
+<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+  <div class="stat-card card-shine opp-stat-card opp-stat-active" data-party="Jan Suraaj" onclick="switchOppParty('Jan Suraaj')" style="border-color:rgba(255,159,67,0.35);">
+    <div class="stat-label">🟠 Jan Suraaj</div>
+    <div class="stat-value" id="opp-count-jansuraaj" style="color:var(--amber);">—</div>
+    <div class="stat-change">News items</div>
+    <div class="stat-icon">📢</div>
+  </div>
+  <div class="stat-card card-shine opp-stat-card" data-party="INC" onclick="switchOppParty('INC')" style="border-color:rgba(74,158,255,0.35);">
+    <div class="stat-label">🔵 INC Bihar</div>
+    <div class="stat-value" id="opp-count-inc" style="color:var(--blue);">—</div>
+    <div class="stat-change">News items</div>
+    <div class="stat-icon">✊</div>
+  </div>
+  <div class="stat-card card-shine opp-stat-card" data-party="RJD" onclick="switchOppParty('RJD')" style="border-color:rgba(230,57,70,0.35);">
+    <div class="stat-label">🔴 RJD</div>
+    <div class="stat-value" id="opp-count-rjd" style="color:var(--red);">—</div>
+    <div class="stat-change">News items</div>
+    <div class="stat-icon">⚔️</div>
+  </div>
+  <div class="stat-card card-shine opp-stat-card" data-party="Tejashwi Yadav" onclick="switchOppParty('Tejashwi Yadav')" style="border-color:rgba(168,85,247,0.35);">
+    <div class="stat-label">🟣 Tejashwi</div>
+    <div class="stat-value" id="opp-count-tejashwi" style="color:#c084fc;">—</div>
+    <div class="stat-change">News items</div>
+    <div class="stat-icon">🎯</div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════
      PARTY NEWS PANELS
      ═══════════════════════════════════════════════════════════ -->
@@ -84,6 +90,14 @@
       </div>
     </div>
     <span class="tag tag-red">LIVE</span>
+  </div>
+
+  <!-- News Category Filter -->
+  <div class="filter-group" id="opp-category-tabs" style="margin-bottom:.9rem; flex-wrap:wrap;">
+    <span class="filter-pill active" data-cat="All"      onclick="setOppCategory('All')">📋 All</span>
+    <span class="filter-pill"        data-cat="Critical" onclick="setOppCategory('Critical')">🔴 Critical</span>
+    <span class="filter-pill"        data-cat="High"     onclick="setOppCategory('High')">🟠 High</span>
+    <span class="filter-pill"        data-cat="Normal"   onclick="setOppCategory('Normal')">🟢 Normal</span>
   </div>
 
   <!-- Jan Suraaj Panel — slug: jansuraaj -->
@@ -123,8 +137,8 @@
 <section class="card" style="margin-bottom:1rem; border-color:rgba(74,158,255,0.25);">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem;">
     <div>
-      <div class="card-title" style="margin:0;">𝕏 X Social Pulse</div>
-      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Latest posts from official public accounts</div>
+      <div class="card-title" style="margin:0;" id="x-pulse-title">𝕏 X Social Pulse — 🟠 Jan Suraaj</div>
+      <div style="font-size:.72rem; color:var(--text-muted); margin-top:.2rem;">Latest X posts from the selected party's official accounts</div>
     </div>
     <div style="display:flex; gap:0.5rem; align-items:center;">
       <span class="tag tag-blue"><span class="live-dot" style="background:var(--blue);"></span>LIVE</span>
