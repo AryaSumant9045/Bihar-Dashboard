@@ -16,6 +16,30 @@ function initPKTracker() {
   loadPKInstagramFeed();
   loadPKFetchRssFeed();
   loadPKXFeed();
+  loadPKJanSuraajOfficial();
+  loadPKIntel(); // overlay live AI snapshot (activity log, strategy, map, social)
+}
+
+// ── Live PK intelligence (AI snapshot from /api/cron/pk-intel) ────────────
+// Renders real data from Jan Suraaj X posts + press releases + district news.
+// Falls back silently to PK_DATA defaults when no snapshot exists yet.
+function loadPKIntel() {
+  fetch('/api/pk-intel', { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      if (!payload || !payload.has_data || !payload.snapshot) return;
+      const s = payload.snapshot;
+      if (Array.isArray(s.movement_map) && s.movement_map.length) renderPKMap(s.movement_map);
+      if (Array.isArray(s.activity_log) && s.activity_log.length) renderPKTimeline(s.activity_log);
+      if (Array.isArray(s.strategy_cards) && s.strategy_cards.length) renderPKStrategy(s.strategy_cards);
+      if (Array.isArray(s.social_stats) && s.social_stats.length) renderPKSocial(s.social_stats);
+      const stamp = document.getElementById('pk-intel-stamp');
+      if (stamp && s.generated_at) {
+        stamp.textContent = '🔄 Live: ' + new Date(s.generated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        stamp.style.display = 'inline-block';
+      }
+    })
+    .catch(err => console.error('[PK-Intel] fetch error:', err));
 }
 
 function loadPKFetchRssFeed() {
@@ -88,16 +112,18 @@ function renderPKProfile() {
   `;
 }
 
-function renderPKMap() {
+function renderPKMap(visits) {
   if (typeof L === 'undefined') return;
   const mapEl = document.getElementById('pk-map');
   if (!mapEl) return;
   if (pkMap) { pkMap.remove(); pkMap = null; }
 
+  const points = (Array.isArray(visits) && visits.length) ? visits : PK_DATA.recentVisits;
+
   pkMap = L.map('pk-map', { center: [25.65, 85.90], zoom: 7, zoomControl: false, attributionControl: false });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { opacity: 0.25 }).addTo(pkMap);
 
-  PK_DATA.recentVisits.forEach((v, i) => {
+  points.forEach((v, i) => {
     const radius = i === 0 ? 12 : 8;
     const opacity = i === 0 ? 1 : 0.7 - i * 0.1;
     const marker = L.circleMarker([v.lat, v.lng], {
@@ -113,11 +139,12 @@ function renderPKMap() {
   });
 }
 
-function renderPKTimeline() {
+function renderPKTimeline(activities) {
   const el = document.getElementById('pk-timeline');
   if (!el) return;
+  const items = (Array.isArray(activities) && activities.length) ? activities : PK_DATA.activities;
   const typeMap = { meeting: { dot: 'amber', icon: '🤝' }, event: { dot: 'green', icon: '🏕️' }, statement: { dot: 'blue', icon: '📢' }, social: { dot: 'red', icon: '📱' } };
-  el.innerHTML = PK_DATA.activities.map(a => {
+  el.innerHTML = items.map(a => {
     const t = typeMap[a.type] || { dot: 'amber', icon: '📋' };
     return `
       <div class="timeline-item">
@@ -131,24 +158,25 @@ function renderPKTimeline() {
   }).join('');
 }
 
-function renderPKStrategy() {
+function renderPKStrategy(cards) {
   const el = document.getElementById('pk-strategy');
   if (!el) return;
-  el.innerHTML = PK_DATA.strategyCards.map((s, i) => `
+  const items = (Array.isArray(cards) && cards.length) ? cards : PK_DATA.strategyCards;
+  el.innerHTML = items.map((s, i) => `
     <div style="padding:0.7rem 0.9rem; border-radius:var(--radius-md); background:var(--glass-bg); border-left:3px solid ${s.focus === 'high' ? 'var(--red)' : 'var(--amber)'}; animation:slideInUp 0.3s ease both; animation-delay:${i * 0.06}s;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
         <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${s.title}</span>
-        <span class="tag ${s.focus === 'high' ? 'tag-red' : 'tag-amber'}" style="font-size:0.6rem;">${s.focus.toUpperCase()}</span>
+        <span class="tag ${s.focus === 'high' ? 'tag-red' : 'tag-amber'}" style="font-size:0.6rem;">${(s.focus || 'medium').toUpperCase()}</span>
       </div>
       <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.5;">${s.desc}</div>
     </div>
   `).join('');
 }
 
-function renderPKSocial() {
+function renderPKSocial(liveData) {
   const el = document.getElementById('pk-social');
   if (!el) return;
-  const data = [
+  const data = (Array.isArray(liveData) && liveData.length) ? liveData : [
     { platform: '🐦 Twitter', mentions: '2.1M', change: '+45%', color: 'var(--blue)' },
     { platform: '▶ YouTube', mentions: '980K', change: '+65%', color: 'var(--red)' },
     { platform: '💬 WhatsApp', mentions: '450K', change: '+120%', color: 'var(--green)' },
@@ -235,6 +263,65 @@ function renderPKReachChart() {
       }
     }
   });
+}
+
+// ── Jan Suraaj Official Website (jansuraaj.org) ──────────────────────────
+function loadPKJanSuraajOfficial() {
+  const pressGrid = document.getElementById('pk-js-press-grid');
+  const interviewList = document.getElementById('pk-js-interview-list');
+  if (!pressGrid && !interviewList) return;
+
+  fetch('/api/jansuraaj', { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      const press = payload.press || [];
+      const interviews = payload.interviews || [];
+
+      if (pressGrid) {
+        if (!press.length) {
+          pressGrid.innerHTML = '<div class="pk-news-empty">No official press releases available right now.</div>';
+        } else {
+          pressGrid.innerHTML = press.slice(0, 6).map(item => `
+            <article style="display:flex; flex-direction:column; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.2); border-radius:var(--radius-sm); overflow:hidden; transition:border-color 0.2s;">
+              ${item.imageUrl
+                ? `<img src="${escapePKNewsValue(item.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none'"
+                      style="width:100%; height:130px; object-fit:cover; border-bottom:1px solid rgba(255,159,67,0.25);">`
+                : '<div style="height:60px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; background:rgba(255,159,67,0.08);">📢</div>'}
+              <div style="padding:0.7rem; display:flex; flex-direction:column; gap:0.45rem; flex:1;">
+                <div style="font-size:0.8rem; font-weight:600; color:var(--text-primary); line-height:1.4;">${escapePKNewsValue(item.title)}</div>
+                ${item.excerpt ? `<div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.45;">${escapePKNewsValue(item.excerpt)}…</div>` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.68rem; color:var(--text-muted); margin-top:auto;">
+                  <span>${item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Latest'}</span>
+                  <a href="${escapePKNewsValue(item.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration:none;">Read ↗</a>
+                </div>
+              </div>
+            </article>`).join('');
+        }
+      }
+
+      if (interviewList) {
+        if (!interviews.length) {
+          interviewList.innerHTML = '<div class="pk-news-empty">No interviews available right now.</div>';
+        } else {
+          interviewList.innerHTML = interviews.slice(0, 4).map(item => `
+            <div style="display:flex; gap:0.6rem; align-items:center; padding:0.55rem 0.7rem; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.15); border-radius:var(--radius-sm);">
+              ${item.imageUrl
+                ? `<img src="${escapePKNewsValue(item.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none'"
+                      style="width:64px; height:44px; object-fit:cover; border-radius:6px; flex-shrink:0;">`
+                : '<div style="width:64px; height:44px; display:flex; align-items:center; justify-content:center; background:rgba(255,159,67,0.08); border-radius:6px; flex-shrink:0;">🎙</div>'}
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:0.78rem; font-weight:600; color:var(--text-primary); line-height:1.35; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapePKNewsValue(item.title)}</div>
+                <div style="font-size:0.66rem; color:var(--text-muted); margin-top:0.15rem;">${item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</div>
+              </div>
+              <a href="${escapePKNewsValue(item.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration:none; font-size:0.7rem; flex-shrink:0;">Watch ↗</a>
+            </div>`).join('');
+        }
+      }
+    })
+    .catch(err => {
+      console.error('[PK-JanSuraaj] fetch error:', err);
+      if (pressGrid) pressGrid.innerHTML = '<div class="pk-news-empty">Jan Suraaj official site is temporarily unavailable.</div>';
+    });
 }
 
 // ── Jan Suraaj X Feed (RSSHub) ───────────────────────────────────────────

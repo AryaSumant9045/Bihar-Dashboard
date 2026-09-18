@@ -167,6 +167,20 @@
     ['Sitamarhi', 'सीतामढ़ी'],
     ['🌐 All Sources', '🌐 सभी स्रोत'],
 
+    // ── Jan Suraaj official (jansuraaj.org) + District News ──
+    ['🟠 Jan Suraaj Official — jansuraaj.org', '🟠 जन सुराज आधिकारिक — jansuraaj.org'],
+    ["Press releases & interviews from Jan Suraaj's official website", 'जन सुराज की आधिकारिक वेबसाइट से प्रेस रिलीज़ और इंटरव्यू'],
+    ['🎙 Interviews / Speeches', '🎙 इंटरव्यू / भाषण'],
+    ['Loading official updates...', 'आधिकारिक अपडेट लोड हो रहे हैं...'],
+    ['No official press releases available right now.', 'अभी कोई आधिकारिक प्रेस रिलीज़ उपलब्ध नहीं है।'],
+    ['No interviews available right now.', 'अभी कोई इंटरव्यू उपलब्ध नहीं है।'],
+    ['Jan Suraaj official site is temporarily unavailable.', 'जन सुराज की आधिकारिक साइट अस्थायी रूप से अनुपलब्ध है।'],
+    ['📰 District News', '📰 ज़िला समाचार'],
+    ['Latest news from the selected district — auto-saved every 24 hours', 'चयनित ज़िले की ताज़ा खबरें — हर 24 घंटे में स्वतः सहेजी जाती हैं'],
+    ['Loading district news…', 'ज़िला समाचार लोड हो रहे हैं…'],
+    ['No district news saved yet.', 'अभी कोई ज़िला समाचार सहेजी नहीं गई है।'],
+    ['District news unavailable right now.', 'ज़िला समाचार अभी अनुपलब्ध है।'],
+
     // ── PK Tracker page ──
     ['📍 Movement Map', '📍 मूवमेंट मैप'],
     ['Recent district visits', 'हालिया ज़िला दौरे'],
@@ -326,6 +340,10 @@
       hiRe: /^📰 और 1 खबर पढ़ें ↓$/, enTpl: '📰 Read 1 More News ↓' },
     { enRe: /^📰 Read (\d+) More News ↓$/, hiTpl: '📰 और $1 खबरें पढ़ें ↓',
       hiRe: /^📰 और (\d+) खबरें पढ़ें ↓$/, enTpl: '📰 Read $1 More News ↓' },
+    { enRe: /^📰 (.+) — District News$/, hiTpl: '📰 $1 — ज़िला समाचार',
+      hiRe: /^📰 (.+) — ज़िला समाचार$/, enTpl: '📰 $1 — District News' },
+    { enRe: /^(\d+) latest$/, hiTpl: '$1 ताज़ा',
+      hiRe: /^(\d+) ताज़ा$/, enTpl: '$1 latest' },
     { enRe: /^\((\d+) remaining\)$/, hiTpl: '($1 शेष)',
       hiRe: /^\((\d+) शेष\)$/, enTpl: '($1 remaining)' },
     { enRe: /^(\d+) accounts$/, hiTpl: '$1 खाते',

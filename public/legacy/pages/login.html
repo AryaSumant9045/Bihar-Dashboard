@@ -8,6 +8,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bihar Command Center — Access Portal</title>
+  <script>if (localStorage.getItem('bcc_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -151,11 +152,50 @@
       to   { opacity:1; transform:translateY(0); }
     }
     .container { animation: fadeSlideUp 0.5s ease forwards; }
+
+    /* Theme toggle (next to the Bihar Command Center brand) */
+    .login-theme-toggle {
+      position:absolute; top:1rem; right:1rem; z-index:5;
+      padding:.45rem .95rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.22); background:#0f1829; color:#e8edf8;
+      font-family:'Inter',sans-serif; font-size:.78rem; font-weight:700; cursor:pointer;
+      box-shadow:0 8px 24px rgba(0,0,0,.35);
+    }
+    .login-theme-toggle:hover { border-color:rgba(255,255,255,.4); }
+
+    /* ── Light theme ─────────────────────────────────────────── */
+    :root[data-theme="light"] body { background:#eef1f7; color:#17233b; }
+    :root[data-theme="light"] body::before {
+      background: radial-gradient(ellipse 80% 60% at 20% 20%, rgba(169,123,0,0.07) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 60% at 80% 80%, rgba(194,39,51,0.06) 0%, transparent 60%);
+    }
+    :root[data-theme="light"] .grid-bg {
+      background-image: linear-gradient(rgba(23,35,59,0.05) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(23,35,59,0.05) 1px, transparent 1px);
+    }
+    :root[data-theme="light"] .login-title { background:linear-gradient(135deg,#a97b00,#17233b); -webkit-background-clip:text; }
+    :root[data-theme="light"] .login-sub { color:#5b6a84; }
+    :root[data-theme="light"] .logo-badge { box-shadow:0 0 40px rgba(169,123,0,0.25); }
+    :root[data-theme="light"] .role-card { background:rgba(255,255,255,0.7); border-color:rgba(23,35,59,0.12); }
+    :root[data-theme="light"] .role-card:hover { border-color:rgba(23,35,59,0.28); }
+    :root[data-theme="light"] .role-name { color:#17233b; }
+    :root[data-theme="light"] .role-desc { color:#41506b; }
+    :root[data-theme="light"] .login-footer { color:#7d89a0; }
+    :root[data-theme="light"] .security-badge { border-color:rgba(23,35,59,0.15); color:#5b6a84; }
+    :root[data-theme="light"] .login-theme-toggle {
+      border-color:rgba(23,35,59,.25); background:#ffffff; color:#17233b;
+      box-shadow:0 8px 24px rgba(23,35,59,.12);
+    }
+    :root[data-theme="light"] .login-theme-toggle:hover { border-color:rgba(23,35,59,.45); }
+    @media (max-width: 480px) {
+      .login-theme-toggle { top:.6rem; right:.6rem; padding:.35rem .7rem; font-size:.68rem; }
+    }
   </style>
 </head>
 <body>
 <div class="grid-bg"></div>
 <div class="container">
+  <button id="login-theme-toggle" class="login-theme-toggle" onclick="toggleLoginTheme()" title="Light / Dark mode">☀️ Light</button>
   <div class="login-header">
     <div class="logo-badge">⚡</div>
     <h1 class="login-title">Bihar Command Center</h1>
@@ -245,8 +285,25 @@
   </div>
 </div>
 
-<script src="../assets/js/i18n.js?v=hi-20260919g"></script>
+<script src="../assets/js/i18n.js?v=hi-20260919h"></script>
 <script>
+  (function initLoginTheme() {
+    const LS_THEME = 'bcc_theme';
+    const getTheme = () => (localStorage.getItem(LS_THEME) === 'light' ? 'light' : 'dark');
+    function applyTheme(theme) {
+      if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.removeAttribute('data-theme');
+      const btn = document.getElementById('login-theme-toggle');
+      if (btn) btn.textContent = theme === 'light' ? '🌙 Dark' : '☀️ Light';
+    }
+    window.toggleLoginTheme = () => {
+      const next = getTheme() === 'light' ? 'dark' : 'light';
+      localStorage.setItem(LS_THEME, next);
+      applyTheme(next);
+    };
+    applyTheme(getTheme());
+  })();
+
   let selectedRole = 'president';
 
   // Auto-select president on load

@@ -1,0 +1,27 @@
+name: PK Intel (Every 3 Days)
+
+# Har 3 din me ek baar raat ko: PK Tracker ki Activity Log, Strategy Cards,
+# Movement Map aur Social Monitor — Jan Suraaj X posts + press releases +
+# Bihar district news se AI (Gemini/Groq) analysis karke Supabase (pk_intel)
+# me live snapshot save hota hai.
+# Manual run: Actions tab → "PK Intel (Every 3 Days)" → Run workflow.
+
+on:
+  schedule:
+    - cron: '0 18 */3 * *' # ~11:30 PM IST, every 3rd day (UTC 18:00)
+  workflow_dispatch:
+
+jobs:
+  trigger-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call PK intel cron endpoint
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then
+            curl -sf --max-time 300 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/pk-intel"
+          else
+            curl -sf --max-time 300 "$APP_URL/api/cron/pk-intel"
+          fi

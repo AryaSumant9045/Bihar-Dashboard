@@ -24,6 +24,16 @@
   .opp-stat-card.opp-stat-active .stat-label::after {
     content:' ▸'; color:var(--text-primary);
   }
+  #opp-news-section { scroll-margin-top: 1rem; }
+  /* Party selector stays a single horizontal row of 4 on phones */
+  @media (max-width: 900px) {
+    .stat-row-4.opp-stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: .5rem; }
+    .opp-stat-row .stat-card { padding: .65rem .55rem; gap: .2rem; }
+    .opp-stat-row .stat-label { font-size: .58rem; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .opp-stat-row .stat-value { font-size: 1.2rem; }
+    .opp-stat-row .stat-change { font-size: .55rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .opp-stat-row .stat-icon { display: none; }
+  }
 </style>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -51,7 +61,7 @@
 </section>
 
 <!-- Party Selector Cards (click to view party news + X posts below) -->
-<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+<div class="stat-row stat-row-4 opp-stat-row" style="margin-bottom:1rem;">
   <div class="stat-card card-shine opp-stat-card opp-stat-active" data-party="Jan Suraaj" onclick="switchOppParty('Jan Suraaj')" style="border-color:rgba(255,159,67,0.35);">
     <div class="stat-label">🟠 Jan Suraaj</div>
     <div class="stat-value" id="opp-count-jansuraaj" style="color:var(--amber);">—</div>
@@ -81,7 +91,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      PARTY NEWS PANELS
      ═══════════════════════════════════════════════════════════ -->
-<section class="card" style="margin-bottom:1rem; border-color:rgba(255,255,255,0.07);">
+<section class="card" id="opp-news-section" style="margin-bottom:1rem; border-color:rgba(255,255,255,0.07);">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem;">
     <div>
       <div class="card-title" style="margin:0;" id="opp-news-panel-title">📡 Jan Suraaj — Live News</div>

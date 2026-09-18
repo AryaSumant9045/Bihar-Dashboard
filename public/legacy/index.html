@@ -14,7 +14,7 @@
 
   <!-- CSS -->
   <link rel="stylesheet" href="assets/css/main.css?v=light-20260919" />
-  <link rel="stylesheet" href="assets/css/layout.css" />
+  <link rel="stylesheet" href="assets/css/layout.css?v=side-x-20260919" />
   <link rel="stylesheet" href="assets/css/components.css" />
   <link rel="stylesheet" href="assets/css/animations.css" />
 
@@ -72,6 +72,15 @@
         <span class="brand-sub">Political Intelligence</span>
       </div>
     </a>
+
+    <!-- Mobile close (X) button -->
+    <button id="sidebar-close-btn" aria-label="Close menu"
+      onclick="document.getElementById('sidebar').classList.remove('mobile-open')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
 
     <!-- Nav Items (built by JS) -->
     <div class="sidebar-nav" id="sidebar-nav"></div>
@@ -170,14 +179,14 @@
 <script src="assets/js/modules/war-room.js?v=wr-top3-20260919"></script>
 <script src="assets/js/modules/political-map.js"></script>
 <script src="assets/js/modules/leadership.js"></script>
-<script src="assets/js/modules/opposition.js?v=opp-cards-20260919"></script>
-<script src="assets/js/modules/pk-tracker.js?v=x-thumb-20260918"></script>
+<script src="assets/js/modules/opposition.js?v=opp-mobile-20260919"></script>
+<script src="assets/js/modules/pk-tracker.js?v=pk-intel-20260919"></script>
 <script src="assets/js/modules/media-pulse.js"></script>
 <script src="assets/js/modules/speech-intelligence.js"></script>
-<script src="assets/js/modules/issues.js"></script>
+<script src="assets/js/modules/issues.js?v=is-dnews2-20260919"></script>
 
 <!-- ── i18n (Hindi default + toggle) ────────────────────────── -->
-<script src="assets/js/i18n.js?v=hi-20260919g"></script>
+<script src="assets/js/i18n.js?v=hi-20260919h"></script>
 
 <!-- ── Core App ───────────────────────────────────────────── -->
 <script src="assets/js/app.js?v=theme-20260919"></script>

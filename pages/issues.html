@@ -69,6 +69,20 @@
   </select>
 </div>
 
+<!-- District News (saved daily by GitHub Action pipeline) -->
+<section class="card" style="margin-bottom:1rem; border-color:rgba(74,158,255,0.25);">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;">
+    <div>
+      <div class="card-title" style="margin:0;" id="is-district-news-title">📰 District News</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem;">Latest news from the selected district — auto-saved every 24 hours</div>
+    </div>
+    <span class="tag tag-blue" id="is-district-news-count" style="display:none;"></span>
+  </div>
+  <div id="is-district-news-list" style="display:flex; flex-direction:column; gap:0.55rem;">
+    <div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>
+  </div>
+</section>
+
 <!-- Main: List + Analytics -->
 <div style="display:grid; grid-template-columns:1fr 340px; gap:1rem; align-items:start;">
 

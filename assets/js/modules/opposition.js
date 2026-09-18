@@ -113,6 +113,9 @@ function switchOppParty(party) {
 
   renderPartyPanel(party);
   renderXPulse();  // re-render X posts for the selected party
+
+  const newsSection = document.getElementById('opp-news-section');
+  if (newsSection) newsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── News Category Filter (client-side classification) ────────

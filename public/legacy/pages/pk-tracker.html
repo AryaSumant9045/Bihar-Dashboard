@@ -8,6 +8,7 @@
     <p class="page-module-subtitle">Real-time intelligence on PK's movements, strategy &amp; alliances</p>
   </div>
   <div class="page-header-actions">
+    <span id="pk-intel-stamp" class="tag tag-amber" style="display:none; padding:0.3rem 0.6rem; font-size:0.65rem;">🔄 Live: —</span>
     <span class="alert-badge high glow-red" style="padding:0.3rem 0.75rem; font-size:0.7rem;">🔴 MONITORING
       ACTIVE</span>
     <button class="btn btn-ghost btn-sm" onclick="showToast('Report','PK Intelligence brief generated','info')">📄
@@ -86,6 +87,25 @@
   </div>
   <div style="text-align:center; margin-top:1rem;">
     <button class="btn btn-ghost btn-sm" onclick="loadMorePKXPosts()" id="pk-x-btn">Read More ↓</button>
+  </div>
+</section>
+
+<!-- Jan Suraaj Official Website (jansuraaj.org) -->
+<section class="card card-amber pk-js-official" aria-labelledby="pk-js-title" style="margin-bottom:1rem;">
+  <div class="card-header">
+    <div>
+      <div class="card-title" id="pk-js-title">🟠 Jan Suraaj Official — jansuraaj.org</div>
+      <div style="font-size:0.7rem; color:var(--text-muted);">Press releases &amp; interviews from Jan Suraaj's official website</div>
+    </div>
+    <a href="https://www.jansuraaj.org/media/press-releases" target="_blank" rel="noopener noreferrer"
+      class="pk-curator-credit">Website ↗</a>
+  </div>
+  <div id="pk-js-press-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:0.75rem;" aria-live="polite">
+    <div class="pk-news-loading"><span class="spinner"></span> Loading official updates...</div>
+  </div>
+  <div style="margin-top:1.1rem;">
+    <div id="pk-js-interview-head" style="font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:0.5rem;">🎙 Interviews / Speeches</div>
+    <div id="pk-js-interview-list" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
   </div>
 </section>
 

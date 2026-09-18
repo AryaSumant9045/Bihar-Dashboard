@@ -14,6 +14,64 @@ function initIssues() {
   renderDistrictBreakdown();
   updateIssueCounts(ISSUES_DATA);
   setupIssueFilters();
+  loadDistrictNews(isDistrictFilter);
+}
+
+function isEsc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]
+  ));
+}
+
+// ── District News (from district_news table, saved daily by GitHub Action) ──
+function loadDistrictNews(district) {
+  const list = document.getElementById('is-district-news-list');
+  if (!list) return;
+  const titleEl = document.getElementById('is-district-news-title');
+  const countEl = document.getElementById('is-district-news-count');
+  if (titleEl) titleEl.textContent = district === 'all' ? '📰 District News' : `📰 ${district} — District News`;
+  list.innerHTML = '<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>';
+
+  fetch(`/api/district-news?district=${encodeURIComponent(district)}&limit=12`, { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      const items = payload.items || [];
+      if (countEl) {
+        countEl.textContent = `${items.length} latest`;
+        countEl.style.display = items.length ? 'inline-flex' : 'none';
+      }
+      if (!items.length) {
+        list.innerHTML = `<div class="empty-state" style="padding:1rem;">
+          <div class="empty-state-icon">📭</div>
+          <p class="empty-state-text">No district news saved yet.</p>
+          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">The daily GitHub Action (district-news-daily) will populate this — or run Actions → Run workflow once.</p>
+        </div>`;
+        return;
+      }
+      list.innerHTML = items.map((item, i) => {
+        const dateStr = item.published_at
+          ? new Date(item.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
+          : '';
+        return `
+          <div class="card card-shine" style="border-left:3px solid var(--blue); padding:0.7rem 0.95rem; animation:slideInUp 0.3s ease both; animation-delay:${Math.min(i * 0.03, 0.3)}s;">
+            <div style="font-size:0.83rem; font-weight:600; color:var(--text-primary); line-height:1.42; margin-bottom:0.3rem;">
+              <a href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;"
+                 onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='inherit'">${isEsc(item.title)}</a>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+              <span class="tag" style="font-size:0.62rem;">📍 ${isEsc(item.district)}</span>
+              <span class="tag tag-blue" style="font-size:0.62rem;">📡 ${isEsc(item.source || 'News')}</span>
+              ${dateStr ? `<span style="font-size:0.66rem; color:var(--text-muted);">🕐 ${isEsc(dateStr)}</span>` : ''}
+              <a class="btn btn-ghost btn-sm" href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer"
+                 style="font-size:0.63rem; padding:0.12rem 0.4rem; margin-left:auto;">Read ↗</a>
+            </div>
+          </div>`;
+      }).join('');
+    })
+    .catch(err => {
+      console.error('[Issues] district news fetch failed:', err);
+      list.innerHTML = '<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">District news unavailable right now.</p></div>';
+    });
 }
 
 function getPriorityConfig(p) {
@@ -82,8 +140,12 @@ function renderIssuesList(data) {
 function selectIssue(id) {
   const issue = ISSUES_DATA.find(i => i.id === id);
   if (!issue) return;
+  renderIssueDetail(issue);
+}
+
+function renderIssueDetail(issue) {
   const el = document.getElementById('is-detail');
-  if (!el) return;
+  if (!el || !issue) return;
   const pc = getPriorityConfig(issue.priority);
   const sc = getStatusConfig(issue.status);
   el.innerHTML = `
@@ -203,6 +265,7 @@ function applyIssueFilters() {
   if (isDistrictFilter !== 'all') data = data.filter(i => i.district  === isDistrictFilter);
   renderIssuesList(data);
   updateIssueCounts(data);
+  loadDistrictNews(isDistrictFilter);
 }
 
 window.selectIssue   = selectIssue;
