@@ -66,3 +66,45 @@ export async function GET(request) {
     return Response.json({ has_data: false, error: err.message }, { status: 500 });
   }
 }
+
+/**
+ * PATCH /api/issues  { id, status?, assigned_to? }
+ * War-room action: Assign (→ in-progress + assignee) / Escalate (→ escalated).
+ * Persists to Supabase so status survives refresh and is shared across users.
+ */
+export async function PATCH(request) {
+  try {
+    const body = await request.json();
+    const id = body.id;
+    if (id === undefined || id === null) {
+      return Response.json({ error: 'id required' }, { status: 400 });
+    }
+
+    const updates = {};
+    if (body.status && ['open', 'in-progress', 'escalated', 'resolved'].includes(body.status)) {
+      updates.status = body.status;
+    }
+    if (body.assigned_to !== undefined) {
+      updates.assigned_to = body.assigned_to ? String(body.assigned_to).slice(0, 100) : null;
+    }
+    if (!Object.keys(updates).length) {
+      return Response.json({ error: 'nothing to update' }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
+    if (!supabase) return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+
+    const { data, error } = await supabase
+      .from('issues')
+      .update(updates)
+      .eq('id', id)
+      .select('id, status, assigned_to');
+    if (error) throw error;
+    if (!data || !data.length) return Response.json({ error: 'Issue not found' }, { status: 404 });
+
+    return Response.json({ status: 'success', issue: data[0] });
+  } catch (err) {
+    console.error('[issues API] PATCH error:', err.message);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
+}

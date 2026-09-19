@@ -84,9 +84,27 @@ function loadLiveIssues() {
       isLiveData = true;
       const badge = document.getElementById('is-live-badge');
       if (badge) badge.style.display = 'inline-flex';
+      const stamp = document.getElementById('is-live-stamp');
+      if (stamp) stamp.textContent = '🔄 Live · updated ' + new Date().toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
       populateDistrictFilter();
+      scheduleIssuesAutoRefresh();
     })
     .catch(err => console.error('[Issues] live fetch failed, using fallback:', err));
+}
+
+/* Auto-refresh live issues every 5 minutes (pipeline runs 2× daily,
+   plus Assign/Escalate changes by other users show up). */
+let isRefreshTimer = null;
+function scheduleIssuesAutoRefresh() {
+  if (isRefreshTimer) return;
+  isRefreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    loadLiveIssues().then(() => {
+      applyIssueFilters();
+      renderCategoryChart();
+      renderDistrictBreakdown();
+    });
+  }, 5 * 60 * 1000);
 }
 
 function isEsc(v) {
@@ -364,11 +382,39 @@ function renderIssueDetail(issue) {
 }
 
 function assignIssue(id) {
-  showToast('Issue Assigned', 'Issue has been assigned to district coordinator', 'success');
+  if (!isLiveData) { showToast('Issue Assigned', 'Issue has been assigned to district coordinator', 'success'); return; }
+  updateIssueRemote(id, { status: 'in-progress', assigned_to: 'District Coordinator' }, 'Issue Assigned');
 }
 
 function escalateIssue(id) {
-  showToast('Escalated', 'Issue escalated to State Command Center', 'error');
+  if (!isLiveData) { showToast('Escalated', 'Issue escalated to State Command Center', 'error'); return; }
+  updateIssueRemote(id, { status: 'escalated' }, 'Escalated to Command Center');
+}
+
+/* Persist status change to Supabase via PATCH /api/issues, then update UI. */
+function updateIssueRemote(id, updates, toastTitle) {
+  fetch('/api/issues', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...updates }),
+  })
+    .then(res => res.json())
+    .then(payload => {
+      if (payload.error) throw new Error(payload.error);
+      ISSUES_LIVE = ISSUES_LIVE.map(i => String(i.id) === String(id)
+        ? { ...i, status: payload.issue.status, assignedTo: payload.issue.assigned_to }
+        : i);
+      applyIssueFilters();
+      const updated = activeIssues().find(i => String(i.id) === String(id));
+      if (updated) renderIssueDetail(updated);
+      renderDistrictBreakdown();
+      renderCategoryChart();
+      showToast(toastTitle, `Status updated to ${payload.issue.status}`, 'success');
+    })
+    .catch(err => {
+      console.error('[Issues] update failed:', err);
+      showToast('Update Failed', err.message, 'error');
+    });
 }
 
 function renderCategoryChart() {
@@ -405,12 +451,21 @@ function renderDistrictBreakdown() {
   if (!el) return;
   const dists = {};
   activeIssues().forEach(i => { if (i.district !== 'Multiple') dists[i.district] = (dists[i.district] || 0) + 1; });
-  el.innerHTML = Object.entries(dists).sort((a,b) => b[1]-a[1]).map(([d, c]) => `
-    <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.8rem; padding:0.25rem 0; border-bottom:1px solid var(--border-subtle);">
-      <span style="color:var(--text-secondary);">📍 ${d}</span>
-      <span style="color:var(--text-primary); font-weight:600;">${c}</span>
-    </div>
-  `).join('');
+  const max = Math.max(1, ...Object.values(dists));
+  el.innerHTML = Object.entries(dists).sort((a, b) => b[1] - a[1]).map(([d, c]) => {
+    const pct = Math.round((c / max) * 100);
+    const color = c >= max * 0.66 ? 'var(--red)' : c >= max * 0.33 ? 'var(--amber)' : 'var(--blue)';
+    return `
+    <div style="padding:0.3rem 0; border-bottom:1px solid var(--border-subtle);">
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.8rem; margin-bottom:0.2rem;">
+        <span style="color:var(--text-secondary);">📍 ${isEsc(d)}</span>
+        <span style="color:var(--text-primary); font-weight:700;">${c}</span>
+      </div>
+      <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden;">
+        <div style="width:${pct}%; height:100%; background:${color}; border-radius:3px; transition:width 0.5s ease;"></div>
+      </div>
+    </div>`;
+  }).join('') || '<p style="font-size:0.75rem; color:var(--text-muted);">No district data</p>';
 }
 
 function updateIssueCounts(data) {

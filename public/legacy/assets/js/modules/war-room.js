@@ -957,77 +957,7 @@ function setupSearch() {
   });
 }
 
-// ── District Level Intelligence (live from district_news DB table) ───────
-// District buttons in war-room.html call this; data comes from the
-// district_news Supabase table (populated daily from the Live Hindustan
-// district RSS feeds listed in .env via /api/cron/district-news).
-let wrDistState = { district: null, items: [], total: 0, loading: false };
-
-async function loadWarRoomDistrictNews(district, append = false) {
-  const panel = document.getElementById('wr-livehindustan-panel');
-  if (!panel) return;
-  const badge = document.getElementById('wr-district-live-badge');
-  if (badge) badge.style.display = 'inline-flex';
-
-  document.querySelectorAll('#wr-district-btns .btn').forEach(b => {
-    const label = b.textContent.trim();
-    const match = (district === 'all' && label === 'Bihar (All)') || label === district;
-    b.style.borderColor = match ? 'var(--blue)' : '';
-    b.style.color = match ? 'var(--blue)' : '';
-  });
-
-  if (!append || wrDistState.district !== district) {
-    wrDistState = { district, items: [], total: 0, loading: true };
-    panel.innerHTML = '<div class="empty-state" style="padding:0.8rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>';
-  }
-  wrDistState.loading = true;
-
-  const offset = append ? wrDistState.items.length : 0;
-  const params = new URLSearchParams({ district, limit: 10, offset });
-  try {
-    const res = await fetch(`/api/district-news?${params}`, { cache: 'no-store' });
-    const payload = await res.json();
-    if (payload.error) throw new Error(payload.error);
-    wrDistState.items = append ? [...wrDistState.items, ...(payload.items || [])] : (payload.items || []);
-    wrDistState.total = payload.total ?? wrDistState.items.length;
-    renderWarRoomDistrictNews();
-  } catch (err) {
-    console.error('[WR-District] fetch error:', err);
-    panel.innerHTML = `<p style="font-size:.72rem;color:var(--red);margin:0;">${wrEscape(err.message)}</p>`;
-  } finally {
-    wrDistState.loading = false;
-  }
-}
-
-function renderWarRoomDistrictNews() {
-  const panel = document.getElementById('wr-livehindustan-panel');
-  if (!panel) return;
-  const { items, total, district } = wrDistState;
-  const label = district === 'all' ? 'Bihar (All Districts)' : district;
-
-  if (!items.length) {
-    panel.innerHTML = `<div class="empty-state" style="padding:0.8rem;"><div class="empty-state-icon">📭</div><p class="empty-state-text">No saved news for ${wrEscape(label)} yet. The daily District News pipeline will populate it.</p></div>`;
-    return;
-  }
-
-  panel.innerHTML = `
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-      <span style="font-size:0.78rem; font-weight:700; color:var(--blue);">📰 ${wrEscape(label)} — ${items.length}${total > items.length ? ` of ${total}` : ''} reports</span>
-    </div>
-    <div style="display:flex; flex-direction:column; gap:0.4rem; max-height:340px; overflow:auto;">
-      ${items.map((item, i) => {
-        const d = item.published_at ? new Date(item.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
-        return `<a href="${wrEscape(item.url || '#')}" target="_blank" rel="noopener noreferrer" style="display:block; padding:0.55rem 0.3rem; border-top:1px solid var(--border-subtle); color:var(--text-secondary); font-size:0.8rem; line-height:1.4; text-decoration:none;">
-          <span style="display:flex; gap:0.55rem;">
-            <b style="color:var(--blue); min-width:1.2rem;">${i + 1}</b>
-            <span>${wrEscape(item.title)}<small style="display:block; color:var(--text-muted); margin-top:0.2rem;">${wrEscape(item.district || 'Bihar')} · ${d} · Open ↗</small></span>
-          </span>
-        </a>`;
-      }).join('')}
-    </div>
-    ${total > items.length ? `<button class="btn btn-ghost btn-sm w-full" style="margin-top:0.5rem;" onclick="loadWarRoomDistrictNews('${wrDistState.district}', true)">Load more (${total - items.length} remaining)</button>` : ''}
-  `;
-}
+// (District buttons use loadWarRoomRss — direct Live Hindustan RSS feeds)
 
 
 async function loadWarRoomRss(source) {
@@ -1126,7 +1056,6 @@ window.filterByCategory = filterByCategory;
 window.filterByDistrict = filterByDistrict;
 window.loadMoreNews = loadMoreNews;
 window.loadMoreYoutube = loadMoreYoutube;
-window.loadWarRoomDistrictNews = loadWarRoomDistrictNews;
 window.loadWarRoomRss = loadWarRoomRss;
 window.toggleWarRoomRssSource = toggleWarRoomRssSource;
 window.toggleWarRoomRss = toggleWarRoomRss;
