@@ -5,6 +5,7 @@
 let isPriorityFilter = 'all';
 let isStatusFilter = 'all';
 let isDistrictFilter = 'all';
+let isKeywordFilter = '';
 let isCategoryChart = null;
 
 /* Districts with a Live Hindustan feed (kept in sync with
@@ -38,6 +39,7 @@ const isNewsState = { district: IS_NEWS_DEFAULT_DISTRICT, items: [], total: 0, l
 
 function initIssues() {
   populateDistrictFilter();
+  setupKeywordSearch();
   renderIssuesList(ISSUES_DATA);
   renderIssueDetail(ISSUES_DATA[0]);
   renderCategoryChart();
@@ -93,7 +95,22 @@ function loadDistrictNews(district, append = false) {
   }
 
   const offset = append ? isNewsState.items.length : 0;
-  fetch(`/api/district-news?district=${encodeURIComponent(target)}&limit=${IS_NEWS_PAGE_SIZE}&offset=${offset}`, { cache: 'no-store' })
+  
+  /* Keyword filter from search input */
+  const keywordEl = document.getElementById('is-keyword-search');
+  const keyword = (keywordEl?.value || '').trim();
+  
+  let urlParams = new URLSearchParams({
+    district: encodeURIComponent(target.toLowerCase() === 'bihar' ? '' : target),
+    limit: IS_NEWS_PAGE_SIZE,
+    offset: offset
+  });
+  
+  if (keyword && keyword.length >= 2) {
+    urlParams.append('keyword', keyword);
+  }
+  
+  fetch(`/api/district-news?${urlParams.toString()}`, { cache: 'no-store' })
     .then(res => res.json())
     .then(payload => {
       if (requestId !== isNewsState.requestId) return;
@@ -243,6 +260,28 @@ function selectIssue(id) {
 function showIssueDistrictNews(issue) {
   if (!issue.district || issue.district === 'Multiple') return;
   loadDistrictNews(newsDistrict(issue.district));
+}
+
+function setupKeywordSearch() {
+  const el = document.getElementById('is-keyword-search');
+  if (!el) return;
+  
+  let timeoutId = null;
+  el.addEventListener('input', () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      isNewsState.items = []; // reset items on new search
+      loadDistrictNews(isNewsState.district || IS_NEWS_DEFAULT_DISTRICT);
+    }, 300);
+  });
+  
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      isNewsState.items = [];
+      loadDistrictNews(isNewsState.district || IS_NEWS_DEFAULT_DISTRICT);
+    }
+  });
 }
 
 function renderIssueDetail(issue) {
