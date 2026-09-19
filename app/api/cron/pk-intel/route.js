@@ -30,7 +30,7 @@ const DISTRICT_COORDS = {
   patna: [25.5941, 85.1376], gaya: [24.7914, 84.9994], bhagalpur: [25.2425, 86.9842],
   muzaffarpur: [26.1197, 85.3910], darbhanga: [26.1542, 85.8918], ara: [25.5536, 84.6638],
   arrah: [25.5536, 84.6638], begusarai: [25.4167, 86.1292], biharsharif: [25.1969, 85.5178],
-  bihar sharif: [25.1969, 85.5178], nalande: [25.1969, 85.5178], buxar: [25.5695, 83.9739],
+  'bihar sharif': [25.1969, 85.5178], nalande: [25.1969, 85.5178], buxar: [25.5695, 83.9739],
   chapra: [25.7833, 84.7500], sarun: [25.7833, 84.7500], gopalganj: [26.4667, 84.4333],
   hajipur: [25.6873, 85.2140], jehanabad: [25.2167, 84.9833], jahanabad: [25.2167, 84.9833],
   siwan: [26.2196, 84.3567], aurangabad: [24.7520, 84.3742], bhabua: [25.0400, 83.6090],
@@ -40,11 +40,11 @@ const DISTRICT_COORDS = {
   madhepura: [25.9167, 86.7833], munger: [25.3717, 86.4739], purnia: [25.7771, 87.4750],
   purnea: [25.7771, 87.4750], saharsa: [25.8833, 86.6000], lakhisarai: [25.1667, 86.1000],
   jamui: [24.9167, 86.2167], supaul: [26.1167, 86.6000], madhubani: [26.3500, 86.0667],
-  bagaha: [27.1000, 84.1167], bettiah: [26.8000, 84.5000], west champaran: [26.8000, 84.5000],
-  motihari: [26.6500, 84.9167], east champaran: [26.6500, 84.9167], samastipur: [25.8667, 85.7833],
+  bagaha: [27.1000, 84.1167], bettiah: [26.8000, 84.5000], 'west champaran': [26.8000, 84.5000],
+  motihari: [26.6500, 84.9167], 'east champaran': [26.6500, 84.9167], samastipur: [25.8667, 85.7833],
   sitamarhi: [26.6000, 85.5000], sheohar: [26.5167, 85.3000], sheikhpura: [25.1400, 85.8400],
   shekhupura: [25.1400, 85.8400], vaishali: [25.6667, 85.4000], delhi: [28.6139, 77.2090],
-  new delhi: [28.6139, 77.2090], mumbai: [19.0760, 72.8777],
+  'new delhi': [28.6139, 77.2090], mumbai: [19.0760, 72.8777],
 };
 
 const SYSTEM_PROMPT = `
