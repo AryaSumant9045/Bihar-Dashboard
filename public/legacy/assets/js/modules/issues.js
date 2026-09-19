@@ -100,6 +100,8 @@ function loadDistrictNews(district, append = false) {
   const keywordEl = document.getElementById('is-keyword-search');
   const keyword = (keywordEl?.value || '').trim();
   
+  console.log('[Keyword Search] Target:', target, 'Keyword:', keyword || '(none)', 'Offset:', offset);
+  
   let urlParams = new URLSearchParams({
     district: encodeURIComponent(target.toLowerCase() === 'bihar' ? '' : target),
     limit: IS_NEWS_PAGE_SIZE,
@@ -110,11 +112,14 @@ function loadDistrictNews(district, append = false) {
     urlParams.append('keyword', keyword);
   }
   
+  console.log('[Keyword Search] Fetching:', `/api/district-news?${urlParams.toString()}`);
+  
   fetch(`/api/district-news?${urlParams.toString()}`, { cache: 'no-store' })
     .then(res => res.json())
     .then(payload => {
       if (requestId !== isNewsState.requestId) return;
       if (payload.error) throw new Error(payload.error);
+      console.log('[Keyword Search] Received payload:', payload);
       isNewsState.items = append ? [...isNewsState.items, ...(payload.items || [])] : (payload.items || []);
       isNewsState.total = payload.total ?? isNewsState.items.length;
       renderDistrictNews();

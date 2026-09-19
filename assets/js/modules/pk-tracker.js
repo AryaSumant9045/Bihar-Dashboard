@@ -4,6 +4,38 @@
 
 let pkMap = null;
 
+// Fallback data (used when /api/pk-intel returns no snapshot yet)
+const PK_DATA = {
+  profile: {
+    name: 'Prashant Kishor',
+    org: 'Jan Suraaj Party',
+    role: 'Founder & Leader',
+    currentFocus: 'Bihar Strategy',
+    lastSeen: '2 hours ago',
+    baseLocation: 'Patna',
+    threat: 'critical'
+  },
+  recentVisits: [
+    { district: 'Patna', lat: 25.6087, lng: 85.1396, purpose: 'Strategy meeting', date: 'Today' },
+    { district: 'Gaya', lat: 24.7579, lng: 85.0145, purpose: 'Alliance talks', date: 'Yesterday' },
+    { district: 'Muzaffarpur', lat: 26.1180, lng: 85.3938, purpose: 'Campaign event', date: '2 days ago' }
+  ],
+  activities: [
+    { type: 'meeting', title: 'High-level strategy session', summary: 'Discussed election roadmap with core team', time: '2 hours ago' },
+    { type: 'event', title: 'Rally preparation', summary: 'Finalized speaking points for upcoming events', time: '5 hours ago' },
+    { type: 'statement', title: 'Press briefing', summary: 'Issued statement on key policy priorities', time: '1 day ago' },
+    { type: 'social', title: 'Social media update', summary: 'Shared insights on grassroots mobilization', time: '1 day ago' }
+  ],
+  strategyCards: [
+    { title: 'Grassroots Mobilization', focus: 'high', desc: 'Building district-level organizational strength across all 38 districts' },
+    { title: 'Alliance Framework', focus: 'medium', desc: 'Exploring cooperative arrangements with compatible parties' }
+  ],
+  sentimentData: {
+    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    threatIndex: [65, 72, 78, 82]
+  }
+};
+
 function initPKTracker() {
   renderPKProfile();
   renderPKMap();

@@ -9,7 +9,8 @@ import { getSupabase } from '../../../lib/supabase.js';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const district = (searchParams.get('district') || 'all').toLowerCase();
+  const districtInput = (searchParams.get('district') || 'all');
+  const district = districtInput.toLowerCase();
   const keyword = (searchParams.get('keyword') || '').toLowerCase().trim();
   const limit = Math.min(Math.max(parseInt(searchParams.get('limit'), 10) || 5, 1), 50);
   const offset = Math.max(parseInt(searchParams.get('offset'), 10) || 0, 0);
@@ -25,17 +26,15 @@ export async function GET(request) {
     .order('published_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  /* District filter */
+  /* District filter — use case-insensitive matching for district column */
   if (district !== 'all') {
-    query = query.eq('district', district === 'bihar' ? null : district); // special case for Bihar state news
-  }
-
-  /* Keyword filter — match title containing keyword */
-  if (keyword.length >= 3) {
-    query = query.ilike('title', `%${keyword}%`);
-  } else if (district && district !== 'all') {
-    /* If no keyword but district specified, also search in title */
-    query = query.ilike('title', `%${district}%`);
+    const districtValue = district === 'bihar' ? null : districtInput; // preserve original case
+    // Use case-insensitive match: compare lower(district) == lower(input)
+    if (districtValue !== null) {
+      query = query.ilike('district', districtInput);
+    } else {
+      query = query.eq('district', null); // special case for Bihar state news
+    }
   }
 
   const { data, error, count } = await query;
