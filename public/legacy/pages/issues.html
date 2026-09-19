@@ -4,6 +4,7 @@
 
 <div class="page-header">
   <div class="page-header-left">
+    <button class="btn btn-ghost btn-sm" onclick="location.href='pages/login.html'" aria-label="Back to login page" style="align-self:flex-start;">← Back</button>
     <h1 class="page-module-title">📋 Issues &amp; Grievances</h1>
     <p class="page-module-subtitle">Track, assign &amp; resolve political and civic issues</p>
   </div>
@@ -14,7 +15,14 @@
 </div>
 
 <!-- Stat Row -->
-<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+<style>
+  @media (max-width:900px){
+    .stat-row-4.is-stat-row{grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:.6rem;}
+    .is-stat-row .stat-card{padding:.7rem .6rem;}
+    .is-stat-row .stat-icon{display:none;}
+  }
+</style>
+<div class="stat-row stat-row-4 is-stat-row" style="margin-bottom:1rem;">
   <div class="stat-card card-shine" style="--stat-accent:var(--text-muted);">
     <div class="stat-label">📋 Total Issues</div>
     <div class="stat-value" id="is-total">8</div>

@@ -33,6 +33,7 @@ let wrActionState = {};
 let wrGeminiRunning = false;
 
 const WR_ACTION_LABELS = { new: 'New', review: 'Review', assigned: 'Assigned', report: 'Report requested', monitor: 'Monitor', closed: 'Closed' };
+const WR_ACTION_LABELS_HI = { new: 'नया', review: 'समीक्षा', assigned: 'सौंपा गया', report: 'रिपोर्ट अनुरोधित', monitor: 'मॉनिटर', closed: 'बंद' };
 
 function wrEscape(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[char]);
@@ -43,7 +44,8 @@ function wrTimeAgo(value) {
   if (Number.isNaN(date.getTime())) return 'Recently';
   const seconds = Math.round((date.getTime() - Date.now()) / 1000);
   const [unit, size] = Math.abs(seconds) < 60 ? ['second', 1] : Math.abs(seconds) < 3600 ? ['minute', 60] : Math.abs(seconds) < 86400 ? ['hour', 3600] : ['day', 86400];
-  return new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(Math.round(seconds / size), unit);
+  const locale = wrIsHi() ? 'hi-IN-u-nu-latn' : 'en';
+  return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(Math.round(seconds / size), unit);
 }
 
 function wrCategory(item) {
@@ -140,6 +142,107 @@ function wrNormalise(item) {
     level: wrLevel(item),
     tags: wrTags(item)
   };
+}
+
+/* ── Hindi news translation (server AI + localStorage cache) ── */
+const WR_TR_LS_KEY = 'bcc_wr_tr_v1';
+let wrTrCache = (() => {
+  try { return JSON.parse(localStorage.getItem(WR_TR_LS_KEY)) || {}; } catch { return {}; }
+})();
+
+function wrIsHi() {
+  return typeof window.getLang === 'function' && window.getLang() === 'hi';
+}
+
+function wrT(en, hi) {
+  return wrIsHi() ? hi : en;
+}
+
+function wrTitle(item) {
+  if (wrIsHi()) {
+    const tr = wrTrCache[item.id];
+    if (tr && tr.t && tr.st === item.title) return tr.t;
+  }
+  return item.title;
+}
+
+function wrLocSummary(item, best) {
+  if (!best || !wrIsHi()) return best;
+  const tr = wrTrCache[item.id];
+  return tr && tr.s && tr.ss === best ? tr.s : best;
+}
+
+function wrLocBody(item) {
+  if (!wrIsHi()) return item.body;
+  const tr = wrTrCache[item.id];
+  return tr && tr.b && tr.sb === item.body ? tr.b : item.body;
+}
+
+function wrTrSave() {
+  try {
+    const ids = Object.keys(wrTrCache);
+    if (ids.length > 200) for (const id of ids.slice(0, ids.length - 200)) delete wrTrCache[id];
+    localStorage.setItem(WR_TR_LS_KEY, JSON.stringify(wrTrCache));
+  } catch { /* storage full — cache simply won't persist */ }
+}
+
+async function wrLoadTranslations(items, includeBody) {
+  if (!wrIsHi() || !items.length) return false;
+  let changed = false;
+  for (let batch = 0; batch < 5; batch++) {
+    const pending = [];
+    for (const item of items) {
+      const best = wrBestSummary(item);
+      const tr = wrTrCache[item.id];
+      const titleOk = tr && tr.t && tr.st === item.title;
+      const summaryOk = !best || (tr && tr.s && tr.ss === best);
+      const bodyOk = !includeBody || !item.body || (tr && tr.b && tr.sb === item.body);
+      if (titleOk && summaryOk && bodyOk) continue;
+      pending.push({ id: String(item.id), title: item.title, summary: best || '', body: includeBody ? (item.body || '') : '' });
+      if (pending.length >= 12) break;
+    }
+    if (!pending.length) break;
+    try {
+      const res = await fetch('/api/translate-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: pending }),
+        cache: 'no-store'
+      });
+      if (!res.ok) break;
+      const payload = await res.json();
+      const translations = payload.translations || {};
+      let batchChanged = false;
+      for (const p of pending) {
+        const t = translations[p.id];
+        if (!t || !t.title) continue;
+        const prev = wrTrCache[p.id] || {};
+        wrTrCache[p.id] = {
+          t: t.title,
+          s: p.summary ? (t.summary || null) : (prev.s || null),
+          b: p.body ? (t.body || null) : (prev.b || null),
+          st: p.title,
+          ss: p.summary || null,
+          sb: p.body || prev.sb || null
+        };
+        batchChanged = true;
+      }
+      if (!batchChanged) break;
+      changed = true;
+      wrTrSave();
+      wrRerenderNews();
+    } catch (err) {
+      console.error('[WR-translate] fetch error:', err);
+      break;
+    }
+  }
+  return changed;
+}
+
+function wrRerenderNews() {
+  renderTicker();
+  renderTopAttention();
+  applyFilters();
 }
 
 /* ── AI Executive Summary Feed ─────────────────────────────── */
@@ -426,6 +529,11 @@ function initWarRoom() {
   loadIntelligenceSummary();     // NEW — load pipeline summary first
   startSummaryAutoRefresh();     // NEW — auto-refresh every 5 min
   connectWarRoom();
+  window.addEventListener('bcc:langchange', () => {
+    if (!wrAllNews.length) return;
+    if (wrIsHi()) wrLoadTranslations(wrAllNews, false).then(() => wrRerenderNews());
+    else wrRerenderNews();
+  });
   // Note: loadAnalyzedSummaries() is now on-demand only (via ↻ Refresh button)
 }
 
@@ -564,6 +672,7 @@ async function connectWarRoom() {
       renderThreatGauge();
       renderCategoryChart();
       setupSearch();
+      wrLoadTranslations(wrAllNews, false).then(changed => { if (changed) wrRerenderNews(); });
     } else {
       throw new Error('API returned failure status');
     }
@@ -577,14 +686,14 @@ function renderActionCentre() {
   const count = document.getElementById('wr-action-summary-count');
   if (!summary || !count) return;
   const openItems = wrAllNews.filter(item => getAlertAction(item.id) !== 'closed');
-  count.textContent = `${openItems.length} open`;
+  count.textContent = wrT(`${openItems.length} open`, `${openItems.length} खुले`);
   if (!openItems.length) { summary.textContent = 'No open actions.'; return; }
   const grouped = openItems.reduce((result, item) => {
     const status = getAlertAction(item.id);
     result[status] = (result[status] || 0) + 1;
     return result;
   }, {});
-  summary.innerHTML = Object.entries(grouped).map(([status, total]) => `<span class="tag ${status === 'review' || status === 'report' ? 'tag-red' : 'tag-blue'}">${wrEscape(WR_ACTION_LABELS[status])}: ${total}</span>`).join('');
+  summary.innerHTML = Object.entries(grouped).map(([status, total]) => `<span class="tag ${status === 'review' || status === 'report' ? 'tag-red' : 'tag-blue'}">${wrEscape(wrT(WR_ACTION_LABELS[status], WR_ACTION_LABELS_HI[status]))}: ${total}</span>`).join('');
 }
 
 function renderTopAttention() {
@@ -606,11 +715,11 @@ function renderTopAttention() {
     const bestSummary = wrBestSummary(item);
     const districtLabel = /multiple/i.test(item.district || '') ? '🌐 All Sources' : `📍 ${item.district}`;
     const summaryBlock = bestSummary
-      ? `<div style="margin-top:.45rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5;margin-top:.2rem;">${wrEscape(bestSummary)}</div></div>`
+      ? `<div style="margin-top:.45rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.75rem;color:var(--text-secondary);line-height:1.5;margin-top:.2rem;">${wrEscape(wrLocSummary(item, bestSummary))}</div></div>`
       : `<div style="margin-top:.4rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
     return `<article style="padding:.85rem;border:1px solid ${level.color}44;border-left:3px solid ${level.color};border-radius:var(--radius-md);background:var(--glass-bg);animation:slideInUp .3s ease both;animation-delay:${index * .05}s;">
       <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start;"><span style="font-size:.68rem;font-weight:800;color:${level.color};">${index + 1}. ${level.label}</span><span style="font-size:.65rem;color:var(--text-muted);">${wrTimeAgo(item.created_at)}</span></div>
-      <div style="font-size:.82rem;font-weight:700;line-height:1.35;margin-top:.55rem;">${wrEscape(item.title)}</div>
+      <div style="font-size:.82rem;font-weight:700;line-height:1.35;margin-top:.55rem;">${wrEscape(wrTitle(item))}</div>
       ${summaryBlock}
       <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem;"><span class="tag">${wrEscape(districtLabel)}</span></div>
       <div style="display:flex;gap:.4rem;margin-top:.7rem;align-items:center;">${item.url ? `<a class="btn btn-ghost btn-sm" href="${wrEscape(item.url)}" target="_blank" rel="noopener noreferrer">Source ↗</a>` : ''}<button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div>
@@ -640,7 +749,7 @@ async function filterByDistrict() {
 function renderTicker() {
   const el = document.getElementById('wr-ticker-content');
   if (!el) return;
-  const titles = wrAllNews.slice(0, 8).map(item => `📡 ${item.title}`);
+  const titles = wrAllNews.slice(0, 8).map(item => `📡 ${wrTitle(item)}`);
   el.innerHTML = [...titles, ...titles].map(title => `<span class="ticker-item">${wrEscape(title)}</span>`).join('') || '<span class="ticker-item">Waiting for live political news…</span>';
 }
 
@@ -698,7 +807,7 @@ function renderYoutubeChannel(videos, channelIndex) {
     const level = WR_LEVEL_CONFIG[item.level] || WR_LEVEL_CONFIG.watch;
     const bestSummary = wrBestSummary(item);
     const summaryBlock = bestSummary
-      ? '<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">' + wrEscape(bestSummary) + '</div></div>'
+      ? '<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">' + wrEscape(wrLocSummary(item, bestSummary)) + '</div></div>'
       : '<div style="margin-top:.3rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>';
     
     const tagsHTML = (item.tags || []).map(tag => '<span class="tag">' + wrEscape(tag) + '</span>').join('');
@@ -707,7 +816,7 @@ function renderYoutubeChannel(videos, channelIndex) {
     return '<article class="card card-shine" style="border-left:4px solid ' + level.color + '; animation:slideInUp .3s ease both; animation-delay:' + (index * 0.04) + 's;">' +
       '<div class="card-content-wrapper"><div style="min-width:0;flex:1;">' +
       '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:' + level.dim + ';border:1px solid ' + level.color + '44;border-radius:999px;color:' + level.color + ';font-size:.65rem;font-weight:700;">' + level.label + '</span><span class="tag tag-blue">' + wrEscape(item.category || 'Media') + '</span><span class="tag">📍 ' + wrEscape(item.district || 'Bihar') + '</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ' + wrEscape(item.source) + '</span></div>' +
-      '<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">' + wrEscape(item.title) + '</div>' +
+      '<div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">' + wrEscape(wrTitle(item)) + '</div>' +
       summaryBlock +
       '<div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">' + tagsHTML + '<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ' + wrTimeAgo(item.created_at) + '</span></div>' +
       '</div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">' + watchLink + '<button class="btn btn-ghost btn-sm" onclick="openAlertDetail(\'' + wrEscape(item.id) + '\')">Details</button></div></div></article>';
@@ -715,7 +824,7 @@ function renderYoutubeChannel(videos, channelIndex) {
 
   let moreVideosBtn = '';
   if (videos.length > visibleCount) {
-    moreVideosBtn = `<button class="btn btn-ghost" style="align-self:center;margin-top:.5rem;" onclick="loadMoreYoutubeVideos('${wrEscape(source)}')">See more YT news (${Math.min(visibleCount + 5, videos.length)}/${videos.length})</button>`;
+    moreVideosBtn = `<button class="btn btn-ghost" style="align-self:center;margin-top:.5rem;" onclick="loadMoreYoutubeVideos('${wrEscape(source)}')">${wrT(`See more YT news (${Math.min(visibleCount + 5, videos.length)}/${videos.length})`, `और YT खबरें देखें (${Math.min(visibleCount + 5, videos.length)}/${videos.length})`)}</button>`;
   }
 
   // Open all channels by default
@@ -755,16 +864,16 @@ function renderAlerts(data) {
       const action = getAlertAction(item.id);
       const bestSummary = wrBestSummary(item);
       const summaryBlock = bestSummary
-        ? `<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">${wrEscape(bestSummary)}</div></div>`
+        ? `<div style="margin-top:.35rem;"><span style="font-size:.6rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;">Executive Summary</span><div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;margin-top:.15rem;">${wrEscape(wrLocSummary(item, bestSummary))}</div></div>`
         : `<div style="margin-top:.3rem;font-size:.65rem;color:var(--text-muted);font-style:italic;">🔄 Gemini analysis pending</div>`;
-      return `<article class="card card-shine" style="border-left:4px solid ${level.color}; animation:slideInUp .3s ease both; animation-delay:${index * .04}s;">
+      return `<article class="card card-shine" onclick="wrOpenCard('${wrEscape(item.id)}')" style="cursor:pointer; border-left:4px solid ${level.color}; animation:slideInUp .3s ease both; animation-delay:${index * .04}s;">
         <div class="card-content-wrapper"><div style="min-width:0;flex:1;">
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:${level.dim};border:1px solid ${level.color}44;border-radius:999px;color:${level.color};font-size:.65rem;font-weight:700;">${level.label}</span><span class="tag tag-blue">${wrEscape(item.category)}</span><span class="tag">📍 ${wrEscape(item.district)}</span><span class="tag" style="border-color:var(--primary);color:var(--primary-light);">📡 ${wrEscape(item.source)}</span></div>
-          <div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">${wrEscape(item.title)}</div>
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.45rem;"><span style="padding:.2rem .55rem;background:${level.dim};border:1px solid ${level.color}44;border-radius:999px;color:${level.color};font-size:.65rem;font-weight:700;">${level.label}</span><span class="tag tag-blue">${wrEscape(item.category)}</span><span class="tag">📍 ${wrEscape(wrDistrictLabel(item.district))}</span></div>
+          <div style="font-size:.9rem;font-weight:700;line-height:1.35;margin-top:.4rem;">${wrEscape(wrTitle(item))}</div>
           ${summaryBlock}
           <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.55rem;">${item.tags.map(tag => `<span class="tag">${wrEscape(tag)}</span>`).join('')}<span style="margin-left:auto;font-size:.68rem;color:var(--text-muted);">🕐 ${wrTimeAgo(item.created_at)}</span></div>
-        </div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;"><select class="select-dropdown" style="max-width:9rem;font-size:.7rem;" aria-label="Action status" onchange="updateAlertAction('${wrEscape(item.id)}', this.value)">${Object.entries(WR_ACTION_LABELS).map(([value, label]) => `<option value="${value}"${action === value ? ' selected' : ''}>${label}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" onclick="openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
-    }).join('') + (sortedNews.length > wrNewsVisibleCount ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="loadMoreNews()">Read more ${Math.min(wrNewsVisibleCount + 4, sortedNews.length)}/${sortedNews.length} news</button>` : '');
+        </div><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;" onclick="event.stopPropagation();"><select class="select-dropdown" style="max-width:9rem;font-size:.7rem;" aria-label="Action status" onchange="updateAlertAction('${wrEscape(item.id)}', this.value)">${Object.entries(WR_ACTION_LABELS).map(([value, label]) => `<option value="${value}"${action === value ? ' selected' : ''}>${wrT(label, WR_ACTION_LABELS_HI[value])}</option>`).join('')}</select><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openAlertDetail('${wrEscape(item.id)}')">Details</button></div></div></article>`;
+    }).join('') + (sortedNews.length > wrNewsVisibleCount ? `<button class="btn btn-ghost" style="align-self:center;margin-top:.25rem;" onclick="loadMoreNews()">${wrT(`Read more ${Math.min(wrNewsVisibleCount + 4, sortedNews.length)}/${sortedNews.length} news`, `और पढ़ें ${Math.min(wrNewsVisibleCount + 4, sortedNews.length)}/${sortedNews.length} खबरें`)}</button>` : '');
   }
 
   if (ytGrid) {
@@ -909,11 +1018,23 @@ function toggleWarRoomRss() {
   renderWarRoomRss(wrRssSourceName);
 }
 
-function openAlertDetail(id) {
+function wrDistrictLabel(district) {
+  return /multiple/i.test(district || '') ? 'Bihar' : (district || 'General');
+}
+
+function wrOpenCard(id) {
+  const item = (wrDisplayedNews.find(n => String(n.id) === String(id)) ||
+                wrAllNews.find(n => String(n.id) === String(id)));
+  if (item && item.url) window.open(item.url, '_blank', 'noopener,noreferrer');
+  else openAlertDetail(id);
+}
+
+async function openAlertDetail(id) {
   const item = wrDisplayedNews.find(news => String(news.id) === String(id));
   if (!item) return;
-  const bestSum=wrBestSummary(item);const insightHtml=bestSum?`<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(245,197,24,0.1);border-left:4px solid var(--gold);border-radius:4px;"><strong style="color:var(--gold);font-size:0.8rem;text-transform:uppercase;">Executive Insight</strong><p style="margin:0.25rem 0 0 0;font-size:0.9rem;line-height:1.5;">${wrEscape(bestSum)}</p></div>`:"";
-  openModal(`${insightHtml}<p style="line-height:1.7;color:var(--text-secondary);">${wrEscape(item.body)}</p><p style="font-size:.78rem;color:var(--text-muted);">📍 ${wrEscape(item.district)} · 📡 ${wrEscape(item.source)} · ${wrTimeAgo(item.created_at)}</p>`, wrEscape(item.title));
+  await wrLoadTranslations([item], true);
+  const bestSum=wrLocSummary(item, wrBestSummary(item));const insightHtml=bestSum?`<div style="margin-bottom:1rem;padding:0.75rem;background:rgba(245,197,24,0.1);border-left:4px solid var(--gold);border-radius:4px;"><strong style="color:var(--gold);font-size:0.8rem;text-transform:uppercase;">Executive Insight</strong><p style="margin:0.25rem 0 0 0;font-size:0.9rem;line-height:1.5;">${wrEscape(bestSum)}</p></div>`:"";
+  openModal(`${insightHtml}<p style="line-height:1.7;color:var(--text-secondary);">${wrEscape(wrLocBody(item))}</p><p style="font-size:.78rem;color:var(--text-muted);">📍 ${wrEscape(wrDistrictLabel(item.district))} · ${wrTimeAgo(item.created_at)}</p>`, wrEscape(wrTitle(item)));
 }
 
 function renderWarRoomError(message) {
@@ -926,6 +1047,7 @@ function renderWarRoomError(message) {
 }
 
 window.openAlertDetail = openAlertDetail;
+window.wrOpenCard = wrOpenCard;
 window.filterByLevel = filterByLevel;
 window.filterByCategory = filterByCategory;
 window.filterByDistrict = filterByDistrict;

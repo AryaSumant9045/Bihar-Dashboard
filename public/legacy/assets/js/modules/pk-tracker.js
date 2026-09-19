@@ -16,7 +16,7 @@ function initPKTracker() {
   loadPKInstagramFeed();
   loadPKFetchRssFeed();
   loadPKXFeed();
-  loadPKJanSuraajOfficial();
+  loadPKJanSuraajYouTube();
   loadPKIntel(); // overlay live AI snapshot (activity log, strategy, map, social)
 }
 
@@ -265,62 +265,35 @@ function renderPKReachChart() {
   });
 }
 
-// ── Jan Suraaj Official Website (jansuraaj.org) ──────────────────────────
-function loadPKJanSuraajOfficial() {
-  const pressGrid = document.getElementById('pk-js-press-grid');
-  const interviewList = document.getElementById('pk-js-interview-list');
-  if (!pressGrid && !interviewList) return;
-
-  fetch('/api/jansuraaj', { cache: 'no-store' })
+// ── Jan Suraaj YouTube (official channel RSS: videos + live) ──────────────
+function loadPKJanSuraajYouTube() {
+  const grid = document.getElementById('pk-yt-grid');
+  if (!grid) return;
+  fetch('/api/jansuraaj-youtube?limit=8', { cache: 'no-store' })
     .then(res => res.json())
     .then(payload => {
-      const press = payload.press || [];
-      const interviews = payload.interviews || [];
-
-      if (pressGrid) {
-        if (!press.length) {
-          pressGrid.innerHTML = '<div class="pk-news-empty">No official press releases available right now.</div>';
-        } else {
-          pressGrid.innerHTML = press.slice(0, 6).map(item => `
-            <article style="display:flex; flex-direction:column; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.2); border-radius:var(--radius-sm); overflow:hidden; transition:border-color 0.2s;">
-              ${item.imageUrl
-                ? `<img src="${escapePKNewsValue(item.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none'"
-                      style="width:100%; height:130px; object-fit:cover; border-bottom:1px solid rgba(255,159,67,0.25);">`
-                : '<div style="height:60px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; background:rgba(255,159,67,0.08);">📢</div>'}
-              <div style="padding:0.7rem; display:flex; flex-direction:column; gap:0.45rem; flex:1;">
-                <div style="font-size:0.8rem; font-weight:600; color:var(--text-primary); line-height:1.4;">${escapePKNewsValue(item.title)}</div>
-                ${item.excerpt ? `<div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.45;">${escapePKNewsValue(item.excerpt)}…</div>` : ''}
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.68rem; color:var(--text-muted); margin-top:auto;">
-                  <span>${item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Latest'}</span>
-                  <a href="${escapePKNewsValue(item.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration:none;">Read ↗</a>
-                </div>
-              </div>
-            </article>`).join('');
-        }
+      const videos = payload.videos || [];
+      if (!videos.length) {
+        grid.innerHTML = '<div class="pk-news-empty">No YouTube videos available right now.</div>';
+        return;
       }
-
-      if (interviewList) {
-        if (!interviews.length) {
-          interviewList.innerHTML = '<div class="pk-news-empty">No interviews available right now.</div>';
-        } else {
-          interviewList.innerHTML = interviews.slice(0, 4).map(item => `
-            <div style="display:flex; gap:0.6rem; align-items:center; padding:0.55rem 0.7rem; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.15); border-radius:var(--radius-sm);">
-              ${item.imageUrl
-                ? `<img src="${escapePKNewsValue(item.imageUrl)}" alt="" loading="lazy" onerror="this.style.display='none'"
-                      style="width:64px; height:44px; object-fit:cover; border-radius:6px; flex-shrink:0;">`
-                : '<div style="width:64px; height:44px; display:flex; align-items:center; justify-content:center; background:rgba(255,159,67,0.08); border-radius:6px; flex-shrink:0;">🎙</div>'}
-              <div style="flex:1; min-width:0;">
-                <div style="font-size:0.78rem; font-weight:600; color:var(--text-primary); line-height:1.35; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapePKNewsValue(item.title)}</div>
-                <div style="font-size:0.66rem; color:var(--text-muted); margin-top:0.15rem;">${item.date ? new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</div>
-              </div>
-              <a href="${escapePKNewsValue(item.url)}" target="_blank" rel="noopener noreferrer" style="color:var(--amber); text-decoration:none; font-size:0.7rem; flex-shrink:0;">Watch ↗</a>
-            </div>`).join('');
-        }
-      }
+      grid.innerHTML = videos.map(v => `
+        <a href="${escapePKNewsValue(v.url)}" target="_blank" rel="noopener noreferrer"
+           style="display:flex; flex-direction:column; background:var(--glass-bg); border:1px solid rgba(255,159,67,0.2); border-radius:var(--radius-sm); overflow:hidden; text-decoration:none; transition:border-color 0.2s;">
+          <div style="position:relative;">
+            ${v.thumbnail ? `<img src="${escapePKNewsValue(v.thumbnail)}" alt="" loading="lazy" onerror="this.style.display='none'" style="width:100%; height:130px; object-fit:cover; border-bottom:1px solid rgba(255,159,67,0.25);">` : ''}
+            <span style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.78); color:#fff; font-size:0.6rem; font-weight:700; padding:0.12rem 0.4rem; border-radius:4px;">▶ Watch</span>
+          </div>
+          <div style="padding:0.7rem; display:flex; flex-direction:column; gap:0.4rem; flex:1;">
+            <div style="font-size:0.8rem; font-weight:600; color:var(--text-primary); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapePKNewsValue(v.title)}</div>
+            ${v.excerpt ? `<div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapePKNewsValue(v.excerpt)}</div>` : ''}
+            <div style="font-size:0.66rem; color:var(--text-muted); margin-top:auto;">${v.published ? new Date(v.published).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Latest'}</div>
+          </div>
+        </a>`).join('');
     })
     .catch(err => {
-      console.error('[PK-JanSuraaj] fetch error:', err);
-      if (pressGrid) pressGrid.innerHTML = '<div class="pk-news-empty">Jan Suraaj official site is temporarily unavailable.</div>';
+      console.error('[PK-YouTube] fetch error:', err);
+      grid.innerHTML = '<div class="pk-news-empty">YouTube feed is temporarily unavailable.</div>';
     });
 }
 

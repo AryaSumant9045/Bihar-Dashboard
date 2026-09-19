@@ -169,6 +169,18 @@
 
     // ── Jan Suraaj official (jansuraaj.org) + District News ──
     ['🟠 Jan Suraaj Official — jansuraaj.org', '🟠 जन सुराज आधिकारिक — jansuraaj.org'],
+    ["Jan Suraaj's official website — press releases, interviews & latest updates", 'जन सुराज की आधिकारिक वेबसाइट — प्रेस रिलीज़, इंटरव्यू और ताज़ा अपडेट'],
+    ['🌐 Visit jansuraaj.org ↗', '🌐 jansuraaj.org पर जाएँ ↗'],
+
+    // ── Jan Suraaj YouTube (videos & live) ──
+    ['▶️ Jan Suraaj YouTube — Videos & Live', '▶️ जन सुराज यूट्यूब — वीडियो और लाइव'],
+    ['Latest videos & live streams from the official Jan Suraaj YouTube channel', 'आधिकारिक जन सुराज यूट्यूब चैनल से ताज़ा वीडियो और लाइव स्ट्रीम'],
+    ['Loading YouTube videos...', 'यूट्यूब वीडियो लोड हो रहे हैं...'],
+    ['No YouTube videos available right now.', 'अभी कोई यूट्यूब वीडियो उपलब्ध नहीं है।'],
+    ['YouTube feed is temporarily unavailable.', 'यूट्यूब फ़ीड अस्थायी रूप से अनुपलब्ध है।'],
+    ['Watch', 'देखें'],
+    ['▶ Watch', '▶ देखें'],
+    ['← Back', '← वापस'],
     ["Press releases & interviews from Jan Suraaj's official website", 'जन सुराज की आधिकारिक वेबसाइट से प्रेस रिलीज़ और इंटरव्यू'],
     ['🎙 Interviews / Speeches', '🎙 इंटरव्यू / भाषण'],
     ['Loading official updates...', 'आधिकारिक अपडेट लोड हो रहे हैं...'],
@@ -205,6 +217,35 @@
 
     // ── War Room / Home / other cards ──
     ['🚨 Breaking News & War Room', '🚨 ब्रेकिंग न्यूज़ और वॉर रूम'],
+
+    // ── War Room news card labels ──
+    ['Executive Summary', 'एग्ज़ीक्यूटिव सारांश'],
+    ['Executive Insight', 'एग्ज़ीक्यूटिव इनसाइट'],
+    ['Details', 'विवरण'],
+    ['Source ↗', 'स्रोत ↗'],
+    ['🔴 CRITICAL', '🔴 क्रिटिकल'],
+    ['🟠 DEVELOPING', '🟠 डेवलपिंग'],
+    ['🟡 WATCH', '🟡 वॉच'],
+    ['🟢 ROUTINE', '🟢 रूटीन'],
+    ['New', 'नया'],
+    ['Review', 'समीक्षा'],
+    ['Assigned', 'सौंपा गया'],
+    ['Report requested', 'रिपोर्ट अनुरोधित'],
+    ['Monitor', 'मॉनिटर'],
+    ['Closed', 'बंद'],
+    ['🔄 Gemini analysis pending', '🔄 Gemini विश्लेषण बाकी'],
+    ['Political', 'राजनीतिक'],
+    ['Opposition', 'विपक्ष'],
+    ['Media', 'मीडिया'],
+    ['Economy', 'अर्थव्यवस्था'],
+    ['Law & Order', 'कानून और व्यवस्था'],
+    ['Flood & Disaster', 'बाढ़ और आपदा'],
+    ['Recently', 'हाल ही में'],
+    ['No priority developments available.', 'कोई प्राथमिकता वाली घटनाक्रम उपलब्ध नहीं।'],
+    ['No News Alerts', 'कोई न्यूज़ अलर्ट नहीं'],
+    ['No live news matches these filters.', 'इन फ़िल्टर से कोई लाइव न्यूज़ मेल नहीं खाती।'],
+    ['Waiting for live political news…', 'लाइव राजनीतिक न्यूज़ की प्रतीक्षा है…'],
+    ['No open actions.', 'कोई खुली कार्रवाई नहीं।'],
     ['🚨 Top 3 Requiring Attention', '🚨 ध्यान देने योग्य टॉप 3'],
     ['⚡ Alert Summary', '⚡ अलर्ट समरी'],
     ['⚡ Quick Actions', '⚡ क्विक एक्शन्स'],
@@ -417,7 +458,7 @@
     btn.id = 'bcc-lang-toggle';
     btn.title = 'Language / भाषा बदलें';
     btn.setAttribute('aria-label', 'Toggle language');
-    btn.style.cssText = 'position:fixed;right:18px;bottom:18px;z-index:9999;padding:.5rem .95rem;' +
+    btn.style.cssText = 'position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:9999;padding:.5rem .95rem;' +
       'border-radius:999px;border:1px solid rgba(255,255,255,.22);background:#0f1829;color:#e8edf8;' +
       'font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.55);';
     btn.addEventListener('click', () => window.toggleLang());
@@ -429,6 +470,7 @@
     localStorage.setItem(LS_KEY, lang);
     translateRoot(document.body);
     updateToggle();
+    window.dispatchEvent(new CustomEvent('bcc:langchange', { detail: { lang } }));
   }
 
   window.toggleLang = () => setLang(getLang() === 'hi' ? 'en' : 'hi');

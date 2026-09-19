@@ -181,7 +181,15 @@
 
 
 <!-- 4-Level Alert Stat Row -->
-<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+<style>
+  /* Phones: keep the 4 status cards as a 2x2 grid (2 per row) instead of stacking */
+  @media (max-width: 900px) {
+    .stat-row-4.wr-stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: .6rem; }
+    .wr-stat-row .stat-card { padding: .7rem .6rem; }
+    .wr-stat-row .stat-icon { display: none; }
+  }
+</style>
+<div class="stat-row stat-row-4 wr-stat-row" style="margin-bottom:1rem;">
   <div class="stat-card card-shine" id="wr-level-critical" style="cursor:pointer; border-color:rgba(230,57,70,0.35);"
     onclick="filterByLevel('critical')">
     <div class="stat-label">🔴 Critical</div>
@@ -284,7 +292,7 @@
     <div
       style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.65rem; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:0.5rem;">
       <span style="font-size:1rem;">📡</span>
-      <h2 style="font-size:1rem; color:var(--text-primary); margin:0;">NewsData.io Alerts</h2>
+      <h2 style="font-size:1rem; color:var(--text-primary); margin:0;">Live Alerts</h2>
     </div>
     <div id="wr-alerts-grid" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
 

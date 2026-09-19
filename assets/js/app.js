@@ -269,7 +269,7 @@ window.AppState    = AppState;
     btn.id = 'bcc-theme-toggle';
     btn.title = 'Theme बदलें / Toggle theme';
     btn.setAttribute('aria-label', 'Toggle light or dark theme');
-    btn.style.cssText = 'position:fixed;right:18px;bottom:64px;z-index:9999;padding:.5rem .95rem;' +
+    btn.style.cssText = 'position:fixed;right:18px;bottom:calc(64px + env(safe-area-inset-bottom, 0px));z-index:9999;padding:.5rem .95rem;' +
       'border-radius:999px;border:1px solid var(--border-strong);background:var(--bg-elevated);' +
       'color:var(--text-primary);font-size:.8rem;font-weight:700;cursor:pointer;' +
       'box-shadow:0 8px 24px rgba(0,0,0,.35);';
