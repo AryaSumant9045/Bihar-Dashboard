@@ -75,3 +75,26 @@
 </div>
 
 <section class="card" style="padding:0;margin-top:1rem;overflow:hidden;"><div style="padding:.85rem 1rem;border-bottom:1px solid var(--border-subtle);"><div class="card-title">📋 All-district live breakdown</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">News volume, alert severity and seat context — click any row for details</div></div><div style="overflow:auto;max-height:420px;"><table class="data-table pm-table" style="width:100%;"><thead><tr><th>District</th><th>Live news</th><th style="color:var(--red);">Critical</th><th style="color:#ff9f43;">Developing</th><th style="color:var(--gold);">Watch</th><th>BJP</th><th>JDU</th><th>RJD</th><th>Seats</th></tr></thead><tbody id="pm-district-tbody"></tbody></table></div></section>
+
+<!-- District News Section -- Live Hindustan feeds -->
+<section class="card" style="margin-top:1rem;border-color:rgba(74,158,255,0.25);">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;flex-wrap:wrap;">
+    <div>
+      <div class="card-title" style="margin:0;" id="pm-district-news-title">📰 Bihar State News</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Latest from all districts — filter below</div>
+    </div>
+    <span class="tag tag-blue" id="pm-district-news-count" style="display:none;"></span>
+  </div>
+  
+  <!-- Filter Bar for District News -->
+  <div style="display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;padding:.5rem 0;">
+    <select class="select-dropdown" id="pm-news-district-select" style="min-width:160px;">
+      <option value="all">All Districts</option>
+    </select>
+    <input type="text" class="search-input" id="pm-keyword-search" placeholder="🔍 Search in title..." style="margin-left:auto;width:240px;" />
+  </div>
+  
+  <div id="pm-district-news-list" style="display:flex;flex-direction:column;gap:.55rem;">
+    <div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>
+  </div>
+</section>
