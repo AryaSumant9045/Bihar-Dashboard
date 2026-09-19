@@ -37,16 +37,56 @@ const IS_NEWS_PAGE_SIZE = 5;
 
 const isNewsState = { district: IS_NEWS_DEFAULT_DISTRICT, items: [], total: 0, loading: false, requestId: 0 };
 
+/* Live issues pulled from Supabase (populated by /api/cron/issues-pipeline).
+   Falls back to the static ISSUES_DATA mock when the table is empty/unreachable. */
+let ISSUES_LIVE = [];
+let isLiveData = false;
+
+function activeIssues() {
+  return isLiveData && ISSUES_LIVE.length ? ISSUES_LIVE : (typeof ISSUES_DATA !== 'undefined' ? ISSUES_DATA : []);
+}
+
 function initIssues() {
   populateDistrictFilter();
   setupKeywordSearch();
-  renderIssuesList(ISSUES_DATA);
-  renderIssueDetail(ISSUES_DATA[0]);
-  renderCategoryChart();
-  renderDistrictBreakdown();
-  updateIssueCounts(ISSUES_DATA);
   setupIssueFilters();
+  const list = document.getElementById('is-list');
+  if (list) list.innerHTML = '<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading live issues…</p></div>';
+  loadLiveIssues().then(() => {
+    renderIssuesList(activeIssues());
+    renderIssueDetail(activeIssues()[0]);
+    renderCategoryChart();
+    renderDistrictBreakdown();
+    updateIssueCounts(activeIssues());
+  });
   loadDistrictNews(isDistrictFilter);
+}
+
+/* ── Live Issues (issues table ← AI pipeline over district_news) ── */
+function loadLiveIssues() {
+  return fetch('/api/issues', { cache: 'no-store' })
+    .then(res => res.json())
+    .then(payload => {
+      if (!payload || !payload.has_data || !Array.isArray(payload.items) || !payload.items.length) return;
+      ISSUES_LIVE = payload.items.map(it => ({
+        id: it.id,
+        title: it.title,
+        category: it.category,
+        priority: it.priority,
+        status: it.status,
+        district: it.district,
+        date: it.date,
+        description: it.description,
+        reportedBy: it.reported_by || 'Media Report',
+        assignedTo: it.assigned_to || null,
+        sourceUrl: it.source_url || null,
+      }));
+      isLiveData = true;
+      const badge = document.getElementById('is-live-badge');
+      if (badge) badge.style.display = 'inline-flex';
+      populateDistrictFilter();
+    })
+    .catch(err => console.error('[Issues] live fetch failed, using fallback:', err));
 }
 
 function isEsc(v) {
@@ -58,16 +98,18 @@ function isEsc(v) {
 // ── District News (district_news table, saved daily by the District News Daily Action) ──
 function populateDistrictFilter() {
   const select = document.getElementById('is-district-select');
-  if (!select || select.options.length > 1) return;
+  if (!select) return;
 
-  const fromIssues = (typeof ISSUES_DATA !== 'undefined' ? ISSUES_DATA : [])
+  const current = select.value || 'all';
+  const fromIssues = activeIssues()
     .map(i => i.district)
     .filter(d => d && d !== 'Multiple');
   const all = [...new Set([...IS_FEED_DISTRICTS, ...fromIssues])]
     .sort((a, b) => a.localeCompare(b));
 
-  select.insertAdjacentHTML('beforeend',
-    all.map(d => `<option value="${isEsc(d)}">${isEsc(d)}</option>`).join(''));
+  select.innerHTML = '<option value="all">All Districts</option>' +
+    all.map(d => `<option value="${isEsc(d)}">${isEsc(d)}</option>`).join('');
+  select.value = [...select.options].some(o => o.value === current) ? current : 'all';
 }
 
 function newsDistrict(district) {
@@ -224,7 +266,7 @@ function renderIssuesList(data) {
     const pc = getPriorityConfig(issue.priority);
     const sc = getStatusConfig(issue.status);
     return `
-      <div class="card card-shine" onclick="selectIssue(${issue.id})"
+      <div class="card card-shine" onclick="selectIssue('${issue.id}')"
         style="cursor:pointer; border-left:3px solid ${pc.color}; animation:slideInUp 0.3s ease both; animation-delay:${i*0.06}s; transition:transform 0.15s, box-shadow 0.15s;"
         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'"
         onmouseout="this.style.transform=''; this.style.boxShadow=''">
@@ -245,8 +287,8 @@ function renderIssuesList(data) {
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:0.35rem; flex-shrink:0;">
-            <button class="btn btn-ghost btn-sm" style="font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="event.stopPropagation(); assignIssue(${issue.id})">✓ Assign</button>
-            <button class="btn btn-sm" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(230,57,70,0.3); font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="event.stopPropagation(); escalateIssue(${issue.id})">↑ Escalate</button>
+            <button class="btn btn-ghost btn-sm" style="font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="event.stopPropagation(); assignIssue('${issue.id}')">✓ Assign</button>
+            <button class="btn btn-sm" style="background:var(--red-dim); color:var(--red); border:1px solid rgba(230,57,70,0.3); font-size:0.7rem; padding:0.2rem 0.5rem;" onclick="event.stopPropagation(); escalateIssue('${issue.id}')">↑ Escalate</button>
           </div>
         </div>
       </div>
@@ -255,7 +297,7 @@ function renderIssuesList(data) {
 }
 
 function selectIssue(id) {
-  const issue = ISSUES_DATA.find(i => i.id === id);
+  const issue = activeIssues().find(i => String(i.id) === String(id));
   if (!issue) return;
   renderIssueDetail(issue);
   showIssueDistrictNews(issue);
@@ -311,9 +353,10 @@ function renderIssueDetail(issue) {
         <div><span style="color:var(--text-muted);">Reporter:</span> <span style="color:var(--text-primary);">${issue.reportedBy}</span></div>
         <div><span style="color:var(--text-muted);">Assigned:</span> <span style="color:${issue.assignedTo ? 'var(--green)' : 'var(--red)'};">${issue.assignedTo || 'Unassigned'}</span></div>
       </div>
+      ${issue.sourceUrl ? `<a href="${isEsc(issue.sourceUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-block; margin-top:0.65rem; font-size:0.75rem; color:var(--blue); text-decoration:none;">📰 Source news ↗</a>` : ''}
       <div style="display:flex; gap:0.5rem; margin-top:1rem;">
-        <button class="btn btn-primary btn-sm" onclick="assignIssue(${issue.id})">✓ Assign</button>
-        <button class="btn btn-danger btn-sm" onclick="escalateIssue(${issue.id})">↑ Escalate</button>
+        <button class="btn btn-primary btn-sm" onclick="assignIssue('${issue.id}')">✓ Assign</button>
+        <button class="btn btn-danger btn-sm" onclick="escalateIssue('${issue.id}')">↑ Escalate</button>
         <button class="btn btn-ghost btn-sm" onclick="showToast('Resolved','Issue marked as resolved','success')">✅ Resolve</button>
       </div>
     </div>
@@ -334,7 +377,7 @@ function renderCategoryChart() {
   if (isCategoryChart) isCategoryChart.destroy();
 
   const cats = {};
-  ISSUES_DATA.forEach(i => { cats[i.category] = (cats[i.category] || 0) + 1; });
+  activeIssues().forEach(i => { cats[i.category] = (cats[i.category] || 0) + 1; });
 
   isCategoryChart = new Chart(canvas, {
     type: 'bar',
@@ -361,7 +404,7 @@ function renderDistrictBreakdown() {
   const el = document.getElementById('is-district-breakdown');
   if (!el) return;
   const dists = {};
-  ISSUES_DATA.forEach(i => { if (i.district !== 'Multiple') dists[i.district] = (dists[i.district] || 0) + 1; });
+  activeIssues().forEach(i => { if (i.district !== 'Multiple') dists[i.district] = (dists[i.district] || 0) + 1; });
   el.innerHTML = Object.entries(dists).sort((a,b) => b[1]-a[1]).map(([d, c]) => `
     <div style="display:flex; align-items:center; justify-content:space-between; font-size:0.8rem; padding:0.25rem 0; border-bottom:1px solid var(--border-subtle);">
       <span style="color:var(--text-secondary);">📍 ${d}</span>
@@ -405,7 +448,7 @@ function setupIssueFilters() {
 }
 
 function applyIssueFilters() {
-  let data = ISSUES_DATA;
+  let data = activeIssues();
   if (isPriorityFilter !== 'all') data = data.filter(i => i.priority === isPriorityFilter);
   if (isStatusFilter   !== 'all') data = data.filter(i => i.status   === isStatusFilter);
   if (isDistrictFilter !== 'all') data = data.filter(i => i.district  === isDistrictFilter);

@@ -66,9 +66,13 @@ official press releases/interviews और Bihar की ताज़ा ज़ि
 5. अगर किसी section के लिए पर्याप्त data न हो, तो खाली array [] दें — बनावटी content न भरें।
 6. "activity_log" के हर item में type इनमें से एक हो: meeting | event | statement | social.
    "time" सापेक्ष लिखें जैसे "2 दिन पहले", "आज"।
-7. "strategy_cards" में 4–5 cards, focus = high | medium | low.
+7. "strategy_cards" में 4–5 cards, focus = high | medium | low। हर card में PK/Jan Suraaj की
+   एक strategic नीतिगत चाल का विश्लेषण हो — ध्यान केंद्रित करें: बाढ़-राहत नैरेटिव, युवा/नौकरी
+   एजेंडा, कस्टोडियल डेथ/कानून-व्यवस्था, शिक्षा-व्यवस्था हमले, उपचुनाव momentum, जातिगत/वर्ग
+   समीकरण, सरकारी दावों की पोल खोलना। cards कभी खाली [] न छोड़ें।
 8. "social_stats" में ठीक 4 items इसी क्रम में: 🐦 Twitter, ▶ YouTube, 💬 WhatsApp, 📘 Facebook.
    mentions/change अनुमानित engagement दें (स्रोतों की सक्रियता से), change "+45%" जैसे format में।
+   यह section भी कभी खाली न छोड़ें।
 9. सिर्फ़ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (\`\`\`), कोई preamble नहीं।
    पहला character सीधे { होना चाहिए।
 
@@ -212,7 +216,7 @@ async function runAI(prompt) {
       messages: [{ role: 'user', content: prompt }],
       model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
       temperature: 0.5,
-      max_tokens: 2500,
+      max_tokens: 6000,
       response_format: { type: 'json_object' },
     });
     const parsed = extractJson(groqResponse.choices[0].message.content);

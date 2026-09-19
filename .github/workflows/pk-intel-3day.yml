@@ -1,14 +1,15 @@
-name: PK Intel (Every 3 Days)
+name: PK Intel (Daily 6AM & 5PM IST)
 
-# Har 3 din me ek baar raat ko: PK Tracker ki Activity Log, Strategy Cards,
-# Movement Map aur Social Monitor — Jan Suraaj X posts + press releases +
-# Bihar district news se AI (Gemini/Groq) analysis karke Supabase (pk_intel)
-# me live snapshot save hota hai.
-# Manual run: Actions tab → "PK Intel (Every 3 Days)" → Run workflow.
+# Roz subah 6 baje aur shaam 5 baje (IST): PK Tracker ki Activity Log,
+# Strategy Cards, Movement Map aur Social Monitor — Jan Suraaj X posts +
+# press releases + Bihar district news se AI (Gemini/Groq) analysis karke
+# Supabase (pk_intel) me live snapshot save hota hai.
+# Manual run: Actions tab → "PK Intel (Daily 6AM & 5PM IST)" → Run workflow.
 
 on:
   schedule:
-    - cron: '0 18 */3 * *' # ~11:30 PM IST, every 3rd day (UTC 18:00)
+    - cron: '30 0 * * *'  # 6:00 AM IST daily (UTC 00:30)
+    - cron: '30 11 * * *' # 5:00 PM IST daily (UTC 11:30)
   workflow_dispatch:
 
 jobs:

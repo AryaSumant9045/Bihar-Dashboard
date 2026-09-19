@@ -104,49 +104,50 @@
       </div>
     </div>
 
-    <!-- District News -->
+    <!-- District News (live from district_news DB table) -->
     <div>
       <div style="font-size:0.75rem; font-weight:700; color:#4a9eff; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
         <span>🔵 District Level Intelligence</span>
+        <span id="wr-district-live-badge" class="tag tag-green" style="display:none; font-size:0.58rem;">🔄 LIVE DB</span>
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan')">Bihar (All)</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-patna')">Patna</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhagalpur')">Bhagalpur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-muzaffarpur')">Muzaffarpur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-ara')">Ara</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-begusarai')">Begusarai</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-biharsharif')">Biharsharif</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-buxar')">Buxar</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-chapra')">Chapra</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gopalganj')">Gopalganj</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-hajipur')">Hajipur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jahanabad')">Jahanabad</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-siwan')">Siwan</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-gaya')">Gaya</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-aurangabad')">Aurangabad</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bhabua')">Bhabua</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-nawada')">Nawada</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sasaram')">Sasaram</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-banka')">Banka</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-araria')">Araria</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-katihar')">Katihar</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-khagaria')">Khagaria</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-kishanganj')">Kishanganj</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhepura')">Madhepura</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-munger')">Munger</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-purnia')">Purnia</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-saharsa')">Saharsa</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-lakhisarai')">Lakhisarai</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-jamui')">Jamui</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-supaul')">Supaul</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-darbhanga')">Darbhanga</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-madhubani')">Madhubani</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bagaha')">Bagaha</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-bettiah')">Bettiah</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-motihari')">Motihari</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-samastipur')">Samastipur</button>
-        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomRss('livehindustan-sitamarhi')">Sitamarhi</button>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;" id="wr-district-btns">
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('all')">Bihar (All)</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Patna')">Patna</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Bhagalpur')">Bhagalpur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Muzaffarpur')">Muzaffarpur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Ara')">Ara</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Begusarai')">Begusarai</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Biharsharif')">Biharsharif</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Buxar')">Buxar</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Chapra')">Chapra</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Gopalganj')">Gopalganj</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Hajipur')">Hajipur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Jahanabad')">Jahanabad</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Siwan')">Siwan</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Gaya')">Gaya</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Aurangabad')">Aurangabad</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Bhabua')">Bhabua</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Nawada')">Nawada</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Sasaram')">Sasaram</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Banka')">Banka</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Araria')">Araria</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Katihar')">Katihar</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Khagaria')">Khagaria</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Kishanganj')">Kishanganj</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Madhepura')">Madhepura</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Munger')">Munger</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Purnia')">Purnia</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Saharsa')">Saharsa</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Lakhisarai')">Lakhisarai</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Jamui')">Jamui</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Supaul')">Supaul</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Darbhanga')">Darbhanga</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Madhubani')">Madhubani</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Bagaha')">Bagaha</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Bettiah')">Bettiah</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Motihari')">Motihari</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Samastipur')">Samastipur</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadWarRoomDistrictNews('Sitamarhi')">Sitamarhi</button>
       </div>
     </div>
   </div>
