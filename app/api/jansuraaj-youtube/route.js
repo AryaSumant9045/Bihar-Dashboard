@@ -1,9 +1,10 @@
 /**
  * app/api/jansuraaj-youtube/route.js
  * ------------------------------------------------------------
- * Server-side proxy for the official Jan Suraaj YouTube channel RSS.
- * Fetching the feed from the browser is blocked by CORS, so we pull
- * and parse it here (same YouTube RSS pattern the FastAPI backend uses).
+ * Server-side proxy for the official Jan Suraaj YouTube channel.
+ * Prefers the YouTube Data API (uploads playlist, 1 quota unit) when
+ * YOUTUBE_API_KEY is configured; otherwise falls back to the channel
+ * RSS feed (same pattern the FastAPI backend uses).
  * Returns the latest videos + live streams as cards for the PK Tracker.
  *
  * GET /api/jansuraaj-youtube?limit=8
@@ -16,6 +17,31 @@ export const revalidate = 0;
 const CHANNEL_ID = 'UCC0bFdwsgiA-roI9M4DTKXw';
 const FEED_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
 const CHANNEL_URL = 'https://www.youtube.com/@JanSuraaj_';
+// Uploads playlist = channel id with the leading "UC" replaced by "UU"
+const UPLOADS_PLAYLIST_ID = CHANNEL_ID.replace(/^UC/, 'UU');
+
+async function fetchViaApi(limit) {
+  const url = 'https://www.googleapis.com/youtube/v3/playlistItems' +
+    `?part=snippet&playlistId=${UPLOADS_PLAYLIST_ID}&maxResults=${limit}` +
+    `&key=${encodeURIComponent(process.env.YOUTUBE_API_KEY)}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`YouTube API ${res.status}`);
+  const json = await res.json();
+  return (json.items || []).map(item => {
+    const sn = item.snippet || {};
+    const videoId = (sn.resourceId && sn.resourceId.videoId) || '';
+    const thumbs = sn.thumbnails || {};
+    return {
+      videoId,
+      title: sn.title || '',
+      url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
+      thumbnail: (thumbs.medium || thumbs.high || thumbs.default || {}).url ||
+        (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : ''),
+      published: sn.publishedAt || '',
+      excerpt: String(sn.description || '').replace(/\s+/g, ' ').slice(0, 180),
+    };
+  }).filter(v => v.title && v.url);
+}
 
 function decode(value) {
   return String(value || '')
@@ -68,6 +94,22 @@ function parseEntries(xml) {
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get('limit') || '8', 10) || 8, 30);
+
+  if (process.env.YOUTUBE_API_KEY) {
+    try {
+      const videos = await fetchViaApi(limit);
+      return Response.json({
+        channel_id: CHANNEL_ID,
+        channel_url: CHANNEL_URL,
+        source: 'youtube-api',
+        count: videos.length,
+        videos,
+      }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (err) {
+      console.warn('[jansuraaj-youtube] API failed, trying RSS:', err.message);
+    }
+  }
+
   try {
     const res = await fetch(FEED_URL, {
       cache: 'no-store',
@@ -79,6 +121,7 @@ export async function GET(request) {
     return Response.json({
       channel_id: CHANNEL_ID,
       channel_url: CHANNEL_URL,
+      source: 'rss',
       count: videos.length,
       videos,
     }, { headers: { 'Cache-Control': 'no-store' } });

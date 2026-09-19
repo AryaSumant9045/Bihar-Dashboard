@@ -37,7 +37,14 @@
   <div><strong>Output</strong><span>Hover/click par actionable snapshot: hotspots, emerging issues, organisational activity aur upcoming events.</span></div>
 </div>
 
-<div class="stat-row stat-row-4" style="margin-bottom:1rem;">
+<style>
+  @media (max-width:900px){
+    .stat-row-4.pm-stat-row{grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:.6rem;}
+    .pm-stat-row .stat-card{padding:.7rem .6rem;}
+    .pm-stat-row .stat-icon{display:none;}
+  }
+</style>
+<div class="stat-row stat-row-4 pm-stat-row" style="margin-bottom:1rem;">
   <div class="stat-card card-shine"><div class="stat-label">🗺 Districts monitored</div><div class="stat-value" id="pm-district-count">38</div><div class="stat-change">All Bihar districts</div><div class="stat-icon">📍</div></div>
   <div class="stat-card card-shine" style="--stat-accent:var(--blue);"><div class="stat-label">📰 Live district news</div><div class="stat-value" id="pm-news-total">0</div><div class="stat-change">Tagged NewsDashboard records</div><div class="stat-icon">📡</div></div>
   <div class="stat-card card-shine" style="--stat-accent:var(--red);"><div class="stat-label">🔴 Critical districts</div><div class="stat-value" id="pm-critical-districts">0</div><div class="stat-change down">Needs immediate attention</div><div class="stat-icon">🚨</div></div>

@@ -1,8 +1,10 @@
 name: District News Daily
 
-# Har 24 ghante me ek baar: sabhi 38 Bihar districts ki latest news
-# /api/cron/district-news pipeline se fetch hokar Supabase (district_news) me save hoti hai.
-# Manual run bhi kar sakte ho: Actions tab → "District News Daily" → Run workflow.
+# Har roz raat ko: Live Hindustan ke district RSS feeds se taaza khabar
+# /api/cron/district-news pipeline ke through Supabase (district_news) me
+# save hoti hai. Ek district = ek job (matrix), taki har call 60s serverless
+# limit ke aaram se rahe aur ek feed fail hone par baaki na ruken.
+# Manual run: Actions tab → "District News Daily" → Run workflow.
 
 on:
   schedule:
@@ -10,16 +12,43 @@ on:
   workflow_dispatch:
 
 jobs:
-  trigger-pipeline:
+  fetch-district:
     runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        district: [
+          Patna, Bhagalpur, Muzaffarpur, Ara, Begusarai, Biharsharif, Buxar,
+          Chapra, Gopalganj, Hajipur, Jahanabad, Siwan, Gaya, Aurangabad,
+          Bhabua, Nawada, Sasaram, Banka, Araria, Katihar, Khagaria,
+          Kishanganj, Madhepura, Munger, Purnia, Saharsa, Lakhisarai,
+          Jamui, Supaul, Darbhanga, Madhubani, Bagaha, Bettiah, Motihari,
+          Samastipur, Sitamarhi
+        ]
+    env:
+      APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      DISTRICT: ${{ matrix.district }}
     steps:
-      - name: Call district news cron endpoint
-        env:
-          APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Fetch ${{ matrix.district }} news
         run: |
+          url="$APP_URL/api/cron/district-news?district=$DISTRICT"
+          auth=()
           if [ -n "$CRON_SECRET" ]; then
-            curl -sf --max-time 300 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/district-news"
-          else
-            curl -sf --max-time 300 "$APP_URL/api/cron/district-news"
+            auth=(-H "Authorization: Bearer $CRON_SECRET")
           fi
+          for attempt in 1 2 3; do
+            echo "::group::$DISTRICT attempt $attempt"
+            if curl -sf --max-time 120 "${auth[@]}" "$url"; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "$DISTRICT: attempt $attempt failed, retrying in 15s"
+            sleep 15
+          done
+          echo "::warning::$DISTRICT news fetch failed after 3 attempts"
+          exit 0

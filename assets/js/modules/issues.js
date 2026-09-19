@@ -7,7 +7,37 @@ let isStatusFilter = 'all';
 let isDistrictFilter = 'all';
 let isCategoryChart = null;
 
+/* Districts with a Live Hindustan feed (kept in sync with
+   app/api/cron/district-news/route.js DISTRICT_FEEDS). */
+const IS_FEED_DISTRICTS = [
+  'Bihar',
+  'Patna', 'Bhagalpur', 'Muzaffarpur', 'Ara', 'Begusarai', 'Biharsharif', 'Buxar',
+  'Chapra', 'Gopalganj', 'Hajipur', 'Jahanabad', 'Siwan', 'Gaya', 'Aurangabad',
+  'Bhabua', 'Nawada', 'Sasaram', 'Banka', 'Araria', 'Katihar', 'Khagaria',
+  'Kishanganj', 'Madhepura', 'Munger', 'Purnia', 'Saharsa', 'Lakhisarai',
+  'Jamui', 'Supaul', 'Darbhanga', 'Madhubani', 'Bagaha', 'Bettiah', 'Motihari',
+  'Samastipur', 'Sitamarhi',
+];
+
+/* Some UI datasets use district HQ / legacy spellings instead of the feed names. */
+const IS_DISTRICT_ALIAS = {
+  Jehanabad: 'Jahanabad',
+  Bhojpur: 'Ara',
+  Nalanda: 'Biharsharif',
+  Rohtas: 'Sasaram',
+  Kaimur: 'Bhabua',
+  Saran: 'Chapra',
+  Vaishali: 'Hajipur',
+  'East Champaran': 'Motihari',
+  'West Champaran': 'Bettiah',
+};
+const IS_NEWS_DEFAULT_DISTRICT = 'Bihar';
+const IS_NEWS_PAGE_SIZE = 5;
+
+const isNewsState = { district: IS_NEWS_DEFAULT_DISTRICT, items: [], total: 0, loading: false, requestId: 0 };
+
 function initIssues() {
+  populateDistrictFilter();
   renderIssuesList(ISSUES_DATA);
   renderIssueDetail(ISSUES_DATA[0]);
   renderCategoryChart();
@@ -23,55 +53,120 @@ function isEsc(v) {
   ));
 }
 
-// ── District News (from district_news table, saved daily by GitHub Action) ──
-function loadDistrictNews(district) {
-  const list = document.getElementById('is-district-news-list');
-  if (!list) return;
-  const titleEl = document.getElementById('is-district-news-title');
-  const countEl = document.getElementById('is-district-news-count');
-  if (titleEl) titleEl.textContent = district === 'all' ? '📰 District News' : `📰 ${district} — District News`;
-  list.innerHTML = '<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>';
+// ── District News (district_news table, saved daily by the District News Daily Action) ──
+function populateDistrictFilter() {
+  const select = document.getElementById('is-district-select');
+  if (!select || select.options.length > 1) return;
 
-  fetch(`/api/district-news?district=${encodeURIComponent(district)}&limit=12`, { cache: 'no-store' })
+  const fromIssues = (typeof ISSUES_DATA !== 'undefined' ? ISSUES_DATA : [])
+    .map(i => i.district)
+    .filter(d => d && d !== 'Multiple');
+  const all = [...new Set([...IS_FEED_DISTRICTS, ...fromIssues])]
+    .sort((a, b) => a.localeCompare(b));
+
+  select.insertAdjacentHTML('beforeend',
+    all.map(d => `<option value="${isEsc(d)}">${isEsc(d)}</option>`).join(''));
+}
+
+function newsDistrict(district) {
+  if (!district || district === 'all') return IS_NEWS_DEFAULT_DISTRICT;
+  return IS_DISTRICT_ALIAS[district] || district;
+}
+
+function loadDistrictNews(district, append = false) {
+  const target = newsDistrict(district);
+  const requestId = ++isNewsState.requestId;
+
+  if (!append || isNewsState.district !== target) {
+    isNewsState.district = target;
+    isNewsState.items = [];
+    isNewsState.total = 0;
+  }
+  if (append && isNewsState.loading) return;
+  isNewsState.loading = true;
+
+  const list = document.getElementById('is-district-news-list');
+  const titleEl = document.getElementById('is-district-news-title');
+  if (titleEl) titleEl.textContent = target === IS_NEWS_DEFAULT_DISTRICT ? '📰 Bihar — State News' : `📰 ${target} — District News`;
+  if (!append && list) {
+    list.innerHTML = '<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading district news…</p></div>';
+  }
+
+  const offset = append ? isNewsState.items.length : 0;
+  fetch(`/api/district-news?district=${encodeURIComponent(target)}&limit=${IS_NEWS_PAGE_SIZE}&offset=${offset}`, { cache: 'no-store' })
     .then(res => res.json())
     .then(payload => {
-      const items = payload.items || [];
-      if (countEl) {
-        countEl.textContent = `${items.length} latest`;
-        countEl.style.display = items.length ? 'inline-flex' : 'none';
-      }
-      if (!items.length) {
-        list.innerHTML = `<div class="empty-state" style="padding:1rem;">
-          <div class="empty-state-icon">📭</div>
-          <p class="empty-state-text">No district news saved yet.</p>
-          <p style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">The daily GitHub Action (district-news-daily) will populate this — or run Actions → Run workflow once.</p>
-        </div>`;
-        return;
-      }
-      list.innerHTML = items.map((item, i) => {
-        const dateStr = item.published_at
-          ? new Date(item.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
-          : '';
-        return `
-          <div class="card card-shine" style="border-left:3px solid var(--blue); padding:0.7rem 0.95rem; animation:slideInUp 0.3s ease both; animation-delay:${Math.min(i * 0.03, 0.3)}s;">
-            <div style="font-size:0.83rem; font-weight:600; color:var(--text-primary); line-height:1.42; margin-bottom:0.3rem;">
-              <a href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;"
-                 onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='inherit'">${isEsc(item.title)}</a>
-            </div>
-            <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
-              <span class="tag" style="font-size:0.62rem;">📍 ${isEsc(item.district)}</span>
-              <span class="tag tag-blue" style="font-size:0.62rem;">📡 ${isEsc(item.source || 'News')}</span>
-              ${dateStr ? `<span style="font-size:0.66rem; color:var(--text-muted);">🕐 ${isEsc(dateStr)}</span>` : ''}
-              <a class="btn btn-ghost btn-sm" href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer"
-                 style="font-size:0.63rem; padding:0.12rem 0.4rem; margin-left:auto;">Read ↗</a>
-            </div>
-          </div>`;
-      }).join('');
+      if (requestId !== isNewsState.requestId) return;
+      if (payload.error) throw new Error(payload.error);
+      isNewsState.items = append ? [...isNewsState.items, ...(payload.items || [])] : (payload.items || []);
+      isNewsState.total = payload.total ?? isNewsState.items.length;
+      renderDistrictNews();
     })
     .catch(err => {
+      if (requestId !== isNewsState.requestId) return;
       console.error('[Issues] district news fetch failed:', err);
-      list.innerHTML = '<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">District news unavailable right now.</p></div>';
+      if (list && !isNewsState.items.length) {
+        list.innerHTML = '<div class="empty-state" style="padding:1rem;"><p class="empty-state-text">District news unavailable right now.</p></div>';
+      }
+    })
+    .finally(() => {
+      if (requestId === isNewsState.requestId) isNewsState.loading = false;
     });
+}
+
+function renderDistrictNews() {
+  const list = document.getElementById('is-district-news-list');
+  const countEl = document.getElementById('is-district-news-count');
+  if (!list) return;
+
+  const { items, total, district } = isNewsState;
+  if (countEl) {
+    countEl.textContent = items.length ? `${items.length} / ${total}` : '';
+    countEl.style.display = items.length ? 'inline-flex' : 'none';
+  }
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state" style="padding:1rem;">
+      <div class="empty-state-icon">📭</div>
+      <p class="empty-state-text">No district news saved yet.</p>
+      <p style="font-size:0.72rem; color:var(--text-muted); margin-top:0.3rem;">The daily GitHub Action (District News Daily) will populate this — or run Actions → Run workflow once.</p>
+    </div>`;
+    return;
+  }
+
+  const cards = items.map((item, i) => {
+    const dateStr = item.published_at
+      ? new Date(item.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })
+      : '';
+    return `
+      <div class="card card-shine" style="border-left:3px solid var(--blue); padding:0.7rem 0.95rem; animation:slideInUp 0.3s ease both; animation-delay:${Math.min(i * 0.03, 0.3)}s;">
+        <div style="font-size:0.83rem; font-weight:600; color:var(--text-primary); line-height:1.42; margin-bottom:0.3rem;">
+          <a href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;"
+             onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='inherit'">${isEsc(item.title)}</a>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+          <span class="tag" style="font-size:0.62rem;">📍 ${isEsc(item.district)}</span>
+          <span class="tag tag-blue" style="font-size:0.62rem;">📡 ${isEsc(item.source || 'News')}</span>
+          ${dateStr ? `<span style="font-size:0.66rem; color:var(--text-muted);">🕐 ${isEsc(dateStr)}</span>` : ''}
+          <a class="btn btn-ghost btn-sm" href="${isEsc(item.url)}" target="_blank" rel="noopener noreferrer"
+             style="font-size:0.63rem; padding:0.12rem 0.4rem; margin-left:auto;">Read ↗</a>
+        </div>
+      </div>`;
+  }).join('');
+
+  const remaining = Math.max(total - items.length, 0);
+  const moreBtn = remaining > 0 ? `
+    <button class="btn btn-ghost" onclick="loadMoreDistrictNews('${isEsc(district)}')"
+            style="width:100%; margin-top:0.5rem; padding:0.55rem 0.9rem; font-size:0.72rem; font-weight:700; letter-spacing:0.02em;">
+      📰 Read ${Math.min(IS_NEWS_PAGE_SIZE, remaining)} More News ↓
+      <span style="font-weight:500; color:var(--text-muted);">(${remaining} remaining)</span>
+    </button>` : '';
+
+  list.innerHTML = cards + moreBtn;
+}
+
+function loadMoreDistrictNews(district) {
+  loadDistrictNews(newsDistrict(district), true);
 }
 
 function getPriorityConfig(p) {
@@ -141,6 +236,13 @@ function selectIssue(id) {
   const issue = ISSUES_DATA.find(i => i.id === id);
   if (!issue) return;
   renderIssueDetail(issue);
+  showIssueDistrictNews(issue);
+}
+
+/* The news panel follows the clicked issue's district; the filter bar stays untouched. */
+function showIssueDistrictNews(issue) {
+  if (!issue.district || issue.district === 'Multiple') return;
+  loadDistrictNews(newsDistrict(issue.district));
 }
 
 function renderIssueDetail(issue) {
@@ -271,3 +373,4 @@ function applyIssueFilters() {
 window.selectIssue   = selectIssue;
 window.assignIssue   = assignIssue;
 window.escalateIssue = escalateIssue;
+window.loadMoreDistrictNews = loadMoreDistrictNews;
