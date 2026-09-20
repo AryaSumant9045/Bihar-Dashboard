@@ -116,17 +116,21 @@ const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior 
 // Free-model token discipline: caps per provider
 const MAX_HEADLINES_PRIMARY = 150; // Gemini / PlugSky
 const MAX_HEADLINES_GROQ    = 80;  // Groq free tier ~6000 TPM
-const MAX_OUTPUT_TOKENS     = 2500;
+const MAX_OUTPUT_TOKENS     = 6000; // 2500 was truncating the JSON → "Unterminated string" errors
 
 function extractJson(text) {
   try {
-    let cleaned = text.trim();
+    let cleaned = String(text || '').trim();
     if (cleaned.startsWith('```')) {
       const parts = cleaned.split('```');
       if (parts.length >= 3) {
         cleaned = parts[1].replace(/^json/i, '').trim();
       }
     }
+    // Grab the outermost {...} block (drops any leading/trailing prose or fences)
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) cleaned = cleaned.slice(start, end + 1);
     return JSON.parse(cleaned);
   } catch (err) {
     console.error("JSON parse error:", err);
@@ -280,6 +284,7 @@ async function handleCron(request) {
           temperature: 0.3,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
           responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
         },
       });
       parsedJson = extractJson(response.text);
@@ -301,7 +306,7 @@ async function handleCron(request) {
           messages: [{ role: 'user', content: groqPrompt }],
           model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
           temperature: 0.3,
-          max_tokens: 2000,
+          max_tokens: 3500,
           response_format: { type: 'json_object' }
         });
         parsedJson = extractJson(groqResponse.choices[0].message.content);
@@ -327,7 +332,7 @@ async function handleCron(request) {
             })
           });
           const plugskyData = await plugskyRes.json();
-          parsedJson = extractJson(plugskyData.choices[0].message.content);
+          parsedJson = extractJson(plugskyData?.choices?.[0]?.message?.content || '');
           if (!parsedJson) throw new Error("PlugSky returned invalid JSON");
           aiProvider = 'plugsky';
           console.log("[PLUGSKY] Analysis completed successfully via fallback!");

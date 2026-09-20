@@ -403,6 +403,7 @@ function lsShowActivityCard(id) {
         <span class="tag" style="color:${pColor}; border-color:${pColor}; font-weight:700;">${pEmoji} ${a.priority}</span>
         <span class="tag tag-blue">${lsEsc(a.category)}</span>
         <span class="tag">${lsEsc(a.event_type)}</span>
+        ${a.issue_domain && a.issue_domain !== 'Other' ? `<span class="tag tag-gold">${lsEsc(a.issue_domain)}</span>` : ''}
         <span class="tag">${lsEsc(a.party)}</span>
       </div>
       <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">

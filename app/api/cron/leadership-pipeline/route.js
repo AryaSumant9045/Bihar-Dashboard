@@ -57,26 +57,45 @@ const KNOWN_LEADERS = [
 
 const PRIORITY_RANK = { ROUTINE: 0, WATCH: 1, DEVELOPING: 2, CRITICAL: 3 };
 
-const SYSTEM_PROMPT = `You are the Lead Political Intelligence Analyst for the BJP Bihar President's Command Dashboard. Monitor, standardize and grade all public activities, statements, field rallies and media footprints of tracked Bihar political leaders from the news headlines given.
+const SYSTEM_PROMPT = `You are the Lead Political Intelligence Analyst & Data Agent for the BJP Bihar President's Command Dashboard ("BJP Bihar Leadership Intelligence Engine"). Monitor, standardize, analyze and grade all public activities, statements, field rallies and news media footprints of tracked Bihar political leaders from the given headlines.
 
-STRICT RULES:
-1. All JSON VALUES in Hindi (Devanagari). Keys in English.
-2. Base ONLY on the headlines — invent nothing. leader_name must be the real person named (English spelling, e.g. "Samrat Choudhary"). If no clear leader, skip that headline.
-3. designation: e.g. "Deputy Chief Minister", "Health Minister", "Union Minister", "MP", "MLA", "BJP Bihar President", "District President".
-4. category one of: Cabinet | MP | MLA | Office-Bearer
-5. party one of: BJP | JDU | RJD | INC | HAM | LJP | Other
-6. event_type one of: Public Rally | Jan Samvad | Scheme Inauguration | Media Interaction | Press Conference | Internal Baithak | Grievance Redressal | Official Visit | Statement | Controversy
-7. priority (early-warning severity): ROUTINE (standard visits/inaugurations) | WATCH (minor grievance, low turnout, local opposition claim) | DEVELOPING (cadre dissatisfaction, public protest during visit, sharp media criticism) | CRITICAL (statement against party line, major backlash, law & order incident needing President intervention)
-8. district: the Bihar district where it happened (English spelling e.g. "Patna"); "Multiple" if state-wide. constituency: seat/block/mandal if identifiable.
-9. issues_raised: 1-3 short Hindi phrases. summary: 1-2 factual Hindi sentences. statement: short Hindi quote/claim if present.
-10. media_coverage: Low (local blog/tweet) | Medium (regional online paper) | High (lead story in major daily/TV)
-11. crowd_estimate: integer if headline mentions attendance else 0. sentiment_score: -1.0 to 1.0 (how positive for the leader).
-12. flag_reason: 1 Hindi sentence why WATCH/DEVELOPING/CRITICAL (empty string for ROUTINE). recommended_action: 1 short Hindi action for the President (e.g. "जिला अध्यक्ष से रिपोर्ट मांगें"; for ROUTINE "कोई कार्रवाई नहीं").
-13. requires_intervention: true only for DEVELOPING/CRITICAL.
-14. Reply ONLY with JSON, first char {.
+== 1. TRACKED ENTITIES REGISTRY ==
+[C1 State Cabinet & Senior Leadership]
+Samrat Choudhary (Deputy CM) — Munger/Tarapur, Patna | Vijay Kumar Sinha (Deputy CM) — Lakhisarai, Infrastructure & Land | Mangal Pandey (Health Minister) — Siwan/Patna, Health | Nitin Nabin (Road Construction Minister) — Bankipur (Patna), Urban Dev | Shreyasi Singh (Sports/Youth Affairs Minister) — Jamui, Youth & Sports | Kedar Prasad Gupta (Panchayati Raj Minister) — Muzaffarpur | Santosh Kumar Singh (Labor Resources Minister) — Rohtas/Karakat | Hari Sahni (Fisheries & Animal Husbandry Minister) — Darbhanga, EBC Outreach
+[C2 Central Ministers & Lok Sabha MPs]
+Giriraj Singh (Union Minister) — Begusarai, Agriculture & Rural | Nityanand Rai (Union MoS Home) — Ujiarpur (Samastipur) | Radha Mohan Singh (MP, Senior Leader) — Purvi Champaran (Motihari) | Ravi Shankar Prasad (MP) — Patna Sahib, IT/Law/Urban | Rajiv Pratap Rudy (MP) — Saran (Chhapra), Skill Dev | Sanjay Jaiswal (MP, Ex-State President) — Paschim Champaran (Bettiah) | Janardan Singh Sigriwal (MP) — Maharajganj (Siwan/Saran) | Gopal Jee Thakur (MP) — Darbhanga/Mithilanchal | Pradeep Kumar Singh (MP) — Araria/Seemanchal | Vivek Thakur (MP) — Nawada/Magadh
+[C3 Rajya Sabha MPs & Key MLCs]
+Dharmshila Gupta (RS MP) — Women Outreach/Darbhanga | Bhim Singh (RS MP) — OBC/EBC Organization | Shambhu Sharan Patel (RS MP) — Sheikhpura/Magadh Cadre | Dilip Kumar Jaiswal (BJP Bihar President/MLC) — Seemanchal/Kishanganj
+[C4 Organizational Office-Bearers]
+State General Secretaries | Zila Adhyaksh (BJP District Presidents) | Morcha Chiefs (Yuva/Mahila/Kisan/EBC Morcha heads)
+[NDA allies — tracked for context]
+Nitish Kumar (CM, JDU) | Chirag Paswan (Union Minister, LJP-RV) | Jitan Ram Manjhi (Union Minister, HAM)
+
+ENTITY MATCHING: Match every headline against this registry first. Registry leader → use their exact English name. Any named leader not in registry → still extract (party from headline). Unnamed local functionary (e.g. "जिला अध्यक्ष", "मोर्चा प्रमुख") → leader_name "Unlisted Party Leader / Local Representative", designation from headline, category "Office-Bearer". No identifiable leader at all → skip that headline.
+
+== 2. CLASSIFICATION RULES ==
+- SPATIAL: district = Bihar district in English ("Patna"); "Multiple" if state-wide. constituency = seat/block/mandal if identifiable. venue = specific place if mentioned.
+- event_type one of: Public Rally | Jan Samvad | Scheme Inauguration | Media Interaction | Press Conference | Internal Baithak | Grievance Redressal | Official Visit | Statement | Controversy
+- issue_domain one of: Infrastructure | Flood/Agriculture | Law & Order | Youth/Employment | Party Cadre Conflict | Opposition Attack | Scheme/Welfare | Other
+- media_coverage: Low (local blog/tweet) | Medium (regional online paper) | High (lead story in major daily/TV)
+- sentiment_score: -1.0 (highly negative/controversial) to +1.0 (highly positive/well-received) — cadre & public reaction for the leader
+- crowd_estimate: integer if mentioned else 0
+- priority (EARLY WARNING SEVERITY):
+  ROUTINE = standard administrative/party visits, routine inaugurations
+  WATCH = minor local grievances raised, low turnout, localized opposition counter-claims
+  DEVELOPING = cadre dissatisfaction reported, public protest during visit, sharp media criticism
+  CRITICAL = open statement against party stance, major public backlash, severe law & order incident during visit needing immediate President intervention
+- presidential_action: requires_intervention true only for DEVELOPING/CRITICAL. recommended_action = 1 short Hindi action for the President (e.g. "जिला अध्यक्ष से रिपोर्ट मांगें"); for ROUTINE/WATCH "कोई कार्रवाई नहीं".
+
+== 3. STRICT OUTPUT RULES ==
+1. Reply ONLY with strict JSON — first character { — no markdown fencing, no plaintext card, no extra text.
+2. All JSON VALUES in Hindi (Devanagari). Keys, leader_name, district, enum values in English.
+3. Base ONLY on the given headlines — invent nothing, no speculation.
+4. TOKEN DISCIPLINE (free model): maximum 20 activities. summary = 1-2 short Hindi sentences. statement = short Hindi quote only if present else "". issues_raised = 1-3 short Hindi phrases. flag_reason = 1 Hindi sentence (empty "" for ROUTINE). recommended_action = max 1 line. title = max 12 words.
+5. date = "YYYY-MM-DD" of the event if derivable, else today. source_url = the URL given with the headline, else "".
 
 OUTPUT JSON:
-{"activities":[{"leader_name":"...","designation":"...","category":"Cabinet","party":"BJP","district":"...","constituency":"...","venue":"...","event_type":"...","title":"...","summary":"...","statement":"...","issues_raised":["..."],"crowd_estimate":0,"media_coverage":"Medium","sentiment_score":0.5,"priority":"ROUTINE","flag_reason":"...","recommended_action":"...","requires_intervention":false,"source_url":"<url if given>","date":"YYYY-MM-DD"}]}`;
+{"activities":[{"leader_name":"...","designation":"...","category":"Cabinet|MP|MLA|Office-Bearer","party":"BJP|JDU|RJD|INC|HAM|LJP|Other","district":"...","constituency":"...","venue":"...","event_type":"...","issue_domain":"...","title":"...","summary":"...","statement":"...","issues_raised":["..."],"crowd_estimate":0,"media_coverage":"Low|Medium|High","sentiment_score":0.0,"priority":"ROUTINE|WATCH|DEVELOPING|CRITICAL","flag_reason":"...","recommended_action":"...","requires_intervention":false,"source_url":"","date":"YYYY-MM-DD"}]}`;
 
 
 function makeSupabase() {
@@ -147,6 +166,7 @@ async function runAI(prompt, compactPrompt) {
       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const resp = await aiClient.models.generateContent({
         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash', contents: prompt,
+        config: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' },
       });
       const parsed = extractJson(resp.text);
       if (parsed) return { parsed, provider: 'gemini' };
@@ -155,12 +175,12 @@ async function runAI(prompt, compactPrompt) {
   // Groq fallback — small prompt, few headlines, plain-text JSON (no forced json_object)
   const { Groq } = await import('groq-sdk');
   const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const simplePrompt = `List 6-10 Bihar political leader activities from these headlines. JSON only, values in Hindi. leader_name, designation, category(Cabinet|MP|MLA|Office-Bearer), party, district, event_type, title, summary, priority(ROUTINE|WATCH|DEVELOPING|CRITICAL), date(YYYY-MM-DD). Start with {.
+  const simplePrompt = `List 6-10 Bihar political leader activities from these headlines. JSON only, values in Hindi, max 10 activities. leader_name, designation, category(Cabinet|MP|MLA|Office-Bearer), party, district, event_type, issue_domain(Infrastructure|Flood/Agriculture|Law & Order|Youth/Employment|Party Cadre Conflict|Opposition Attack|Scheme/Welfare|Other), title, summary, priority(ROUTINE|WATCH|DEVELOPING|CRITICAL), date(YYYY-MM-DD). Start with {.
 {"activities":[...]}
 Headlines:
 ${compactPrompt.split('## District news')[1] ? compactPrompt.split('## District news')[1].slice(0, 2500) : compactPrompt.slice(0, 2500)}`;
   const resp = await groqClient.chat.completions.create({
-    messages: [{ role: 'user', content: simplePrompt }], model: 'openai/gpt-oss-20b', temperature: 0.2, max_tokens: 3500,
+    messages: [{ role: 'user', content: simplePrompt }], model: 'openai/gpt-oss-20b', temperature: 0.2, max_tokens: 2500,
   });
   const parsed = extractJson(resp.choices[0].message.content);
   if (!parsed) throw new Error('Groq returned invalid JSON');
@@ -180,6 +200,7 @@ function matchLeader(name) {
 
 const VALID_PRIORITY = ['ROUTINE', 'WATCH', 'DEVELOPING', 'CRITICAL'];
 const VALID_CATEGORY = ['Cabinet', 'MP', 'MLA', 'Office-Bearer'];
+const VALID_ISSUE_DOMAIN = ['Infrastructure', 'Flood/Agriculture', 'Law & Order', 'Youth/Employment', 'Party Cadre Conflict', 'Opposition Attack', 'Scheme/Welfare', 'Other'];
 
 function sanitize(list) {
   if (!Array.isArray(list)) return [];
@@ -192,6 +213,7 @@ function sanitize(list) {
       party: String(a.party || (known ? known.party : 'Other')).trim().slice(0, 12),
       district: String(a.district || (known ? known.district : 'Multiple')).trim().slice(0, 60),
       event_type: String(a.event_type || 'Statement').trim().slice(0, 60),
+      issue_domain: VALID_ISSUE_DOMAIN.includes(a.issue_domain) ? a.issue_domain : 'Other',
       title: String(a.title || '').trim().slice(0, 200),
       summary: String(a.summary || '').trim().slice(0, 400),
       statement: String(a.statement || '').trim().slice(0, 250),
@@ -271,8 +293,16 @@ async function handle(request) {
       return NextResponse.json({ status: 'dry-run', provider, source_count: total, activities });
     }
 
-    const { data, error } = await supabase.from('leader_activities').insert(activities).select('id');
-    if (error) throw error;
+    let { data, error } = await supabase.from('leader_activities').insert(activities).select('id');
+    if (error && (error.code === '42703' || error.message?.includes('issue_domain'))) {
+      // Migration 015 not applied yet — retry without the new column
+      const retry = await supabase.from('leader_activities').insert(activities.map(({ issue_domain, ...r }) => r)).select('id');
+      if (retry.error) throw retry.error;
+      data = retry.data;
+      console.warn('[leadership] issue_domain column missing — saved without it. Run migration 015.');
+    } else if (error) {
+      throw error;
+    }
     const leadersUpdated = await updateLeaders(supabase, activities);
 
     console.log(`[leadership] ${data?.length} activities, ${leadersUpdated} leaders (provider=${provider}).`);

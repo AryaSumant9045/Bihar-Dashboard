@@ -409,107 +409,156 @@ async function loadIntelligenceSummary(forceRefresh = false) {
 function renderIntelligenceSummary(summary, container) {
   const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-  let bjpActionPointsHTML = '';
-  if (Array.isArray(summary.bjp_action_points) && summary.bjp_action_points.length > 0) {
-    bjpActionPointsHTML = `
-      <div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(38,222,129,0.06);border:1px solid rgba(38,222,129,0.2);border-radius:var(--radius-md);">
-        <div style="font-size:.65rem;font-weight:800;color:var(--green);margin-bottom:.2rem;">✅ BJP Strategic Action & Improvements</div>
-        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
-          ${summary.bjp_action_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
-        </ul>
+  // ── Health score ring (score can be number or {score, reason, trend_arrow}) ──
+  const hsRaw = summary.overall_political_health_score;
+  const score = typeof hsRaw === 'number' ? hsRaw
+    : (hsRaw && typeof hsRaw.score === 'number' ? hsRaw.score : null);
+  const hsReason = hsRaw && typeof hsRaw === 'object' ? (hsRaw.reason || '') : '';
+  const scoreColor = score === null ? 'var(--text-muted)' : score >= 70 ? 'var(--green)' : score >= 45 ? 'var(--gold)' : 'var(--red)';
+  const trendArrow = hsRaw && typeof hsRaw === 'object' ? (hsRaw.trend_arrow || '') : '';
+  const trendBadge = trendArrow.includes('improv') || trendArrow.includes('up') ? '📈 Improving'
+    : trendArrow.includes('declin') || trendArrow.includes('down') || trendArrow.includes('wors') ? '📉 Declining'
+    : trendArrow ? '➡️ Stable' : '';
+  const ring = score !== null ? `
+    <div style="display:flex;align-items:center;gap:.7rem;">
+      <div style="position:relative;width:58px;height:58px;flex-shrink:0;">
+        <svg viewBox="0 0 36 36" style="width:58px;height:58px;transform:rotate(-90deg);">
+          <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.5"/>
+          <circle cx="18" cy="18" r="15.5" fill="none" stroke="${scoreColor}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${(score / 100) * 97.4} 97.4"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:.95rem;color:${scoreColor};">${score}</div>
       </div>
-    `;
-  }
+      <div>
+        <div style="font-size:.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;">Political Health</div>
+        ${trendBadge ? `<div style="font-size:.68rem;font-weight:700;color:${scoreColor};margin-top:.15rem;">${trendBadge}</div>` : ''}
+      </div>
+      ${hsReason ? `<div style="font-size:.68rem;color:var(--text-secondary);line-height:1.4;flex:1;min-width:160px;">${wrEscape(hsReason)}</div>` : ''}
+    </div>` : '';
 
-  let risksHTML = '';
-  if (Array.isArray(summary.political_risks) && summary.political_risks.length > 0) {
-    risksHTML = `
-      <div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Political Risks & Weak Points</div>
-        <div style="display:flex;flex-direction:column;gap:.35rem;">
-          ${summary.political_risks.map(r => {
-            const rLevel = (r.risk_level || '').toLowerCase();
-            const rc = rLevel === 'critical' ? 'var(--red)' : rLevel === 'high' ? 'var(--amber)' : rLevel === 'medium' ? 'var(--gold)' : 'var(--green)';
-            const bgc = rLevel === 'critical' ? 'rgba(230,57,70,0.06)' : rLevel === 'high' ? 'rgba(255,159,67,0.06)' : 'rgba(38,222,129,0.06)';
-            return `
-            <div style="padding:.4rem .55rem;background:${bgc};border-left:3px solid ${rc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
-               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-                 <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">${wrEscape(r.issue)}</span>
-                 <span style="font-size:.55rem;font-weight:700;padding:2px 5px;background:${rc};color:#fff;border-radius:3px;">${wrEscape(r.risk_level)}</span>
-               </div>
-               <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(r.reason)}</div>
-             </div>`;
-          }).join('')}
+  // ── Interactive card helper (expandable <details>) ──
+  const intelCard = (emoji, title, color, bg, inner, open = false) => `
+    <details ${open ? 'open' : ''} style="background:${bg};border:1px solid ${color}33;border-left:3px solid ${color};border-radius:var(--radius-md);overflow:hidden;">
+      <summary style="cursor:pointer;list-style:none;padding:.55rem .7rem;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+        <span style="font-size:.7rem;font-weight:800;color:${color};text-transform:uppercase;letter-spacing:.06em;">${emoji} ${title}</span>
+        <span style="font-size:.6rem;color:var(--text-muted);">▼</span>
+      </summary>
+      <div style="padding:0 .7rem .6rem;">${inner}</div>
+    </details>`;
+
+  const asText = (v) => typeof v === 'string' ? v : (v.action || v.issue || v.title || v.name || v.leader || '');
+  const list = (arr, cls = '') => `<ul style="margin:0;padding-left:1.05rem;display:flex;flex-direction:column;gap:.25rem;">${arr.map(p => `<li style="font-size:.72rem;color:var(--text-secondary);line-height:1.45;${cls}">${wrEscape(asText(p))}</li>`).join('')}</ul>`;
+
+  const cards = [];
+
+  // 🎯 Top Priority Today (structured: rank + urgency + action)
+  if (Array.isArray(summary.top_priority_today) && summary.top_priority_today.length) {
+    const inner = `<div style="display:flex;flex-direction:column;gap:.35rem;">${summary.top_priority_today.map((t, i) => {
+      const act = asText(t);
+      const urg = t && typeof t === 'object' ? (t.urgency || '') : '';
+      const uc = /immediate|तुरंत/i.test(urg) ? 'var(--red)' : /24/i.test(urg) ? 'var(--amber)' : 'var(--gold)';
+      return `<div style="display:flex;gap:.5rem;align-items:flex-start;padding:.4rem .55rem;background:rgba(255,255,255,0.02);border-left:3px solid ${uc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+        <b style="color:var(--amber);font-size:.75rem;flex-shrink:0;">${(t && typeof t === 'object' && t.rank) ? t.rank : i + 1}</b>
+        <div style="flex:1;">
+          <div style="font-size:.72rem;color:var(--text-secondary);line-height:1.45;">${wrEscape(act)}</div>
+          ${urg ? `<span style="font-size:.58rem;font-weight:700;color:${uc};text-transform:uppercase;">${wrEscape(urg)}</span>` : ''}
         </div>
-      </div>
-    `;
+      </div>`;
+    }).join('')}</div>`;
+    cards.push(intelCard('🎯', 'आज की टॉप प्रायोरिटी', 'var(--amber)', 'rgba(255,159,67,0.06)', inner, true));
   }
 
-  let oppHTML = '';
-  if (Array.isArray(summary.opposition_activity) && summary.opposition_activity.length > 0) {
-    oppHTML = `
-      <div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🎯 Opposition Strategy</div>
-        <div style="display:flex;flex-direction:column;gap:.35rem;">
-          ${summary.opposition_activity.map(o => {
-            const oImpact = (o.potential_impact || '').toLowerCase();
-            const borderCol = oImpact === 'high' ? 'var(--red)' : oImpact === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
-            return `
-            <div style="padding:.4rem .55rem;background:var(--glass-bg);border-left:3px solid ${borderCol};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
-               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
-                 <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">${wrEscape(o.party_or_leader)}</span>
-                 <span style="font-size:.55rem;color:var(--text-muted);">Impact: ${wrEscape(o.potential_impact)}</span>
-               </div>
-               <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(o.action_summary)}</div>
-             </div>`;
-          }).join('')}
+  // ✅ BJP Action Points
+  if (Array.isArray(summary.bjp_action_points) && summary.bjp_action_points.length) {
+    cards.push(intelCard('✅', 'BJP रणनीतिक कार्रवाई', 'var(--green)', 'rgba(38,222,129,0.05)', list(summary.bjp_action_points)));
+  }
+
+  // 💪 BJP Advantage Points
+  if (Array.isArray(summary.bjp_advantage_points) && summary.bjp_advantage_points.length) {
+    cards.push(intelCard('💪', 'BJP के मजबूत पॉइंट्स', 'var(--green)', 'rgba(38,222,129,0.05)', list(summary.bjp_advantage_points)));
+  }
+
+  // ⚠️ Political Risks (structured cards)
+  if (Array.isArray(summary.political_risks) && summary.political_risks.length) {
+    const inner = `<div style="display:flex;flex-direction:column;gap:.35rem;">${summary.political_risks.map(r => {
+      const lv = (r.risk_level || '').toLowerCase();
+      const rc = lv === 'critical' ? 'var(--red)' : lv === 'high' ? 'var(--amber)' : lv === 'medium' ? 'var(--gold)' : 'var(--green)';
+      return `<div style="padding:.4rem .55rem;background:rgba(255,255,255,0.02);border-left:3px solid ${rc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.4rem;">
+          <span style="font-size:.7rem;font-weight:800;color:var(--text-primary);">${wrEscape(r.issue)}</span>
+          <span style="font-size:.55rem;font-weight:700;padding:2px 6px;background:${rc};color:#fff;border-radius:3px;white-space:nowrap;">${wrEscape(r.risk_level)}</span>
         </div>
-      </div>
-    `;
+        <div style="font-size:.66rem;color:var(--text-secondary);line-height:1.35;margin-top:.15rem;">${wrEscape(r.reason)}</div>
+      </div>`;
+    }).join('')}</div>`;
+    cards.push(intelCard('⚠️', 'राजनीतिक जोखिम व कमजोर पॉइंट्स', 'var(--red)', 'rgba(230,57,70,0.05)', inner));
   }
 
-  let counterStrategyHTML = '';
-  if (Array.isArray(summary.counter_strategy_points) && summary.counter_strategy_points.length > 0) {
-    counterStrategyHTML = `
-      <div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(74,158,255,0.06);border:1px solid rgba(74,158,255,0.2);border-radius:var(--radius-md);">
-        <div style="font-size:.65rem;font-weight:800;color:var(--primary-light);margin-bottom:.2rem;">🛡️ Counter Strategy for BJP</div>
-        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
-          ${summary.counter_strategy_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
-        </ul>
-      </div>
-    `;
+  // 🎯 Opposition Strategy (structured cards)
+  if (Array.isArray(summary.opposition_activity) && summary.opposition_activity.length) {
+    const inner = `<div style="display:flex;flex-direction:column;gap:.35rem;">${summary.opposition_activity.map(o => {
+      const im = (o.potential_impact || '').toLowerCase();
+      const bc = im === 'high' ? 'var(--red)' : im === 'medium' ? 'var(--amber)' : 'var(--text-muted)';
+      return `<div style="padding:.4rem .55rem;background:rgba(255,255,255,0.02);border-left:3px solid ${bc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.4rem;">
+          <span style="font-size:.7rem;font-weight:800;color:var(--text-primary);">${wrEscape(o.party_or_leader)}</span>
+          <span style="font-size:.56rem;color:var(--text-muted);white-space:nowrap;">Impact: ${wrEscape(o.potential_impact)}</span>
+        </div>
+        <div style="font-size:.66rem;color:var(--text-secondary);line-height:1.35;margin-top:.15rem;">${wrEscape(o.action_summary)}</div>
+      </div>`;
+    }).join('')}</div>`;
+    cards.push(intelCard('🎯', 'विपक्ष की रणनीति', 'var(--primary-light)', 'rgba(74,158,255,0.05)', inner));
   }
 
-  let electionWatchHTML = '';
-  if (Array.isArray(summary.election_watch_items) && summary.election_watch_items.length > 0) {
-    electionWatchHTML = `
-      <div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">🗳️ Election Watch Items</div>
-        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
-          ${summary.election_watch_items.map(i => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(i)}</li>`).join('')}
-        </ul>
-      </div>
-    `;
+  // 🛡️ Counter Strategy
+  if (Array.isArray(summary.counter_strategy_points) && summary.counter_strategy_points.length) {
+    cards.push(intelCard('🛡️', 'BJP की काउंटर रणनीति', 'var(--primary-light)', 'rgba(74,158,255,0.05)', list(summary.counter_strategy_points)));
   }
 
-  container.innerHTML = `<div style="padding:.85rem;border:1px solid rgba(255,159,67,0.3);border-left:4px solid var(--amber);border-radius:var(--radius-md);background:rgba(255,159,67,0.05);">
-    <!-- Top bar -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.35rem;">
-      <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;">
-        <span style="font-size:.65rem;font-weight:800;color:var(--amber);letter-spacing:.05em;">LATEST INTELLIGENCE</span>
+  // 🔥 Most Active Opposition Voices
+  if (Array.isArray(summary.most_active_opposition_voices_this_cycle) && summary.most_active_opposition_voices_this_cycle.length) {
+    const inner = `<div style="display:flex;flex-wrap:wrap;gap:.35rem;">${summary.most_active_opposition_voices_this_cycle.map(v => {
+      const name = typeof v === 'string' ? v : (v.name || v.leader || JSON.stringify(v));
+      return `<span class="tag" style="font-size:.66rem;border-color:rgba(230,57,70,0.4);color:var(--red);">🔥 ${wrEscape(name)}</span>`;
+    }).join('')}</div>`;
+    cards.push(intelCard('🔥', 'सबसे सक्रिय विपक्षी आवाज़ें', 'var(--red)', 'rgba(230,57,70,0.05)', inner));
+  }
+
+  // 🔄 Trend Since Last Cycle (escalated / de-escalated / new developments)
+  const tr = summary.trend_since_last_cycle;
+  if (tr && typeof tr === 'object') {
+    const esc = Array.isArray(tr.escalated) ? tr.escalated : [];
+    const newDev = Array.isArray(tr.new_developments) ? tr.new_developments : [];
+    if (esc.length || newDev.length) {
+      const inner =
+        (esc.length ? `<div style="font-size:.6rem;font-weight:800;color:var(--red);text-transform:uppercase;margin-bottom:.25rem;">▲ Escalating</div>` + list(esc) : '') +
+        (newDev.length ? `<div style="font-size:.6rem;font-weight:800;color:var(--amber);text-transform:uppercase;margin:.45rem 0 .25rem;">✦ New Developments</div>` + list(newDev) : '');
+      cards.push(intelCard('🔄', 'पिछले साइकिल से ट्रेंड', 'var(--amber)', 'rgba(255,159,67,0.05)', inner));
+    }
+  }
+
+  // 🗳️ Election Watch
+  if (Array.isArray(summary.election_watch_items) && summary.election_watch_items.length) {
+    cards.push(intelCard('🗳️', 'चुनावी निगरानी', 'var(--gold)', 'rgba(245,197,24,0.05)', list(summary.election_watch_items)));
+  }
+
+  container.innerHTML = `
+    <div style="padding:.85rem;border:1px solid rgba(168,85,247,0.3);border-left:4px solid #a855f7;border-radius:var(--radius-md);background:rgba(168,85,247,0.04);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.7rem;flex-wrap:wrap;gap:.5rem;">
+        <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:.68rem;font-weight:800;color:#c084fc;letter-spacing:.05em;">⚡ LATEST INTELLIGENCE</span>
+          ${trendBadge && score === null ? `<span class="tag" style="font-size:.6rem;">${trendBadge}</span>` : ''}
+        </div>
+        <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${summary.news_count || 0} news analyzed</span>
       </div>
-      <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${summary.news_count || 0} news analyzed</span>
-    </div>
 
-    <!-- Overall situation -->
-    ${summary.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid rgba(255,159,67,0.3);padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(summary.overall_situation)}</div>` : ''}
+      ${ring ? `<div style="margin-bottom:.7rem;padding:.6rem .7rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);">${ring}</div>` : ''}
 
-    ${bjpActionPointsHTML}
-    ${risksHTML}
-    ${oppHTML}
-    ${counterStrategyHTML}
-    ${electionWatchHTML}
-  </div>`;
+      ${summary.overall_situation ? `<div style="font-size:.82rem;line-height:1.65;color:var(--text-primary);font-weight:500;padding:.65rem .7rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border-left:3px solid #a855f7;margin-bottom:.7rem;">${wrEscape(summary.overall_situation)}</div>` : ''}
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.6rem;">
+        ${cards.join('')}
+      </div>
+    </div>`;
 }
 
 /**
