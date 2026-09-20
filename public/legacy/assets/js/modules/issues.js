@@ -7,6 +7,9 @@ let isStatusFilter = 'all';
 let isDistrictFilter = 'all';
 let isKeywordFilter = '';
 let isCategoryChart = null;
+/* Issue cards pagination: first 4 cards, "Read More" loads +5 each click */
+let isVisibleCount = 4;
+let isLastFiltered = [];
 
 /* Districts with a Live Hindustan feed (kept in sync with
    app/api/cron/district-news/route.js DISTRICT_FEEDS). */
@@ -271,16 +274,23 @@ function getStatusConfig(s) {
   return map[s] || map['open'];
 }
 
-function renderIssuesList(data) {
+function renderIssuesList(data, append = false) {
   const el = document.getElementById('is-list');
   if (!el) return;
+
+  if (!append) {
+    isLastFiltered = data;
+    isVisibleCount = 4; // reset pagination on new filter
+  }
 
   if (!data.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">✅</div><p>No issues match your filter.</p></div>`;
     return;
   }
 
-  el.innerHTML = data.map((issue, i) => {
+  const visible = data.slice(0, isVisibleCount);
+
+  el.innerHTML = visible.map((issue, i) => {
     const pc = getPriorityConfig(issue.priority);
     const sc = getStatusConfig(issue.status);
     return `
@@ -312,6 +322,29 @@ function renderIssuesList(data) {
       </div>
     `;
   }).join('');
+
+  // Read More / Show Less controls
+  const remaining = data.length - visible.length;
+  if (remaining > 0) {
+    el.insertAdjacentHTML('beforeend', `
+      <button class="btn btn-ghost w-full" style="margin-top:0.25rem; border:1px dashed var(--border-subtle);"
+        onclick="loadMoreIssueCards()">↓ Read More (${Math.min(5, remaining)} of ${remaining} more issues)</button>`);
+  } else if (data.length > 4) {
+    el.insertAdjacentHTML('beforeend', `
+      <button class="btn btn-ghost w-full" style="margin-top:0.25rem; border:1px dashed var(--border-subtle);"
+        onclick="collapseIssueCards()">↑ Show Less</button>`);
+  }
+}
+
+function loadMoreIssueCards() {
+  isVisibleCount += 5;
+  renderIssuesList(isLastFiltered, true);
+}
+
+function collapseIssueCards() {
+  isVisibleCount = 4;
+  renderIssuesList(isLastFiltered, true);
+  document.getElementById('is-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function selectIssue(id) {
@@ -515,4 +548,6 @@ function applyIssueFilters() {
 window.selectIssue   = selectIssue;
 window.assignIssue   = assignIssue;
 window.escalateIssue = escalateIssue;
+window.loadMoreIssueCards = loadMoreIssueCards;
+window.collapseIssueCards = collapseIssueCards;
 window.loadMoreDistrictNews = loadMoreDistrictNews;
