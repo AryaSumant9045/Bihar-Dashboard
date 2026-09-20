@@ -1,0 +1,28 @@
+name: PK Tracker AI Summary (Daily 6AM & 5PM IST)
+
+# Roz subah 6 baje aur shaam 5 baje (IST): opposition_summary + xjansuraaj +
+# pk_rss teeno sources ko AI (Gemini/Groq) se analyze karke PK Tracker ki
+# "AI Intelligence Summary" generate hoti hai aur pk_tracker_summary table
+# me save hoti hai. (pk-rss ingestion ke baad chalta hai.)
+# Manual run: Actions tab → "PK Tracker AI Summary" → Run workflow.
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # 6:30 AM IST daily (UTC 01:00)
+    - cron: '30 11 * * *' # 5:00 PM IST daily (UTC 11:30)
+  workflow_dispatch:
+
+jobs:
+  trigger-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call pk-summary cron endpoint
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -n "$CRON_SECRET" ]; then
+            curl -sf --max-time 300 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/pk-summary"
+          else
+            curl -sf --max-time 300 "$APP_URL/api/cron/pk-summary"
+          fi

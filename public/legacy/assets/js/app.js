@@ -251,10 +251,10 @@ window.openModal   = openModal;
 window.closeModal  = closeModal;
 window.AppState    = AppState;
 
-// ── Theme toggle (dark default, light on demand) ─────────────
+// ── Theme toggle (light default, dark on demand) ─────────────
 (function initThemeToggle() {
   const LS_THEME = 'bcc_theme';
-  const getTheme = () => (localStorage.getItem(LS_THEME) === 'light' ? 'light' : 'dark');
+  const getTheme = () => (localStorage.getItem(LS_THEME) === 'dark' ? 'dark' : 'light');
 
   function applyTheme(theme) {
     if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');

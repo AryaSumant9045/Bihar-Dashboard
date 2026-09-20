@@ -19,6 +19,22 @@
 <!-- PK Profile Hero -->
 <div id="pk-profile" class="card card-red card-shine" style="margin-bottom:1rem; padding:1.5rem;"></div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     🧠 AI INTELLIGENCE SUMMARY (PK Tracker) — top of page
+     Reads public.pk_tracker_summary via /api/pk-summary
+     ═══════════════════════════════════════════════════════════ -->
+<section class="card" id="pk-ai-summary" style="margin-bottom:1rem; border-color:rgba(230,57,70,0.28); display:none;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.85rem; flex-wrap:wrap;">
+    <div>
+      <div class="card-title" style="margin:0;">🧠 AI Intelligence Summary — Prashant Kishor</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem;">Combined analysis of Opposition summary + Jan Suraaj X posts + PK RSS — auto-updated daily</div>
+    </div>
+    <span class="tag tag-red" id="pk-ai-stamp" style="font-size:0.62rem;"></span>
+  </div>
+  <div id="pk-ai-body"></div>
+  <style>@media (max-width:820px){ .pk-ai-grid{ grid-template-columns:1fr !important; } }</style>
+</section>
+
 <!-- 3-Column Grid -->
 <div style="display:grid; grid-template-columns:1fr 1fr 0.85fr; gap:1rem;">
 

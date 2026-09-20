@@ -18,6 +18,7 @@ function initPKTracker() {
   loadPKXFeed();
   loadPKJanSuraajYouTube();
   loadPKIntel(); // overlay live AI snapshot (activity log, strategy, map, social)
+  loadPKAISummary(); // top AI Intelligence Summary card (pk_tracker_summary)
 }
 
 // ── Live PK intelligence (AI snapshot from /api/cron/pk-intel) ────────────
@@ -79,6 +80,72 @@ function loadPKInstagramFeed() {
 function escapePKNewsValue(value) {
   return String(value).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 }
+
+/* ── AI Intelligence Summary (PK Tracker top card) ──────────────────────── */
+function pkSevCfg(s) {
+  const m = {
+    critical: { c: 'var(--red)',   e: '🔴', l: 'CRITICAL' },
+    high:     { c: 'var(--amber)', e: '🟠', l: 'HIGH' },
+    medium:   { c: 'var(--gold)',  e: '🟡', l: 'MEDIUM' },
+    low:      { c: 'var(--green)', e: '🟢', l: 'LOW' },
+  };
+  return m[String(s || '').toLowerCase()] || m.medium;
+}
+
+function loadPKAISummary() {
+  const card = document.getElementById('pk-ai-summary');
+  if (!card) return;
+  fetch('/api/pk-summary', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(payload => {
+      if (!payload || !payload.has_data || !payload.summary) return;
+      renderPKAISummary(payload.summary);
+      card.style.display = 'block';
+    })
+    .catch(err => console.error('[PK-AI-Summary] fetch error:', err));
+}
+
+function renderPKAISummary(s) {
+  const body = document.getElementById('pk-ai-body');
+  const stamp = document.getElementById('pk-ai-stamp');
+  if (!body) return;
+  if (stamp && s.created_at) {
+    stamp.textContent = '🔄 ' + new Date(s.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const list = (arr, renderItem) => (Array.isArray(arr) && arr.length)
+    ? `<ul style="margin:0; padding-left:1.1rem; display:flex; flex-direction:column; gap:0.4rem;">${arr.map(renderItem).join('')}</ul>`
+    : '<div style="font-size:0.75rem; color:var(--text-muted);">इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली।</div>';
+
+  const sec = (title, color, inner) => `
+    <div style="background:var(--glass-bg); border:1px solid var(--border-subtle); border-left:3px solid ${color}; border-radius:8px; padding:0.85rem 1rem;">
+      <div style="font-size:0.78rem; font-weight:700; color:${color}; margin-bottom:0.5rem;">${title}</div>
+      ${inner}
+    </div>`;
+
+  body.innerHTML = `
+    <div style="padding:0.85rem 1rem; background:rgba(230,57,70,0.06); border-left:3px solid var(--red); border-radius:8px; margin-bottom:0.85rem; font-size:0.85rem; line-height:1.6; color:var(--text-primary);">
+      ${escapePKNewsValue(s.overall_situation || '')}
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.85rem;" class="pk-ai-grid">
+      ${sec('📌 Key Activities', 'var(--blue)', list(s.key_activities, a => `<li style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45;">${escapePKNewsValue(a)}</li>`))}
+      ${sec('🎯 Counter-Strategy for BJP', 'var(--green)', list(s.counter_strategy_points, a => `<li style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45;">${escapePKNewsValue(a)}</li>`))}
+      ${sec('⚔️ Attacks on BJP / Govt', 'var(--red)', list(s.attacks_on_bjp, a => {
+        const o = typeof a === 'string' ? { attack_summary: a, severity: 'Medium' } : a;
+        const c = pkSevCfg(o.severity);
+        return `<li style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45;"><span class="tag" style="font-size:0.58rem; color:${c.c}; border-color:${c.c}; margin-right:0.3rem;">${c.e} ${c.l}</span>${escapePKNewsValue(o.attack_summary)}</li>`;
+      }))}
+      ${sec('⚠️ Risk to BJP', 'var(--amber)', list(s.risk_to_bjp, a => {
+        const o = typeof a === 'string' ? { issue: a, risk_level: 'Medium', reason: '' } : a;
+        const c = pkSevCfg(o.risk_level);
+        return `<li style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45;"><span class="tag" style="font-size:0.58rem; color:${c.c}; border-color:${c.c}; margin-right:0.3rem;">${c.e} ${c.l}</span><b>${escapePKNewsValue(o.issue)}</b>${o.reason ? ` — <span style="color:var(--text-muted);">${escapePKNewsValue(o.reason)}</span>` : ''}</li>`;
+      }))}
+    </div>
+    ${(Array.isArray(s.bjp_advantage_points) && s.bjp_advantage_points.length) ? `
+    <div style="margin-top:0.85rem;">${sec('💡 BJP Advantage Points', 'var(--gold)', list(s.bjp_advantage_points, a => `<li style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45;">${escapePKNewsValue(a)}</li>`))}</div>` : ''}
+  `;
+}
+
 
 function renderPKProfile() {
   const el = document.getElementById('pk-profile');

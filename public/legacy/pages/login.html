@@ -8,7 +8,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bihar Command Center — Access Portal</title>
-  <script>if (localStorage.getItem('bcc_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light');</script>
+  <script>if (localStorage.getItem('bcc_theme') !== 'dark') document.documentElement.setAttribute('data-theme', 'light');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -289,7 +289,7 @@
 <script>
   (function initLoginTheme() {
     const LS_THEME = 'bcc_theme';
-    const getTheme = () => (localStorage.getItem(LS_THEME) === 'light' ? 'light' : 'dark');
+    const getTheme = () => (localStorage.getItem(LS_THEME) === 'dark' ? 'dark' : 'light');
     function applyTheme(theme) {
       if (theme === 'light') document.documentElement.setAttribute('data-theme', 'light');
       else document.documentElement.removeAttribute('data-theme');
