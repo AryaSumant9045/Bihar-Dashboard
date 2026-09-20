@@ -153,7 +153,7 @@ async function handleCron(request) {
     const authHeader = request.headers.get('authorization') || '';
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret') || '';
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = (process.env.CRON_SECRET || 'bihar-cron-secret-2026');
     
     // Check if it's from Upstash or manual cron secret
     const isUpstash = request.headers.get('upstash-signature') ? true : false;

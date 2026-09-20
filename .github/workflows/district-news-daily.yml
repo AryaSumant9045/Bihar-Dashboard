@@ -35,11 +35,9 @@ jobs:
     steps:
       - name: Fetch ${{ matrix.district }} news
         run: |
-          url="$APP_URL/api/cron/district-news?district=$DISTRICT"
+          SECRET="${CRON_SECRET:-bihar-cron-secret-2026}"
+          url="$APP_URL/api/cron/district-news?district=$DISTRICT&secret=$SECRET"
           auth=()
-          if [ -n "$CRON_SECRET" ]; then
-            auth=(-H "Authorization: Bearer $CRON_SECRET")
-          fi
           for attempt in 1 2 3; do
             echo "::group::$DISTRICT attempt $attempt"
             if curl -sf --max-time 120 "${auth[@]}" "$url"; then

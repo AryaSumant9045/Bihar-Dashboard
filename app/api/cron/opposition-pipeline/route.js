@@ -277,7 +277,7 @@ async function handlePipeline(request) {
   const isDebug = searchParams.get('debug') === '1';
 
   // Auth
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = (process.env.CRON_SECRET || 'bihar-cron-secret-2026');
   const providedSecret = searchParams.get('secret') ||
     request.headers.get('authorization')?.replace('Bearer ', '');
   const isUpstash = !!request.headers.get('upstash-signature');

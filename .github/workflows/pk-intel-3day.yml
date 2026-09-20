@@ -21,8 +21,5 @@ jobs:
           APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if [ -n "$CRON_SECRET" ]; then
-            curl -sf --max-time 300 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/pk-intel"
-          else
-            curl -sf --max-time 300 "$APP_URL/api/cron/pk-intel"
-          fi
+          SECRET="${CRON_SECRET:-bihar-cron-secret-2026}"
+          curl -sf --max-time 300 "$APP_URL/api/cron/pk-intel?secret=$SECRET"

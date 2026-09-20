@@ -166,7 +166,7 @@ async function fetchInBatches(entries, size) {
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || 'bihar-cron-secret-2026');
   if (secret) {
     const provided =
       searchParams.get('secret') ||

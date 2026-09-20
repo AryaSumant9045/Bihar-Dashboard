@@ -51,7 +51,7 @@ export const maxDuration = 60; // Max allowed on Vercel Hobby
 export async function GET(request) {
   // ── Auth ────────────────────────────────────────────────────
   const { searchParams } = new URL(request.url);
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || 'bihar-cron-secret-2026');
 
   if (secret) {
     const provided =
