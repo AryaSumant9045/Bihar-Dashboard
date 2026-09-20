@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 /* ── BJP Bihar Official Tracked Leaders Registry (from Command Dashboard doc) ── */
 const KNOWN_LEADERS = [
   // CATEGORY 1: State Cabinet & Senior Leadership
-  { name: 'Samrat Choudhary', designation: 'Deputy Chief Minister', category: 'Cabinet', party: 'BJP', district: 'Patna', aliases: ['samrat', 'सम्राट चौधरी', 'सम्राट'] },
+  { name: 'Samrat Choudhary', designation: 'Chief Minister', category: 'Cabinet', party: 'BJP', district: 'Patna', aliases: ['samrat choudhary', 'सम्राट चौधरी'] },
   { name: 'Vijay Kumar Sinha', designation: 'Deputy Chief Minister', category: 'Cabinet', party: 'BJP', district: 'Lakhisarai', aliases: ['vijay sinha', 'विजय सिन्हा', 'विजय कुमार सिन्हा'] },
   { name: 'Mangal Pandey', designation: 'Health Minister', category: 'Cabinet', party: 'BJP', district: 'Siwan', aliases: ['mangal pandey', 'मंगल पांडे'] },
   { name: 'Nitin Nabin', designation: 'Road Construction Minister', category: 'Cabinet', party: 'BJP', district: 'Patna', aliases: ['nitin nabin', 'नितिन नबीन'] },
@@ -50,7 +50,7 @@ const KNOWN_LEADERS = [
   { name: 'Shambhu Sharan Patel', designation: 'Rajya Sabha MP', category: 'MP', party: 'BJP', district: 'Sheikhpura', aliases: ['shambhu patel', 'शंभु शरण'] },
   { name: 'Dilip Kumar Jaiswal', designation: 'MLC / BJP Bihar President', category: 'Office-Bearer', party: 'BJP', district: 'Kishanganj', aliases: ['dilip jaiswal', 'दिलीप जायसवाल', 'जयसवाल'] },
   // NDA allies tracked for context
-  { name: 'Nitish Kumar', designation: 'Chief Minister', category: 'Cabinet', party: 'JDU', district: 'Patna', aliases: ['nitish', 'नीतीश कुमार', 'नीतीश'] },
+  { name: 'Nitish Kumar', designation: 'JDU National President (Former CM)', category: 'Cabinet', party: 'JDU', district: 'Patna', aliases: ['nitish kumar', 'नीतीश कुमार'] },
   { name: 'Chirag Paswan', designation: 'Union Minister / LJP(RV) Chief', category: 'MP', party: 'LJP', district: 'Hajipur', aliases: ['chirag', 'चिराग पासवान', 'चिराग'] },
   { name: 'Jitan Ram Manjhi', designation: 'Union Minister / HAM Chief', category: 'MP', party: 'HAM', district: 'Gaya', aliases: ['manjhi', 'जीतन राम मांझी', 'मांझी'] },
 ];
@@ -188,14 +188,19 @@ ${compactPrompt.split('## District news')[1] ? compactPrompt.split('## District 
 }
 
 
-/* Match a headline-extracted leader to the known registry (by name/alias) */
+/* Match a headline-extracted leader to the known registry.
+   STRICT full-name matching only (no loose substring) so generic aliases
+   like 'nitish' don't incorrectly swallow every activity. */
 function matchLeader(name) {
-  const q = String(name || '').toLowerCase();
+  const q = String(name || '').toLowerCase().trim();
   if (!q) return null;
-  return KNOWN_LEADERS.find(l =>
-    q.includes(l.name.toLowerCase()) ||
-    l.aliases.some(a => q.includes(a.toLowerCase()) || l.name.toLowerCase().includes(a.toLowerCase()))
-  ) || null;
+  return KNOWN_LEADERS.find(l => {
+    const fullName = l.name.toLowerCase();
+    // Exact or full-name containment both ways
+    if (q === fullName || q.includes(fullName) || fullName.includes(q)) return true;
+    // Aliases must be multi-word (specific) to match — single generic words skip
+    return l.aliases.some(a => a.toLowerCase().includes(' ') && q.includes(a.toLowerCase()));
+  }) || null;
 }
 
 const VALID_PRIORITY = ['ROUTINE', 'WATCH', 'DEVELOPING', 'CRITICAL'];

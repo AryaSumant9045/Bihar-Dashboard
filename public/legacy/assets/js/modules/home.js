@@ -4,9 +4,13 @@
    ============================================================ */
 
 let homeMap = null;
+let HOME_LIVE = null;          // last live payload from /api/home
+let homeRefreshTimer = null;
+let homePrevCritical = 0;      // for "NEW" indicator on Card 1
 
 function initHome() {
   setGreeting();
+  // Render static first (instant paint), then overlay live data
   renderTop3();
   renderTrendingSnap();
   renderActivityMini();
@@ -17,7 +21,172 @@ function initHome() {
   renderAlertSummary();
   renderTopIssues();
   initHomeMap();
+  loadHomeLive();             // live DB overlay
+  startHomeAutoRefresh();     // poll every 2.5 min
 }
+
+function homeEsc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+}
+
+/* ── Live data loader (all 6 cards + alerts + issues from /api/home) ── */
+function loadHomeLive(silent = true) {
+  return fetch('/api/home', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(d => {
+      if (!d || d.error) return;
+      HOME_LIVE = d;
+      renderTop3Live(d.top3);
+      renderTrendingLive(d.trending);
+      renderActivityLive(d.activity);
+      renderOppositionLive(d.opposition);
+      renderPKLive(d.pk);
+      renderSpeechLive(d.speechCount);
+      renderAlertSummaryLive(d.alertSummary);
+      renderTopIssuesLive(d.issues);
+      const badge = document.getElementById('home-live-stamp');
+      if (badge) badge.textContent = '🔄 Live · ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    })
+    .catch(e => { if (!silent) console.error('[Home] live load failed:', e); });
+}
+
+function startHomeAutoRefresh() {
+  if (homeRefreshTimer) return;
+  homeRefreshTimer = setInterval(() => {
+    if (document.hidden) return;
+    loadHomeLive(true);
+  }, 150000); // 2.5 min
+}
+
+/* ═══════ LIVE RENDERERS (overwrite static when data arrives) ═══════ */
+
+/* Card 1 — 3 Things Requiring Attention */
+function renderTop3Live(top3) {
+  const el = document.getElementById('home-top3');
+  if (!el || !Array.isArray(top3) || !top3.length) return;
+  el.innerHTML = top3.map((n, i) => `
+    <div style="padding:0.85rem 1rem; background:rgba(230,57,70,0.08); border:1px solid rgba(230,57,70,0.2); border-radius:var(--radius-md); cursor:pointer; transition:all 0.15s;"
+      onmouseover="this.style.background='rgba(230,57,70,0.14)'" onmouseout="this.style.background='rgba(230,57,70,0.08)'"
+      onclick="navigateTo('war-room')">
+      <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem;">
+        <span style="font-family:'Outfit',sans-serif; font-size:1rem; font-weight:800; color:rgba(230,57,70,0.5);">${i + 1}</span>
+        <span class="tag tag-red" style="font-size:0.6rem;">${homeEsc(n.source || 'News')}</span>
+        <span style="font-size:0.65rem; color:var(--text-muted);">📍 ${homeEsc(n.district || 'Bihar')}</span>
+      </div>
+      <div style="font-size:0.82rem; font-weight:600; color:var(--text-primary); line-height:1.35;">${homeEsc((n.title || '').slice(0, 90))}${(n.title || '').length > 90 ? '…' : ''}</div>
+      <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">🕐 ${n.published_at ? new Date(n.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</div>
+    </div>`).join('');
+}
+
+/* Card 2 — What Is Trending */
+function renderTrendingLive(trending) {
+  const el = document.getElementById('home-trending');
+  if (!el || !Array.isArray(trending) || !trending.length) return;
+  el.innerHTML = trending.map((t, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border-subtle);">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-family:'Outfit',sans-serif; font-weight:800; color:var(--blue); font-size:0.85rem;">#${i + 1}</span>
+        <span style="font-size:0.82rem; font-weight:600; color:var(--text-primary); text-transform:capitalize;">${homeEsc(t.word)}</span>
+      </div>
+      <span class="tag tag-blue" style="font-size:0.62rem;">${t.count} headlines</span>
+    </div>`).join('');
+}
+
+/* Card 4 — Opposition Watch */
+function renderOppositionLive(opp) {
+  const el = document.getElementById('home-opposition-snap');
+  if (!el || !opp) return;
+  const atk = opp.top_attack;
+  el.innerHTML = `
+    ${opp.overall ? `<div style="font-size:0.8rem; color:var(--text-secondary); line-height:1.45; padding:0.4rem 0; border-bottom:1px solid var(--border-subtle);">${homeEsc(opp.overall)}…</div>` : ''}
+    ${atk ? `<div style="margin-top:0.4rem; padding:0.45rem 0.6rem; background:var(--red-dim); border-left:3px solid var(--red); border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+      <div style="font-size:0.62rem; font-weight:800; color:var(--red); text-transform:uppercase;">⚡ Top Attack</div>
+      <div style="font-size:0.76rem; color:var(--text-primary); line-height:1.35; margin-top:0.15rem;">${homeEsc((atk.attack_summary || atk.topic || '').slice(0, 80))}</div>
+    </div>` : ''}
+    <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.35rem;">📡 ${opp.news_count} opposition items analyzed</div>`;
+}
+
+/* Card 5 — PK Watch (latest Jan Suraaj X posts) */
+function renderPKLive(pk) {
+  const el = document.getElementById('home-pk-snap');
+  if (!el || !Array.isArray(pk) || !pk.length) return;
+  el.innerHTML = pk.map(p => `
+    <a href="${homeEsc(p.url || '#')}" target="_blank" rel="noopener noreferrer" style="display:block; padding:0.4rem 0; border-bottom:1px solid var(--border-subtle); text-decoration:none;">
+      <div style="font-size:0.78rem; font-weight:500; color:var(--text-primary); line-height:1.35;">${homeEsc((p.heading || '').slice(0, 70))}${(p.heading || '').length > 70 ? '…' : ''}</div>
+      <div style="font-size:0.66rem; color:var(--text-muted); margin-top:0.15rem;">🐦 ${p.published_at ? new Date(p.published_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Recent'} · Open ↗</div>
+    </a>`).join('');
+}
+
+/* Card 6 — Speech / Comms */
+function renderSpeechLive(speechCount) {
+  const el = document.getElementById('home-speech-snap');
+  if (!el) return;
+  if (speechCount === null || speechCount === undefined) {
+    el.innerHTML = `<div style="text-align:center; padding:0.75rem 0.5rem;">
+      <div style="font-size:1.4rem; margin-bottom:0.4rem;">🎙️</div>
+      <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:0.5rem;">Speech briefs integration pending</div>
+      <button class="btn btn-primary btn-sm w-full" onclick="navigateTo('speech-intelligence')">+ Generate Speech Brief</button>
+    </div>`;
+  } else {
+    el.innerHTML = `<div style="text-align:center; padding:0.5rem 0;">
+      <div style="font-family:'Outfit',sans-serif; font-size:1.8rem; font-weight:800; color:#a855f7;">${speechCount}</div>
+      <div style="font-size:0.74rem; color:var(--text-muted);">speech briefs generated</div>
+      <button class="btn btn-ghost btn-sm w-full" style="margin-top:0.5rem;" onclick="navigateTo('speech-intelligence')">View Briefs →</button>
+    </div>`;
+  }
+}
+
+/* Alert Summary counts */
+function renderAlertSummaryLive(a) {
+  const el = document.getElementById('home-alert-summary');
+  if (!el || !a) return;
+  el.innerHTML = [
+    { l: 'Critical', v: a.critical, c: 'var(--red)' },
+    { l: 'Developing', v: a.developing, c: 'var(--amber)' },
+    { l: 'Watch', v: a.watch, c: 'var(--gold)' },
+    { l: 'Routine', v: a.routine, c: 'var(--green)' },
+  ].map(x => `<div style="padding:0.6rem; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:var(--radius-md); text-align:center;">
+      <div style="font-family:'Outfit',sans-serif; font-size:1.3rem; font-weight:800; color:${x.c};">${x.v}</div>
+      <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">${x.l}</div>
+    </div>`).join('');
+}
+
+/* Top open issues (right rail) */
+function renderTopIssuesLive(issues) {
+  const el = document.getElementById('home-top-issues');
+  if (!el || !Array.isArray(issues) || !issues.length) return;
+  el.innerHTML = issues.map(i => {
+    const pc = i.priority === 'urgent' ? 'var(--red)' : i.priority === 'high' ? 'var(--amber)' : 'var(--gold)';
+    return `<div style="display:flex; gap:0.45rem; padding:0.4rem 0; border-bottom:1px solid var(--border-subtle); cursor:pointer;" onclick="navigateTo('issues')">
+      <div style="width:7px; height:7px; border-radius:50%; background:${pc}; margin-top:5px; flex-shrink:0;"></div>
+      <div style="min-width:0;">
+        <div style="font-size:0.76rem; font-weight:500; color:var(--text-primary); line-height:1.3;">${homeEsc((i.title || '').slice(0, 55))}${(i.title || '').length > 55 ? '…' : ''}</div>
+        <div style="font-size:0.66rem; color:var(--text-muted);">${homeEsc(i.category)} · ${homeEsc(i.district)} · ${homeEsc(i.status)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* Card 3 — Where Activity Is Happening (clickable → 360°) */
+function renderActivityLive(activity) {
+  const el = document.getElementById('home-activity-mini');
+  if (!el || !Array.isArray(activity) || !activity.length) return;
+  const max = activity[0].count;
+  el.innerHTML = activity.map(a => {
+    const lvl = a.count >= max * 0.7 ? 'var(--red)' : a.count >= max * 0.4 ? 'var(--amber)' : 'var(--green)';
+    return `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.35rem 0.3rem; border-bottom:1px solid var(--border-subtle); cursor:pointer; border-radius:4px; transition:background 0.15s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background=''"
+      onclick="openDistrict360('${homeEsc(a.district)}')">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <div style="width:8px; height:8px; border-radius:50%; background:${lvl};"></div>
+        <span style="font-size:0.82rem; color:var(--text-secondary);">📍 ${homeEsc(a.district)}</span>
+      </div>
+      <span class="tag" style="font-size:0.62rem; color:${lvl}; border-color:${lvl};">${a.count}</span>
+    </div>`;
+  }).join('');
+}
+
 
 /* ── Greeting ──────────────────────────────────────────────── */
 function setGreeting() {
