@@ -26,22 +26,27 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const district = (searchParams.get('district') || 'all').trim();
     const category = (searchParams.get('category') || 'all').trim();
+    const party = (searchParams.get('party') || 'all').trim();
+    const days = Math.min(Math.max(parseInt(searchParams.get('days'), 10) || 0, 0), 365); // 0 = all
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit'), 10) || 20, 1), 100);
 
     const supabase = getSupabase();
     if (!supabase) return Response.json({ has_data: false, reason: 'Supabase not configured' });
 
     // Leaders (LPI board) — ordered by LPI desc
-    let lq = supabase.from('leaders').select('*').order('lpi', { ascending: false }).limit(50);
+    let lq = supabase.from('leaders').select('*').order('lpi', { ascending: false }).limit(100);
     if (category !== 'all') lq = lq.eq('category', category);
+    if (party !== 'all') lq = lq.eq('party', party);
     const { data: leaders, error: lerr } = await lq;
     if (lerr) throw lerr;
 
-    // Activities — latest first, optional district filter
+    // Activities — latest first, optional filters
     let aq = supabase.from('leader_activities').select('*')
       .order('occurred_at', { ascending: false }).limit(limit);
     if (district !== 'all') aq = aq.ilike('district', district);
     if (category !== 'all') aq = aq.eq('category', category);
+    if (party !== 'all') aq = aq.eq('party', party);
+    if (days > 0) aq = aq.gte('occurred_at', new Date(Date.now() - days * 86400000).toISOString());
     const { data: activities, error: aerr } = await aq;
     if (aerr) throw aerr;
 

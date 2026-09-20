@@ -13,6 +13,7 @@ let lsSearchQuery = '';
 let LS_LIVE_LEADERS = [];
 let LS_LIVE_ACTIVITIES = [];
 let lsLiveOn = false;
+let lsLeaderVisible = 3;   // leader cards pagination (3 + 3 per "See More")
 
 function initLeadership() {
   renderFeaturedLeaders();
@@ -51,6 +52,7 @@ function loadLiveLeadership() {
       renderHeatmap(payload.heatmap || {});
       renderTopPerformers();
       renderLiveStats(payload.stats || {});
+      lsAuditInit();
     })
     .catch(err => console.error('[Leadership] live fetch failed, using static:', err));
 }
@@ -60,13 +62,13 @@ function lsToCard(l) {
   return {
     id: l.id, name: l.name, initials,
     role: `${l.designation} • ${l.category}`,
-    party: ['BJP', 'JDU', 'RJD', 'INC'].includes(l.party) ? l.party : 'Other',
+    party: ['BJP', 'JDU', 'RJD', 'INC', 'LJP', 'HAM'].includes(l.party) ? l.party : 'Other',
     influence: l.lpi, sentiment: l.sentiment || 'neutral',
     constituency: l.district, active_flag: l.active_flag, activity_count: l.activity_count,
   };
 }
 
-function renderLiveLeaderGrid() {
+function renderLiveLeaderGrid(append = false) {
   const grid = document.getElementById('ls-leader-grid');
   if (!grid || !LS_LIVE_LEADERS.length) return;
   // Apply category / party / sentiment / search filters to live data
@@ -76,12 +78,16 @@ function renderLiveLeaderGrid() {
   if (lsSentimentFilter !== 'all') data = data.filter(l => l.sentiment === lsSentimentFilter);
   if (lsSearchQuery) data = data.filter(l => l.name.toLowerCase().includes(lsSearchQuery));
 
+  if (!append) lsLeaderVisible = 3; // reset pagination on new filter
+
   if (!data.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🔍</div><p>No leaders match this filter.</p></div>`;
     return;
   }
 
-  grid.innerHTML = data.map((l, i) => {
+  const visible = data.slice(0, lsLeaderVisible);
+
+  grid.innerHTML = visible.map((l, i) => {
     const c = lsToCard(l);
     const flagColor = { ROUTINE: 'var(--green)', WATCH: 'var(--gold)', DEVELOPING: 'var(--amber)', CRITICAL: 'var(--red)' }[l.active_flag] || 'var(--green)';
     return `
@@ -108,6 +114,30 @@ function renderLiveLeaderGrid() {
       </div>
     </div>`;
   }).join('');
+
+  // See More / Show Less controls for leader cards (3 + 3)
+  const remaining = data.length - visible.length;
+  if (remaining > 0) {
+    grid.insertAdjacentHTML('beforeend', `
+      <div style="grid-column:1/-1; text-align:center;">
+        <button class="btn btn-ghost w-full" style="border:1px dashed var(--border-subtle);" onclick="lsMoreLeaders()">↓ See More Leaders (${Math.min(3, remaining)} of ${remaining} more)</button>
+      </div>`);
+  } else if (data.length > 3) {
+    grid.insertAdjacentHTML('beforeend', `
+      <div style="grid-column:1/-1; text-align:center;">
+        <button class="btn btn-ghost w-full" style="border:1px dashed var(--border-subtle);" onclick="lsFewerLeaders()">↑ Show Less</button>
+      </div>`);
+  }
+}
+
+function lsMoreLeaders() {
+  lsLeaderVisible += 3;
+  renderLiveLeaderGrid(true);
+}
+function lsFewerLeaders() {
+  lsLeaderVisible = 3;
+  renderLiveLeaderGrid(true);
+  document.getElementById('ls-leader-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderFeaturedLeaders() {
@@ -309,15 +339,15 @@ function applyLeaderFilters() {
 
 // Helpers
 function partyColor(p) {
-  const m = { BJP: '#ff6b2b', JDU: '#22c55e', RJD: '#e63946', INC: '#4a9eff' };
+  const m = { BJP: '#ff6b2b', JDU: '#22c55e', RJD: '#e63946', INC: '#4a9eff', LJP: '#a855f7', HAM: '#14b8a6' };
   return m[p] || '#f5c518';
 }
 function partyGrad(p) {
-  const m = { BJP: 'linear-gradient(135deg,#ff6b2b,#d4500f)', JDU: 'linear-gradient(135deg,#22c55e,#16a34a)', RJD: 'linear-gradient(135deg,#e63946,#c0392b)', INC: 'linear-gradient(135deg,#4a9eff,#2563eb)' };
+  const m = { BJP: 'linear-gradient(135deg,#ff6b2b,#d4500f)', JDU: 'linear-gradient(135deg,#22c55e,#16a34a)', RJD: 'linear-gradient(135deg,#e63946,#c0392b)', INC: 'linear-gradient(135deg,#4a9eff,#2563eb)', LJP: 'linear-gradient(135deg,#a855f7,#7c3aed)', HAM: 'linear-gradient(135deg,#14b8a6,#0d9488)' };
   return m[p] || 'linear-gradient(135deg,#f5c518,#e8a900)';
 }
 function partyGradient(p) {
-  const m = { BJP: '#ff6b2b', JDU: '#22c55e', RJD: '#e63946', INC: '#4a9eff' };
+  const m = { BJP: '#ff6b2b', JDU: '#22c55e', RJD: '#e63946', INC: '#4a9eff', LJP: '#a855f7', HAM: '#14b8a6' };
   return m[p] || '#f5c518';
 }
 
@@ -456,6 +486,97 @@ function lsSelectLiveActivity(name) {
   document.getElementById('ls-timeline')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+/* ═══════════════ ACTIVITY LOG & AUDIT TRAIL ═══════════════ */
+let lsAuditState = { all: [], limit: 15 };
+
+function lsAuditInit() {
+  if (!document.getElementById('ls-audit-body')) return;
+  lsAuditPopulateDistricts();
+  lsAuditFetch();
+}
+
+function lsAuditPopulateDistricts() {
+  const sel = document.getElementById('ls-audit-district');
+  if (!sel || sel.options.length > 1) return;
+  const dists = [...new Set(LS_LIVE_ACTIVITIES.map(a => a.district).filter(d => d && d !== 'Multiple'))].sort();
+  sel.insertAdjacentHTML('beforeend', dists.map(d => `<option value="${lsEsc(d)}">${lsEsc(d)}</option>`).join(''));
+}
+
+function lsAuditApply() {
+  lsAuditState.limit = 15;
+  lsAuditFetch();
+}
+
+function lsAuditMore() {
+  lsAuditState.limit += 15;
+  lsAuditRender();
+}
+
+function lsAuditFetch() {
+  const body = document.getElementById('ls-audit-body');
+  if (body) body.innerHTML = '<tr><td colspan="6" style="padding:1.2rem; text-align:center;"><div class="spinner" style="margin:0 auto;"></div></td></tr>';
+  const qs = new URLSearchParams({
+    party: document.getElementById('ls-audit-party')?.value || 'all',
+    category: document.getElementById('ls-audit-category')?.value || 'all',
+    district: document.getElementById('ls-audit-district')?.value || 'all',
+    days: document.getElementById('ls-audit-days')?.value || '0',
+    limit: 100,
+  }).toString();
+  fetch(`/api/leadership?${qs}`, { cache: 'no-store' })
+    .then(r => r.json())
+    .then(payload => { lsAuditState.all = payload.activities || []; lsAuditRender(); })
+    .catch(err => { if (body) body.innerHTML = `<tr><td colspan="6" style="padding:1.2rem; text-align:center; color:var(--red);">${lsEsc(err.message)}</td></tr>`; });
+}
+
+const LS_FLAG_CFG = {
+  CRITICAL:   { e: '🔴', label: 'Crit',  color: 'var(--red)'   },
+  DEVELOPING: { e: '🟠', label: 'Dev',   color: 'var(--amber)' },
+  WATCH:      { e: '🟡', label: 'Watch', color: 'var(--gold)'  },
+  ROUTINE:    { e: '🟢', label: 'Rout',  color: 'var(--green)' },
+};
+
+function lsAuditRender() {
+  const body = document.getElementById('ls-audit-body');
+  const countEl = document.getElementById('ls-audit-count');
+  const metaEl = document.getElementById('ls-audit-meta');
+  const moreEl = document.getElementById('ls-audit-more');
+  if (!body) return;
+  const all = lsAuditState.all;
+  const items = all.slice(0, lsAuditState.limit);
+
+  if (countEl) { countEl.textContent = `${all.length} logs`; countEl.style.display = all.length ? 'inline-flex' : 'none'; }
+  if (metaEl) metaEl.textContent = `Showing ${items.length} of ${all.length}`;
+
+  if (!all.length) {
+    body.innerHTML = '<tr><td colspan="6" style="padding:1.4rem; text-align:center; color:var(--text-muted);">No activity logs for this filter. Pipeline runs daily at 6 AM & 5 PM.</td></tr>';
+    if (moreEl) moreEl.style.display = 'none';
+    return;
+  }
+
+  body.innerHTML = items.map(a => {
+    const f = LS_FLAG_CFG[a.priority] || LS_FLAG_CFG.ROUTINE;
+    const d = a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
+    const pColor = partyColor(a.party);
+    const role = (a.designation || '').split('(')[0].trim();
+    return `<tr style="border-bottom:1px solid var(--border-subtle); cursor:pointer; transition:background 0.15s;"
+      onclick='lsShowActivityCard(${JSON.stringify(a.id)})'
+      onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background=''">
+      <td style="padding:0.5rem; white-space:nowrap; color:var(--text-muted);">${d}</td>
+      <td style="padding:0.5rem; color:var(--text-primary); font-weight:600;">${lsEsc(a.leader_name)}</td>
+      <td style="padding:0.5rem;"><span style="color:${pColor}; font-weight:600;">${lsEsc(a.party)}</span> <span style="color:var(--text-muted); font-size:0.72rem;">${lsEsc(role)}</span></td>
+      <td style="padding:0.5rem; color:var(--text-secondary);">${lsEsc(a.district)}${a.constituency ? ` <small style="color:var(--text-muted);">· ${lsEsc(a.constituency)}</small>` : ''}</td>
+      <td style="padding:0.5rem; color:var(--text-secondary); max-width:280px;">${lsEsc(a.event_type)} — <span style="color:var(--text-muted);">${lsEsc((a.title || '').slice(0, 60))}${(a.title || '').length > 60 ? '…' : ''}</span></td>
+      <td style="padding:0.5rem;"><span class="tag" style="font-size:0.62rem; color:${f.color}; border-color:${f.color}; white-space:nowrap;">${f.e} ${f.label}</span></td>
+    </tr>`;
+  }).join('');
+
+  if (moreEl) moreEl.style.display = all.length > items.length ? 'block' : 'none';
+}
+
+window.lsAuditApply = lsAuditApply;
+window.lsAuditMore = lsAuditMore;
+window.lsMoreLeaders = lsMoreLeaders;
+window.lsFewerLeaders = lsFewerLeaders;
 window.lsShowActivityCard = lsShowActivityCard;
 window.lsSelectLiveActivity = lsSelectLiveActivity;
 window.selectLeader = selectLeader;

@@ -50,7 +50,7 @@
 <div id="ls-live-stats" style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem;"></div>
 
 <!-- Main: Leaders Grid + Right Rail -->
-<div class="page-grid-main-aside">
+<div class="page-grid-main-aside" style="height:auto; align-items:start;">
 
   <!-- Leaders Grid -->
   <div id="ls-leader-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1rem; align-content:start;"></div>
@@ -88,3 +88,55 @@
   </div>
 
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     📑 LEADERSHIP ACTIVITY LOGS & AUDIT TRAIL (full-width)
+     ═══════════════════════════════════════════════════════════ -->
+<section class="card" id="ls-audit-card" style="margin-top:1rem; border-color:rgba(168,85,247,0.25); clear:both; position:relative; z-index:1;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:0.85rem; flex-wrap:wrap;">
+    <div>
+      <div class="card-title" style="margin:0;">📑 Leadership Activity Logs &amp; Audit Trail</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem;">District footprint, inactivity &amp; controversial-statement tracking — click any row for full intelligence card</div>
+    </div>
+    <span class="tag tag-blue" id="ls-audit-count" style="display:none;"></span>
+  </div>
+
+  <!-- Audit filter bar -->
+  <div class="filter-bar" style="margin-bottom:0.85rem; flex-wrap:wrap; gap:0.5rem;">
+    <select class="select-dropdown" id="ls-audit-party" onchange="lsAuditApply()">
+      <option value="all">Party: All</option><option value="BJP">BJP</option><option value="JDU">JDU</option><option value="RJD">RJD</option><option value="INC">INC</option>
+    </select>
+    <select class="select-dropdown" id="ls-audit-category" onchange="lsAuditApply()">
+      <option value="all">Category: All</option><option value="Cabinet">Cabinet</option><option value="MP">MP</option><option value="MLA">MLA</option><option value="Office-Bearer">Office-Bearer</option>
+    </select>
+    <select class="select-dropdown" id="ls-audit-district" onchange="lsAuditApply()">
+      <option value="all">District: All</option>
+    </select>
+    <select class="select-dropdown" id="ls-audit-days" onchange="lsAuditApply()">
+      <option value="0">Date: All Time</option><option value="7">Last 7 Days</option><option value="30" selected>Last 30 Days</option><option value="90">Last 90 Days</option>
+    </select>
+    <span style="font-size:0.72rem; color:var(--text-muted); margin-left:auto;" id="ls-audit-meta"></span>
+  </div>
+
+  <!-- Audit table -->
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.8rem; min-width:820px;">
+      <thead>
+        <tr style="text-align:left; border-bottom:1px solid var(--border-subtle);">
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.05em;">Date</th>
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase;">Leader</th>
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase;">Party / Role</th>
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase;">Location</th>
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase;">Event / Issue</th>
+          <th style="padding:0.45rem 0.5rem; color:var(--text-muted); font-weight:600; font-size:0.68rem; text-transform:uppercase;">Flag</th>
+        </tr>
+      </thead>
+      <tbody id="ls-audit-body">
+        <tr><td colspan="6" style="padding:1.2rem; text-align:center; color:var(--text-muted);">Loading activity logs…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="ls-audit-more" style="margin-top:0.75rem; display:none; text-align:center;">
+    <button class="btn btn-ghost btn-sm" onclick="lsAuditMore()">↓ Load More Logs</button>
+  </div>
+</section>
