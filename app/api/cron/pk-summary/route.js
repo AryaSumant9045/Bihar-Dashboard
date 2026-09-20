@@ -20,17 +20,18 @@ import { GoogleGenAI } from '@google/genai';
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-const SYSTEM_PROMPT = `आप BJP Bihar President के Command Dashboard के Lead Political Intelligence Analyst हैं। आपका काम है Prashant Kishor (PK) और Jan Suraaj की गतिविधियों का विश्लेषण करना — Opposition summary, Jan Suraaj के X (Twitter) posts, और PK-related RSS news — तीनों sources को मिलाकर।
+const SYSTEM_PROMPT = `आप BJP Bihar President के Command Dashboard के Lead Political Intelligence Analyst हैं। आपका काम है Prashant Kishor (PK) और Jan Suraaj की राजनीतिक गतिविधियों का विश्लेषण करके BJP के नज़रिए से decision-ready intelligence तैयार करना — BJP को क्या risk है, BJP का क्या फायदा है, और BJP को क्या करना चाहिए।
 
 ## सख्त नियम
 1. CRITICAL: सभी JSON values/content हिंदी (Devanagari) में लिखें। Keys English में रहें।
 2. सिर्फ दिए गए data के facts पर आधारित रहें — कोई speculation या अफवाह नहीं।
 3. Tone: Professional, direct, action-oriented — पर हमेशा factual. Opposition/PK के बारे में neutral भाषा, कोई defame/derogatory शब्द नहीं।
 4. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing नहीं। पहला character सीधे { होना चाहिए।
+5. CRITICAL: Output में कभी भी इस बात का ज़िक्र न करें कि जानकारी कहाँ से आई है — कोई source, platform, feed, post, social media या "sources के आधार पर" जैसे शब्द इस्तेमाल न करें। सिर्फ सीधे facts और analysis दें।
 
 ## Output JSON structure
 {
-  "overall_situation": "Prashant Kishor/Jan Suraaj की current activity का 3-4 line overview, तीनों sources के data के आधार पर",
+  "overall_situation": "Prashant Kishor/Jan Suraaj की current political activity का 3-4 line overview",
   "key_activities": ["PK/Jan Suraaj ने क्या किया/कहा — 3-5 bullet points"],
   "attacks_on_bjp": [{"attack_summary": "किस mudde पर BJP/sarkar पर निशाना", "severity": "Critical/High/Medium/Low"}],
   "bjp_advantage_points": ["PK/Jan Suraaj की कमजोरी/internal conflict/गलत statement जिससे BJP को फायदा — सिर्फ अगर data में स्पष्ट संकेत हो"],
@@ -78,7 +79,8 @@ function buildPrompt(s, compact = false) {
   const rss = compact ? s.pkRss.slice(0, 25) : s.pkRss;
   const lines = [SYSTEM_PROMPT, ''];
 
-  lines.push('## 1. Latest Opposition Summary (BJP war-room insight):');
+  // Neutral labels — model को data के origin का पता नहीं होना चाहिए
+  lines.push('## 1. मौजूदा राजनीतिक context:');
   if (s.oppSummary) {
     const o = s.oppSummary;
     lines.push(`Overall: ${o.overall_situation || ''}`);
@@ -87,11 +89,9 @@ function buildPrompt(s, compact = false) {
     }
   } else lines.push('- (none)');
 
-  lines.push('\n## 2. Jan Suraaj X (Twitter) posts:');
-  lines.push(xjs.length ? xjs.map(n => `- ${n.heading}`).join('\n') : '- (none)');
-
-  lines.push('\n## 3. PK FetchRSS news headlines:');
-  lines.push(rss.length ? rss.map(n => `- ${n.heading}`).join('\n') : '- (none)');
+  lines.push('\n## 2. PK/Jan Suraaj — latest updates:');
+  const pkLines = [...xjs, ...rss].map(n => `- ${n.heading}`);
+  lines.push(pkLines.length ? pkLines.join('\n') : '- (none)');
 
   return lines.join('\n');
 }

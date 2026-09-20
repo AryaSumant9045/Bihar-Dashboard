@@ -409,6 +409,64 @@ async function loadIntelligenceSummary(forceRefresh = false) {
 function renderIntelligenceSummary(summary, container) {
   const timeStr = new Date(summary.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
+  // Health score badge
+  let healthHTML = '';
+  const hs = summary.overall_political_health_score;
+  if (hs && typeof hs.score === 'number') {
+    const arrowMap = { improving: { icon: '▲', color: 'var(--green)' }, stable: { icon: '●', color: 'var(--gold)' }, declining: { icon: '▼', color: 'var(--red)' } };
+    const ar = arrowMap[String(hs.trend_arrow || '').toLowerCase()] || arrowMap.stable;
+    healthHTML = `
+      <div style="margin-bottom:.65rem;padding:.5rem .65rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-md);display:flex;gap:.6rem;align-items:center;">
+        <div style="font-size:1.3rem;font-weight:800;color:${ar.color};line-height:1;">${hs.score}<span style="font-size:.6rem;color:var(--text-muted);font-weight:600;">/100</span></div>
+        <div style="min-width:0;">
+          <div style="font-size:.62rem;font-weight:800;color:${ar.color};letter-spacing:.05em;">${ar.icon} POLITICAL HEALTH · ${String(hs.trend_arrow || 'stable').toUpperCase()}</div>
+          ${hs.reason ? `<div style="font-size:.65rem;color:var(--text-secondary);line-height:1.35;margin-top:.15rem;">${wrEscape(hs.reason)}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Trend since last cycle
+  let trendHTML = '';
+  const tr = summary.trend_since_last_cycle;
+  if (tr && (tr.escalated?.length || tr.de_escalated?.length || tr.new_developments?.length)) {
+    const trendRow = (label, icon, color, items) => (items && items.length)
+      ? `<div style="margin-bottom:.25rem;"><span style="font-size:.62rem;font-weight:800;color:${color};">${icon} ${label}:</span> <span style="font-size:.65rem;color:var(--text-secondary);">${items.map(i => wrEscape(i)).join(' · ')}</span></div>`
+      : '';
+    trendHTML = `
+      <div style="margin-top:.65rem;padding:.5rem .65rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem;">📈 Trend Since Last Cycle</div>
+        ${trendRow('Escalated', '🔺', 'var(--red)', tr.escalated)}
+        ${trendRow('De-escalated', '🔻', 'var(--green)', tr.de_escalated)}
+        ${trendRow('New', '✨', 'var(--primary-light)', tr.new_developments)}
+      </div>
+    `;
+  }
+
+  // Top priority today
+  let priorityHTML = '';
+  if (Array.isArray(summary.top_priority_today) && summary.top_priority_today.length > 0) {
+    priorityHTML = `
+      <div style="margin-top:.65rem;">
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚡ Top Priority Today</div>
+        <div style="display:flex;flex-direction:column;gap:.35rem;">
+          ${summary.top_priority_today.map(p => {
+            const urg = String(p.urgency || '').toLowerCase();
+            const uc = urg.includes('immediate') ? 'var(--red)' : urg.includes('24') ? 'var(--amber)' : 'var(--gold)';
+            return `
+            <div style="padding:.4rem .55rem;background:rgba(230,57,70,0.05);border-left:3px solid ${uc};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:.4rem;margin-bottom:2px;flex-wrap:wrap;">
+              <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">#${wrEscape(p.rank || 1)} · ${wrEscape(p.related_issue || '')}</span>
+              <span style="font-size:.55rem;font-weight:700;padding:2px 5px;background:${uc};color:#fff;border-radius:3px;">${wrEscape(p.urgency || '')}</span>
+            </div>
+            <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(p.action)}</div>
+          </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   let bjpActionPointsHTML = '';
   if (Array.isArray(summary.bjp_action_points) && summary.bjp_action_points.length > 0) {
     bjpActionPointsHTML = `
@@ -416,6 +474,18 @@ function renderIntelligenceSummary(summary, container) {
         <div style="font-size:.65rem;font-weight:800;color:var(--green);margin-bottom:.2rem;">✅ BJP Strategic Action & Improvements</div>
         <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
           ${summary.bjp_action_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  let bjpAdvantageHTML = '';
+  if (Array.isArray(summary.bjp_advantage_points) && summary.bjp_advantage_points.length > 0) {
+    bjpAdvantageHTML = `
+      <div style="margin-top:.65rem;padding:.5rem .65rem;background:rgba(245,197,24,0.06);border:1px solid rgba(245,197,24,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--gold);margin-bottom:.2rem;">🎯 BJP Advantage Points</div>
+        <ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem;">
+          ${summary.bjp_advantage_points.map(p => `<li style="font-size:.7rem;color:var(--text-secondary);line-height:1.4;">${wrEscape(p)}</li>`).join('')}
         </ul>
       </div>
     `;
@@ -438,6 +508,10 @@ function renderIntelligenceSummary(summary, container) {
                  <span style="font-size:.55rem;font-weight:700;padding:2px 5px;background:${rc};color:#fff;border-radius:3px;">${wrEscape(r.risk_level)}</span>
                </div>
                <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(r.reason)}</div>
+               <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.25rem;">
+                 ${(Array.isArray(r.affected_districts) ? r.affected_districts : []).slice(0, 4).map(d => `<span style="font-size:.55rem;padding:1px 5px;border:1px solid var(--border-subtle);border-radius:3px;color:var(--text-muted);">📍 ${wrEscape(d)}</span>`).join('')}
+                 ${r.source_count ? `<span style="font-size:.55rem;padding:1px 5px;border:1px solid var(--border-subtle);border-radius:3px;color:var(--text-muted);">📰 ${wrEscape(r.source_count)} sources</span>` : ''}
+               </div>
              </div>`;
           }).join('')}
         </div>
@@ -458,11 +532,28 @@ function renderIntelligenceSummary(summary, container) {
             <div style="padding:.4rem .55rem;background:var(--glass-bg);border-left:3px solid ${borderCol};border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
                  <span style="font-size:.67rem;font-weight:800;color:var(--text-primary);">${wrEscape(o.party_or_leader)}</span>
-                 <span style="font-size:.55rem;color:var(--text-muted);">Impact: ${wrEscape(o.potential_impact)}</span>
+                 <span style="font-size:.55rem;color:var(--text-muted);">Impact: ${wrEscape(o.potential_impact)}${o.mention_count ? ` · 📰 ${wrEscape(o.mention_count)}x` : ''}</span>
                </div>
                <div style="font-size:.65rem;color:var(--text-secondary);line-height:1.3;">${wrEscape(o.action_summary)}</div>
              </div>`;
           }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // Most active opposition voices this cycle
+  let voicesHTML = '';
+  if (Array.isArray(summary.most_active_opposition_voices_this_cycle) && summary.most_active_opposition_voices_this_cycle.length > 0) {
+    voicesHTML = `
+      <div style="margin-top:.65rem;padding:.5rem .65rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-radius:var(--radius-md);">
+        <div style="font-size:.65rem;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem;">📢 Most Active Opposition Voices</div>
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+          ${summary.most_active_opposition_voices_this_cycle.map(v => `
+            <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;">
+              <span style="font-size:.67rem;font-weight:700;color:var(--text-primary);">${wrEscape(v.name)}${v.mentions ? ` <span style="font-size:.58rem;color:var(--text-muted);">(${wrEscape(v.mentions)} mentions)</span>` : ''}</span>
+              <span style="font-size:.62rem;color:var(--text-secondary);text-align:right;">${wrEscape(v.dominant_theme || '')}</span>
+            </div>`).join('')}
         </div>
       </div>
     `;
@@ -492,6 +583,19 @@ function renderIntelligenceSummary(summary, container) {
     `;
   }
 
+  // Data quality footer
+  let dataQualityHTML = '';
+  const dq = summary.data_quality;
+  if (dq && dq.total_sources_analyzed) {
+    dataQualityHTML = `
+      <div style="margin-top:.65rem;padding-top:.45rem;border-top:1px dashed var(--border-subtle);font-size:.58rem;color:var(--text-muted);display:flex;gap:.6rem;flex-wrap:wrap;">
+        <span>🗂️ ${wrEscape(dq.total_sources_analyzed)} headlines analyzed</span>
+        ${dq.verified_news_sources ? `<span style="color:var(--green);">✓ ${wrEscape(dq.verified_news_sources)} verified</span>` : ''}
+        ${dq.unverified_flagged ? `<span style="color:var(--amber);">⚠ ${wrEscape(dq.unverified_flagged)} unverified</span>` : ''}
+      </div>
+    `;
+  }
+
   container.innerHTML = `<div style="padding:.85rem;border:1px solid rgba(255,159,67,0.3);border-left:4px solid var(--amber);border-radius:var(--radius-md);background:rgba(255,159,67,0.05);">
     <!-- Top bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.65rem;flex-wrap:wrap;gap:.35rem;">
@@ -501,14 +605,21 @@ function renderIntelligenceSummary(summary, container) {
       <span style="font-size:.63rem;color:var(--text-muted);">🕐 ${timeStr} · ${summary.news_count || 0} news analyzed</span>
     </div>
 
+    ${healthHTML}
+
     <!-- Overall situation -->
     ${summary.overall_situation ? `<div style="font-size:.8rem;line-height:1.6;color:var(--text-primary);font-weight:500;border-bottom:1px solid rgba(255,159,67,0.3);padding-bottom:.6rem;margin-bottom:.15rem;">${wrEscape(summary.overall_situation)}</div>` : ''}
 
+    ${priorityHTML}
+    ${trendHTML}
     ${bjpActionPointsHTML}
+    ${bjpAdvantageHTML}
     ${risksHTML}
     ${oppHTML}
+    ${voicesHTML}
     ${counterStrategyHTML}
     ${electionWatchHTML}
+    ${dataQualityHTML}
   </div>`;
 }
 

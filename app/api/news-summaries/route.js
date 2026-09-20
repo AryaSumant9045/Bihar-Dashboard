@@ -21,9 +21,7 @@ export async function GET(request) {
 
   try {
     // Fetch from the new 'news_insights' table
-    const { data, error } = await supabase
-      .from('news_insights')
-      .select(`
+    const BASE_COLUMNS = `
         id,
         overall_situation,
         bjp_action_points,
@@ -33,9 +31,31 @@ export async function GET(request) {
         election_watch_items,
         news_count,
         created_at
-      `)
+    `;
+    const INTEL_COLUMNS = `
+        ${BASE_COLUMNS},
+        bjp_advantage_points,
+        overall_political_health_score,
+        trend_since_last_cycle,
+        top_priority_today,
+        most_active_opposition_voices_this_cycle,
+        data_quality
+    `;
+
+    let { data, error } = await supabase
+      .from('news_insights')
+      .select(INTEL_COLUMNS)
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Fallback: migration 014 columns not added yet
+    if (error && (error.code === '42703' || error.message?.includes('does not exist'))) {
+      ({ data, error } = await supabase
+        .from('news_insights')
+        .select(BASE_COLUMNS)
+        .order('created_at', { ascending: false })
+        .limit(limit));
+    }
 
     if (error) {
       console.error('[news-summaries] DB Error:', error.message);

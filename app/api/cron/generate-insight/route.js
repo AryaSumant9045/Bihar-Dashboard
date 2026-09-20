@@ -6,34 +6,117 @@ import { GoogleGenAI } from '@google/genai';
 export const maxDuration = 60; // Allow up to 60 seconds for this function on Vercel
 export const dynamic = 'force-dynamic';
 
-const SYSTEM_PROMPT = `
-आप Bihar politics के एक Senior Political Analyst और BJP Strategy Expert हैं। आपको 
-pichle 8 ghanto ki news headlines/summaries दी जाएंगी। इनका विश्लेषण करके एक structured "News Insight Report" तैयार करें।
+const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
+
+आपको News headlines (latest cycle, district tags के साथ) और पिछले cycle का summary (context के लिए, अगर दिया गया हो) दिए जाएंगे। इनका विश्लेषण करके एक comprehensive, decision-ready "Intelligence Report" तैयार करें।
+
+## मुख्य फोकस — BJP-centric विश्लेषण
+आपका हर विश्लेषण राजनीतिक रूप से relevant और BJP Bihar के नज़रिए से हो। हर मुद्दे में साफ़ दिखाएं:
+- BJP/सरकार/CM image को क्या RISK है (political_risks)
+- स्थिति या विपक्ष की कमज़ोरी से BJP का क्या फायदा है (bjp_advantage_points)
+- BJP को क्या करना चाहिए — ठोस, actionable कदम (top_priority_today और counter_strategy_points)
 
 ## सख्त नियम
-1. CRITICAL: The entire JSON output (values/content) MUST BE WRITTEN IN HINDI (Devanagari script). Keys must remain in English.
-2. सिर्फ दिए गए headlines के facts पर आधारित रहें — कोई speculation न करें जो article में स्पष्ट न हो।
-3. Tone: Professional, direct, action-oriented, politically sharp — पर हमेशा factual आधार पर, बेबुनियाद दावे नहीं।
-4. Opposition के बारे में भी factual/neutral भाषा रखें — description दें, defame न करें।
-5. अगर headlines में किसी section के लिए पर्याप्त data नहीं है, तो उस field में "इस बैच में कोई उल्लेखनीय जानकारी नहीं मिली" लिखें, खाली मत छोड़ें और न ही बनावटी content भरें।
-6. सिर्फ नीचे दिए JSON structure में जवाब दें — कोई markdown fencing (\`\`\`json), कोई preamble, कोई extra text नहीं। पहला character सीधे { होना चाहिए।
+1. केवल valid JSON लौटाएं — कोई markdown fencing, backtick, preamble या extra text नहीं। पहला character सीधे { होना चाहिए।
+2. CRITICAL: सारी JSON values/content HINDI (Devanagari script) में लिखें — keys English में रहें।
+3. सिर्फ दिए गए data के facts पर आधारित रहें — कोई speculation न करें जो headlines में स्पष्ट न हो। Fact और narrative को अलग रखें।
+4. Tone: Professional, direct, action-oriented, politically sharp — हमेशा factual आधार पर।
+5. Opposition के बारे में factual/neutral भाषा रखें — description दें, defame न करें, कोई derogatory language इस्तेमाल न करें चाहे headlines का tone कैसा भी हो।
+6. Internal vulnerabilities कभी न छिपाएं — party/CM image के लिए जो कमज़ोर पक्ष हैं, उन्हें political_risks में brutally honest लेकिन factual तरीके से दिखाएं।
+7. अगर किसी section के लिए पर्याप्त data नहीं है, तो text fields में "इस cycle में पर्याप्त जानकारी नहीं मिली" लिखें और arrays में खाली [] दें — बनावटी content न भरें, खाली भी न छोड़ें।
+8. Duplicate/overlapping risk items merge करें — अगर दो risks एक ही underlying कारण से जुड़े हैं (जैसे "अपराध" और "सामाजिक असंतोष"), उन्हें एक ही item में अलग-अलग sub-reasons के साथ मिलाएं, अलग items न बनाएं।
+9. पिछले cycle के summary से तुलना ज़रूर करें — बताएं क्या नया है, क्या बढ़ा, क्या कम हुआ। अगर पिछला summary context में नहीं दिया गया (पहला cycle है), तो trend_since_last_cycle के तीनों arrays खाली [] छोड़ें, बनावटी तुलना न करें।
+10. हर risk/opposition item में source_count/mention_count दें — सिर्फ दी गई headlines से गिनकर, अंदाज़ा न लगाएं।
+11. Health score तभी ऊपर/नीचे adjust करें जब कोई ठोस reason headlines में मिले — बेवजह score न बदलें।
+12. TOKEN अनुशासन (free model पर चल रहा है): output छोटा और सटीक रखें — political_risks अधिकतम 5 items, opposition_activity अधिकतम 5, bjp_advantage_points अधिकतम 5, top_priority_today अधिकतम 3, most_active_opposition_voices_this_cycle अधिकतम 3, election_watch_items अधिकतम 5, trend_since_last_cycle के प्रति array अधिकतम 3 items। हर reason/action_summary अधिकतम 1-2 lines। affected_districts में अधिकतम 4 जिले (व्यापक होने पर सिर्फ "Bihar-wide")।
 
-## Output JSON structure
-
+## Output सिर्फ इस JSON structure में दें
 
 {
   "overall_situation": "3-4 lines — Bihar की मौजूदा राजनीतिक स्थिति का overview",
-  "bjp_action_points": ["3-5 bullet points"],
+
+  "overall_political_health_score": {
+    "score": 0-100 के बीच एक number,
+    "trend_arrow": "declining / stable / improving",
+    "reason": "1-2 lines — score इस स्तर पर क्यों है, और पिछले cycle से क्यों बदला/नहीं बदला"
+  },
+
+  "trend_since_last_cycle": {
+    "escalated": ["जो मुद्दे पिछले cycle से बढ़े/बिगड़े"],
+    "de_escalated": ["जो मुद्दे पिछले cycle से सुधरे/कम हुए"],
+    "new_developments": ["जो बिल्कुल नए मुद्दे इस cycle में आए, पहले नहीं थे"]
+  },
+
+  "top_priority_today": [
+    {
+      "rank": 1,
+      "action": "आज सबसे पहले क्या करना चाहिए — specific, actionable",
+      "urgency": "Immediate / Within 24 hrs / This week",
+      "related_issue": "किस risk/development से जुड़ा है ये action"
+    }
+  ],
+
+  "bjp_action_points": [
+    "BJP/सरकार की तरफ से जो सकारात्मक कदम/उपलब्धियां दिखीं — 3-5 bullet points"
+  ],
+
+  "bjp_advantage_points": [
+    "हालात या विपक्ष की कमज़ोरी/चूक से BJP को जो राजनीतिक फायदा — सिर्फ अगर data में स्पष्ट संकेत हो, 3-5 bullet points, वरना खाली []"
+  ],
+
   "political_risks": [
-    {"issue": "...", "risk_level": "Critical/High/Medium/Low", "reason": "..."}
+    {
+      "issue": "मुद्दे का नाम (duplicate/overlapping issues merge करके)",
+      "risk_level": "Critical / High / Medium / Low",
+      "reason": "क्यों risk है, party/CM image पर क्या असर — voter impact सहित",
+      "affected_districts": ["जो district specifically प्रभावित हैं, या 'Bihar-wide' अगर व्यापक है"],
+      "source_count": "कितनी headlines ने इसे cover किया (number)"
+    }
   ],
+
   "opposition_activity": [
-    {"party_or_leader": "...", "action_summary": "...", "potential_impact": "High/Medium/Low/None"}
+    {
+      "party_or_leader": "नाम",
+      "action_summary": "उन्होंने क्या किया/कहा — narrative angle सहित",
+      "potential_impact": "High / Medium / Low / None",
+      "mention_count": "इस cycle में कितनी बार mention हुआ (number)"
+    }
   ],
-  "counter_strategy_points": ["3-5 bullet points"],
-  "election_watch_items": ["bullet points, ya empty array agar kuch na ho"]
+
+  "most_active_opposition_voices_this_cycle": [
+    {
+      "name": "नेता/संगठन का नाम",
+      "mentions": "number",
+      "dominant_theme": "किस मुद्दे पर सबसे ज़्यादा बोल रहे हैं"
+    }
+  ],
+
+  "counter_strategy_points": [
+    "इन मुद्दों के जवाब में BJP क्या approach ले सकती है — 3-5 factual, actionable, defensible communication points"
+  ],
+
+  "election_watch_items": [
+    "आगामी चुनाव के नज़रिए से नज़र रखने लायक मुद्दे"
+  ],
+
+  "data_quality": {
+    "total_sources_analyzed": "कुल कितनी headlines analyze हुईं (number)",
+    "verified_news_sources": "verified/trusted sources से कितनी (number)",
+    "unverified_flagged": "जिनकी reliability अस्पष्ट है (number)"
+  }
 }
-`;
+
+## जो कभी न करें
+- कभी भी अपनी तरफ से कोई negative content किसी नेता/पार्टी के बारे में न गढ़ें
+- Headlines में जो न हो उसे "शायद ऐसा हो सकता है" कहकर न जोड़ें
+- किसी को defame/discredit करने वाली भाषा इस्तेमाल न करें, चाहे वो opposition का नेता ही क्यों न हो
+- राजनीतिक strategy या counter-narrative इस तरह न सुझाएं जो मानहानि या गलत सूचना फैलाने वाली हो — सिर्फ factual, defensible communication approach सुझाएं
+- Health score या trend को बिना ठोस आधार के मनमाने ढंग से न बदलें`;
+
+// Free-model token discipline: caps per provider
+const MAX_HEADLINES_PRIMARY = 150; // Gemini / PlugSky
+const MAX_HEADLINES_GROQ    = 80;  // Groq free tier ~6000 TPM
+const MAX_OUTPUT_TOKENS     = 2500;
 
 function extractJson(text) {
   try {
@@ -124,10 +207,10 @@ async function handleCron(request) {
     
     console.log(`[DB] ${insertedCount} new articles fetched and saved.`);
 
-    // 4. Check time since last insight
+    // 4. Fetch last insight — used both for timing check AND as previous-cycle context
     const { data: lastInsight } = await supabase
       .from('news_insights')
-      .select('created_at')
+      .select('created_at, overall_situation, overall_political_health_score, political_risks')
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -141,6 +224,21 @@ async function handleCron(request) {
         //   message: `Last insight generated ${hoursDiff.toFixed(2)} hours ago. Safety threshold is 1 hr.` 
         // });
       }
+    }
+
+    // Compact previous-cycle context (free-model friendly — ~300 tokens max)
+    let prevCycleContext = '';
+    const prev = lastInsight?.[0];
+    if (prev && prev.overall_situation) {
+      const prevScore = prev.overall_political_health_score?.score;
+      const prevRisks = Array.isArray(prev.political_risks)
+        ? prev.political_risks.slice(0, 5).map(r => r.issue).filter(Boolean).join(', ')
+        : '';
+      prevCycleContext = `## पिछले Cycle का Summary (तुलना के लिए):\n` +
+        `Overall situation: ${String(prev.overall_situation).slice(0, 500)}\n` +
+        (prevScore != null ? `Health score: ${prevScore}\n` : '') +
+        (prevRisks ? `मुख्य risks: ${prevRisks}\n` : '') +
+        `\n`;
     }
 
     // 5. Fetch News from the last 8 hours for AI Analysis
@@ -161,19 +259,28 @@ async function handleCron(request) {
 
     // 6. Generate Insight via AI (Gemini with Groq fallback)
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
-    
-    const headlinesText = uiNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
-    const userContent = `Yahan Website UI par render hone wali Top News Headlines hain:\n\n${headlinesText}`;
+
+    // Free-model token discipline: cap headlines sent for analysis
+    const analysisNews = uiNews.slice(0, MAX_HEADLINES_PRIMARY);
+
+    const headlinesText = analysisNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
+    const userContent = `${prevCycleContext}## इस Cycle की ${analysisNews.length} News Headlines:\n\n${headlinesText}`;
     const prompt = `${SYSTEM_PROMPT}\n\n${userContent}`;
 
     let parsedJson = null;
     let aiProvider = 'gemini';
+    let analyzedCount = analysisNews.length;
 
     try {
       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await aiClient.models.generateContent({
         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
         contents: prompt,
+        config: {
+          temperature: 0.3,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          responseMimeType: 'application/json',
+        },
       });
       parsedJson = extractJson(response.text);
       if (!parsedJson) throw new Error("Gemini returned invalid JSON");
@@ -183,27 +290,25 @@ async function handleCron(request) {
       try {
         const { Groq } = await import('groq-sdk');
         const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        
-        // Groq has 8000 TPM limit. 150 items = ~6000 tokens.
-        const safeGroqNews = uiNews.slice(0, 150);
+
+        // Groq free tier ~6000 TPM — keep input+output well under it
+        const safeGroqNews = uiNews.slice(0, MAX_HEADLINES_GROQ);
         const groqText = safeGroqNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
-        const groqContent = `Yahan Website UI par render hone wali Top News Headlines hain:\n\n${groqText}`;
+        const groqContent = `${prevCycleContext}## इस Cycle की ${safeGroqNews.length} News Headlines:\n\n${groqText}`;
         const groqPrompt = `${SYSTEM_PROMPT}\n\n${groqContent}`;
 
         const groqResponse = await groqClient.chat.completions.create({
           messages: [{ role: 'user', content: groqPrompt }],
           model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-          temperature: 0.5,
-          max_tokens: 2500,
+          temperature: 0.3,
+          max_tokens: 2000,
           response_format: { type: 'json_object' }
         });
         parsedJson = extractJson(groqResponse.choices[0].message.content);
         if (!parsedJson) throw new Error("Groq returned invalid JSON");
         aiProvider = 'groq';
+        analyzedCount = safeGroqNews.length;
         console.log(`[GROQ] Analysis completed successfully for ${safeGroqNews.length} items via fallback!`);
-        
-        // Update news count to reflect what Groq actually processed
-        uiNews.length = safeGroqNews.length;
       } catch (groqError) {
         console.error(`[GROQ ERROR] ${groqError.message}. Falling back to PlugSky...`);
         try {
@@ -216,8 +321,9 @@ async function handleCron(request) {
             body: JSON.stringify({
               model: process.env.PLUGSKY_MODEL || 'plugsky-micro',
               messages: [{ role: 'user', content: prompt }],
-              temperature: 0.5,
-              max_tokens: 1500
+              temperature: 0.3,
+              max_tokens: 2000,
+              response_format: { type: 'json_object' }
             })
           });
           const plugskyData = await plugskyRes.json();
@@ -236,16 +342,26 @@ async function handleCron(request) {
     const payload = {
       overall_situation: parsedJson.overall_situation || "",
       bjp_action_points: parsedJson.bjp_action_points || [],
+      bjp_advantage_points: parsedJson.bjp_advantage_points || [],
       political_risks: parsedJson.political_risks || [],
       opposition_activity: parsedJson.opposition_activity || [],
       counter_strategy_points: parsedJson.counter_strategy_points || [],
       election_watch_items: parsedJson.election_watch_items || [],
-      news_count: uiNews.length,
+      overall_political_health_score: parsedJson.overall_political_health_score || null,
+      trend_since_last_cycle: parsedJson.trend_since_last_cycle || null,
+      top_priority_today: parsedJson.top_priority_today || [],
+      most_active_opposition_voices_this_cycle: parsedJson.most_active_opposition_voices_this_cycle || [],
+      data_quality: parsedJson.data_quality || null,
+      news_count: analyzedCount,
     };
 
-    const { error: insertError } = await supabase.from('news_insights').insert(payload);
+    let { error: insertError } = await supabase.from('news_insights').insert(payload);
     if (insertError) {
-      throw insertError;
+      // Migration 014 columns missing? Retry with base fields so the cycle isn't lost.
+      const { overall_political_health_score, trend_since_last_cycle, top_priority_today, most_active_opposition_voices_this_cycle, data_quality, bjp_advantage_points, ...basePayload } = payload;
+      const retry = await supabase.from('news_insights').insert(basePayload);
+      if (retry.error) throw retry.error;
+      console.warn("[DB] New intel columns missing — saved base payload only. Run migration 014.");
     }
 
     console.log("[DB] Structured insight saved to news_insights table!");
