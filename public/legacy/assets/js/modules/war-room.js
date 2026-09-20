@@ -420,7 +420,7 @@ function renderIntelligenceSummary(summary, container) {
     : trendArrow.includes('declin') || trendArrow.includes('down') || trendArrow.includes('wors') ? '📉 Declining'
     : trendArrow ? '➡️ Stable' : '';
   const ring = score !== null ? `
-    <div style="display:flex;align-items:center;gap:.7rem;">
+    <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
       <div style="position:relative;width:58px;height:58px;flex-shrink:0;">
         <svg viewBox="0 0 36 36" style="width:58px;height:58px;transform:rotate(-90deg);">
           <circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3.5"/>
@@ -432,7 +432,7 @@ function renderIntelligenceSummary(summary, container) {
         <div style="font-size:.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;">Political Health</div>
         ${trendBadge ? `<div style="font-size:.68rem;font-weight:700;color:${scoreColor};margin-top:.15rem;">${trendBadge}</div>` : ''}
       </div>
-      ${hsReason ? `<div style="font-size:.68rem;color:var(--text-secondary);line-height:1.4;flex:1;min-width:160px;">${wrEscape(hsReason)}</div>` : ''}
+      ${hsReason ? `<div style="font-size:.68rem;color:var(--text-secondary);line-height:1.45;flex:1 1 220px;min-width:0;overflow-wrap:anywhere;">${wrEscape(hsReason)}</div>` : ''}
     </div>` : '';
 
   // ── Interactive card helper (expandable <details>) ──
@@ -553,9 +553,9 @@ function renderIntelligenceSummary(summary, container) {
 
       ${ring ? `<div style="margin-bottom:.7rem;padding:.6rem .7rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border:1px solid rgba(255,255,255,0.05);">${ring}</div>` : ''}
 
-      ${summary.overall_situation ? `<div style="font-size:.82rem;line-height:1.65;color:var(--text-primary);font-weight:500;padding:.65rem .7rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border-left:3px solid #a855f7;margin-bottom:.7rem;">${wrEscape(summary.overall_situation)}</div>` : ''}
+      ${summary.overall_situation ? `<div style="font-size:.82rem;line-height:1.65;color:var(--text-primary);font-weight:500;padding:.65rem .7rem;background:rgba(255,255,255,0.02);border-radius:var(--radius-md);border-left:3px solid #a855f7;margin-bottom:.7rem;overflow-wrap:anywhere;word-break:break-word;">${wrEscape(summary.overall_situation)}</div>` : ''}
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.6rem;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:.6rem;">
         ${cards.join('')}
       </div>
     </div>`;
