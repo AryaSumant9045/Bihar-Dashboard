@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior 
 4. Tone: Professional, direct, action-oriented, politically sharp — हमेशा factual आधार पर।
 5. Opposition के बारे में factual/neutral भाषा रखें — description दें, defame न करें, कोई derogatory language इस्तेमाल न करें चाहे headlines का tone कैसा भी हो।
 6. Internal vulnerabilities कभी न छिपाएं — party/CM image के लिए जो कमज़ोर पक्ष हैं, उन्हें political_risks में brutally honest लेकिन factual तरीके से दिखाएं।
-7. अगर किसी section के लिए पर्याप्त data नहीं है, तो text fields में "इस cycle में पर्याप्त जानकारी नहीं मिली" लिखें और arrays में खाली [] दें — बनावटी content न भरें, खाली भी न छोड़ें।
+7. हर section भरा होना चाहिए — कोई array खाली [] न छोड़ें। अगर किसी section के लिए सीधा data न मिले, तो दिए गए headlines से ही closest relevant विश्लेषण निकालें (जैसे counter_strategy_points political_risks के जवाब में बनाएं, bjp_advantage_points opposition की कमज़ोरी/चूक या सरकारी योजना-उपलब्धि वाली headlines से, election_watch_items चल रहे प्रमुख मुद्दों से, most_active_opposition_voices_this_cycle headlines में सबसे ज़्यादा mention हुए विपक्षी नेताओं से)। न्यूनतम items: top_priority_today 1, bjp_action_points 2, bjp_advantage_points 2, political_risks 2, opposition_activity 2, counter_strategy_points 3, election_watch_items 2, voices 2। सब कुछ सिर्फ दिए गए headlines पर आधारित हो — कुछ भी गढ़ा हुआ या speculation वाला न हो।
 8. Duplicate/overlapping risk items merge करें — अगर दो risks एक ही underlying कारण से जुड़े हैं (जैसे "अपराध" और "सामाजिक असंतोष"), उन्हें एक ही item में अलग-अलग sub-reasons के साथ मिलाएं, अलग items न बनाएं।
 9. पिछले cycle के summary से तुलना ज़रूर करें — बताएं क्या नया है, क्या बढ़ा, क्या कम हुआ। अगर पिछला summary context में नहीं दिया गया (पहला cycle है), तो trend_since_last_cycle के तीनों arrays खाली [] छोड़ें, बनावटी तुलना न करें।
 10. हर risk/opposition item में source_count/mention_count दें — सिर्फ दी गई headlines से गिनकर, अंदाज़ा न लगाएं।
@@ -61,7 +61,7 @@ const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior 
   ],
 
   "bjp_advantage_points": [
-    "हालात या विपक्ष की कमज़ोरी/चूक से BJP को जो राजनीतिक फायदा — सिर्फ अगर data में स्पष्ट संकेत हो, 3-5 bullet points, वरना खाली []"
+    "हालात या विपक्ष की कमज़ोरी/चूक से BJP को जो राजनीतिक फायदा — headlines से निकालकर 2-5 bullet points"
   ],
 
   "political_risks": [
@@ -127,6 +127,12 @@ function extractJson(text) {
         cleaned = parts[1].replace(/^json/i, '').trim();
       }
     }
+    // Truncated output (output-token cap hit) never ends with '}' — reject it so the
+    // provider cascade retries instead of silently saving a half-report.
+    if (!cleaned.endsWith('}')) {
+      console.error("[AI] JSON truncated mid-output — rejecting partial response");
+      return null;
+    }
     // Grab the outermost {...} block (drops any leading/trailing prose or fences)
     const start = cleaned.indexOf('{');
     const end = cleaned.lastIndexOf('}');
@@ -136,6 +142,15 @@ function extractJson(text) {
     console.error("JSON parse error:", err);
     return null;
   }
+}
+
+// Small free models sometimes drop whole sections — a report without these keys is unusable.
+const REQUIRED_INSIGHT_KEYS = ['overall_situation', 'political_risks', 'bjp_action_points', 'opposition_activity', 'counter_strategy_points'];
+const NON_EMPTY_KEYS = ['political_risks', 'bjp_action_points', 'opposition_activity', 'counter_strategy_points'];
+function isCompleteInsight(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  if (!REQUIRED_INSIGHT_KEYS.every(k => k in obj)) return false;
+  return NON_EMPTY_KEYS.every(k => Array.isArray(obj[k]) && obj[k].length > 0);
 }
 
 export async function POST(request) {
@@ -289,6 +304,7 @@ async function handleCron(request) {
       });
       parsedJson = extractJson(response.text);
       if (!parsedJson) throw new Error("Gemini returned invalid JSON");
+      if (!isCompleteInsight(parsedJson)) throw new Error("Gemini JSON missing required sections");
       console.log("[GEMINI] Analysis completed successfully!");
     } catch (geminiError) {
       console.warn(`[GEMINI ERROR] ${geminiError.message}. Falling back to Groq...`);
@@ -306,11 +322,12 @@ async function handleCron(request) {
           messages: [{ role: 'user', content: groqPrompt }],
           model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
           temperature: 0.3,
-          max_tokens: 3500,
+          max_tokens: 4000,
           response_format: { type: 'json_object' }
         });
         parsedJson = extractJson(groqResponse.choices[0].message.content);
         if (!parsedJson) throw new Error("Groq returned invalid JSON");
+        if (!isCompleteInsight(parsedJson)) throw new Error("Groq JSON missing required sections");
         aiProvider = 'groq';
         analyzedCount = safeGroqNews.length;
         console.log(`[GROQ] Analysis completed successfully for ${safeGroqNews.length} items via fallback!`);
@@ -327,13 +344,14 @@ async function handleCron(request) {
               model: process.env.PLUGSKY_MODEL || 'plugsky-micro',
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.3,
-              max_tokens: 2000,
+              max_tokens: 4000,
               response_format: { type: 'json_object' }
             })
           });
           const plugskyData = await plugskyRes.json();
           parsedJson = extractJson(plugskyData?.choices?.[0]?.message?.content || '');
           if (!parsedJson) throw new Error("PlugSky returned invalid JSON");
+          if (!isCompleteInsight(parsedJson)) throw new Error("PlugSky JSON missing required sections");
           aiProvider = 'plugsky';
           console.log("[PLUGSKY] Analysis completed successfully via fallback!");
         } catch (plugskyError) {

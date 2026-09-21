@@ -458,11 +458,24 @@
     btn.id = 'bcc-lang-toggle';
     btn.title = 'Language / भाषा बदलें';
     btn.setAttribute('aria-label', 'Toggle language');
-    btn.style.cssText = 'position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:9999;padding:.5rem .95rem;' +
-      'border-radius:999px;border:1px solid rgba(255,255,255,.22);background:#0f1829;color:#e8edf8;' +
-      'font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.55);';
     btn.addEventListener('click', () => window.toggleLang());
-    document.body.appendChild(btn);
+
+    // Prefer the always-visible top header so the toggle is never hidden behind
+    // a phone's bottom browser bar (fixed bottom buttons are unreliable inside
+    // the full-screen iframe, and safe-area insets don't reach into iframes).
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions) {
+      btn.className = 'header-btn';
+      btn.style.cssText = 'width:auto !important;min-width:52px;flex:0 0 auto;padding:0 .55rem;' +
+        'font-size:.74rem;font-weight:700;letter-spacing:.02em;color:var(--text-primary);';
+      headerActions.insertBefore(btn, headerActions.firstChild);
+    } else {
+      // Fallback (e.g. login page with no header): floating, safe-area aware.
+      btn.style.cssText = 'position:fixed;right:14px;bottom:calc(20px + env(safe-area-inset-bottom, 0px));z-index:99999;' +
+        'padding:.5rem .95rem;border-radius:999px;border:1px solid rgba(0,0,0,.15);background:#0f1829;color:#e8edf8;' +
+        'font-size:.8rem;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45);';
+      document.body.appendChild(btn);
+    }
     updateToggle();
   }
 

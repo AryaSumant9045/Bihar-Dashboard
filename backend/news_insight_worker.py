@@ -50,7 +50,7 @@ SYSTEM_PROMPT = """आप BJP Bihar War Room के लिए एक Senior Poli
 4. Tone: Professional, direct, action-oriented, politically sharp — हमेशा factual आधार पर।
 5. Opposition के बारे में factual/neutral भाषा रखें — description दें, defame न करें, कोई derogatory language इस्तेमाल न करें चाहे headlines का tone कैसा भी हो।
 6. Internal vulnerabilities कभी न छिपाएं — party/CM image के लिए जो कमज़ोर पक्ष हैं, उन्हें political_risks में brutally honest लेकिन factual तरीके से दिखाएं।
-7. अगर किसी section के लिए पर्याप्त data नहीं है, तो text fields में "इस cycle में पर्याप्त जानकारी नहीं मिली" लिखें और arrays में खाली [] दें — बनावटी content न भरें, खाली भी न छोड़ें।
+7. हर section भरा होना चाहिए — कोई array खाली [] न छोड़ें। अगर किसी section के लिए सीधा data न मिले, तो दिए गए headlines से ही closest relevant विश्लेषण निकालें (जैसे counter_strategy_points political_risks के जवाब में बनाएं, bjp_advantage_points opposition की कमज़ोरी/चूक या सरकारी योजना-उपलब्धि वाली headlines से, election_watch_items चल रहे प्रमुख मुद्दों से, most_active_opposition_voices_this_cycle headlines में सबसे ज़्यादा mention हुए विपक्षी नेताओं से)। न्यूनतम items: top_priority_today 1, bjp_action_points 2, bjp_advantage_points 2, political_risks 2, opposition_activity 2, counter_strategy_points 3, election_watch_items 2, voices 2। सब कुछ सिर्फ दिए गए headlines पर आधारित हो — कुछ भी गढ़ा हुआ या speculation वाला न हो।
 8. Duplicate/overlapping risk items merge करें — अगर दो risks एक ही underlying कारण से जुड़े हैं (जैसे "अपराध" और "सामाजिक असंतोष"), उन्हें एक ही item में अलग-अलग sub-reasons के साथ मिलाएं, अलग items न बनाएं।
 9. पिछले cycle के summary से तुलना ज़रूर करें — बताएं क्या नया है, क्या बढ़ा, क्या कम हुआ। अगर पिछला summary context में नहीं दिया गया (पहला cycle है), तो trend_since_last_cycle के तीनों arrays खाली [] छोड़ें, बनावटी तुलना न करें।
 10. हर risk/opposition item में source_count/mention_count दें — सिर्फ दी गई headlines से गिनकर, अंदाज़ा न लगाएं।
@@ -88,7 +88,7 @@ SYSTEM_PROMPT = """आप BJP Bihar War Room के लिए एक Senior Poli
   ],
 
   "bjp_advantage_points": [
-    "हालात या विपक्ष की कमज़ोरी/चूक से BJP को जो राजनीतिक फायदा — सिर्फ अगर data में स्पष्ट संकेत हो, 3-5 bullet points, वरना खाली []"
+    "हालात या विपक्ष की कमज़ोरी/चूक से BJP को जो राजनीतिक फायदा — headlines से निकालकर 2-5 bullet points"
   ],
 
   "political_risks": [
@@ -140,8 +140,15 @@ SYSTEM_PROMPT = """आप BJP Bihar War Room के लिए एक Senior Poli
 - राजनीतिक strategy या counter-narrative इस तरह न सुझाएं जो मानहानि या गलत सूचना फैलाने वाली हो — सिर्फ factual, defensible communication approach सुझाएं
 - Health score या trend को बिना ठोस आधार के मनमाने ढंग से न बदलें"""
 
-# Free-model token discipline
-MAX_OUTPUT_TOKENS = 2000
+# Free-model token discipline — 2000 was truncating the Hindi report mid-JSON
+GEMINI_MAX_OUTPUT_TOKENS = 6000
+FALLBACK_MAX_OUTPUT_TOKENS = 4000
+REQUIRED_INSIGHT_KEYS = ["overall_situation", "political_risks", "bjp_action_points", "opposition_activity", "counter_strategy_points"]
+NON_EMPTY_KEYS = ["political_risks", "bjp_action_points", "opposition_activity", "counter_strategy_points"]
+
+def is_complete_insight(obj):
+    return isinstance(obj, dict) and all(k in obj for k in REQUIRED_INSIGHT_KEYS) \
+        and all(isinstance(obj.get(k), list) and len(obj[k]) > 0 for k in NON_EMPTY_KEYS)
 
 def parse_ai_json_response(raw_text):
     if not raw_text:
@@ -206,14 +213,16 @@ def generate_ai_insight_from_rendered_news(rendered_news_list):
                 contents=prompt,
                 config={
                     "temperature": 0.3,
-                    "maxOutputTokens": MAX_OUTPUT_TOKENS,
+                    "maxOutputTokens": GEMINI_MAX_OUTPUT_TOKENS,
                     "responseMimeType": "application/json",
                 }
             )
             parsed = parse_ai_json_response(response.text)
-            if parsed:
+            if parsed and is_complete_insight(parsed):
                 print("Successfully analyzed UI news using Gemini!", flush=True)
                 return parsed
+            if parsed:
+                print("Gemini JSON mein required sections missing — fallback...", flush=True)
             print("Gemini response parse nahi hua, Groq fallback try करेंगे...", flush=True)
         except Exception as e:
             print(f"Gemini Error: {e}. Fallback to Groq...", flush=True)
@@ -229,13 +238,15 @@ def generate_ai_insight_from_rendered_news(rendered_news_list):
                     {"role": "user", "content": user_content}
                 ],
                 temperature=0.3,
-                max_tokens=MAX_OUTPUT_TOKENS,
+                max_tokens=FALLBACK_MAX_OUTPUT_TOKENS,
                 response_format={"type": "json_object"}
             )
             parsed = parse_ai_json_response(completion.choices[0].message.content)
-            if parsed:
+            if parsed and is_complete_insight(parsed):
                 print("Successfully analyzed UI news using Groq!", flush=True)
                 return parsed
+            if parsed:
+                print("Groq JSON mein required sections missing — fallback...", flush=True)
             print("Groq response parse nahi hua, PlugSky fallback try karenge...", flush=True)
         except Exception as e:
             print(f"Groq Error: {e}. Fallback to PlugSky...", flush=True)
@@ -256,7 +267,7 @@ def generate_ai_insight_from_rendered_news(rendered_news_list):
                     {"role": "user", "content": user_content}
                 ],
                 "temperature": 0.3,
-                "max_tokens": MAX_OUTPUT_TOKENS,
+                "max_tokens": FALLBACK_MAX_OUTPUT_TOKENS,
                 "response_format": {"type": "json_object"}
             }
             res = requests.post(endpoint, headers=headers, json=payload, timeout=30)
@@ -264,9 +275,11 @@ def generate_ai_insight_from_rendered_news(rendered_news_list):
                 data = res.json()
                 content = data["choices"][0]["message"]["content"]
                 parsed = parse_ai_json_response(content)
-                if parsed:
+                if parsed and is_complete_insight(parsed):
                     print("Successfully analyzed UI news using PlugSky!", flush=True)
                     return parsed
+                if parsed:
+                    print("PlugSky JSON mein required sections missing.", flush=True)
                 print("PlugSky response parse nahi hua.", flush=True)
             else:
                 print(f"PlugSky API error ({res.status_code}): {res.text[:200]}", flush=True)
