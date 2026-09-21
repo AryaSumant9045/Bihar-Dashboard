@@ -1173,4 +1173,81 @@ window.triggerGeminiAnalysis = triggerGeminiAnalysis;
 window.loadAnalyzedSummaries = loadAnalyzedSummaries;
 window.loadIntelligenceSummary = loadIntelligenceSummary;
 
+/* ═══════════════════════════════════════════════════════════
+   DISTRICT AI SUMMARY (district_summary_<district>) + RAW HEADLINES
+   War Room ke district button isi ko call karte hain.
+   ═══════════════════════════════════════════════════════════ */
+function wrRiskChip(level) {
+  const v = String(level || '').toLowerCase();
+  const color = v.includes('critical') ? 'var(--red)' : v.includes('high') ? '#ff7b54' : v.includes('medium') ? 'var(--amber)' : 'var(--green)';
+  return '<span class="tag" style="font-size:.6rem;color:' + color + ';border-color:' + color + ';">' + wrEscape(level || 'Unknown') + '</span>';
+}
 
+function wrList(items) {
+  const arr = Array.isArray(items) ? items : (items ? [items] : []);
+  if (!arr.length) return '<p style="font-size:.72rem;color:var(--text-muted);margin:.15rem 0 0;">—</p>';
+  return '<ul style="margin:.2rem 0 0;padding-left:1.05rem;display:flex;flex-direction:column;gap:.2rem;">' +
+    arr.map((i) => '<li style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">' + wrEscape(typeof i === 'string' ? i : JSON.stringify(i)) + '</li>').join('') +
+    '</ul>';
+}
+
+function wrSummaryBlock(title, icon, body, color) {
+  return '<div style="margin-bottom:.7rem;padding:.6rem .7rem;background:var(--glass-bg);border:1px solid var(--border-subtle);border-left:3px solid ' + (color || 'var(--blue)') + ';border-radius:var(--radius-md);">' +
+    '<div style="font-size:.65rem;font-weight:800;color:' + (color || 'var(--blue)') + ';text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem;">' + icon + ' ' + wrEscape(title) + '</div>' + body + '</div>';
+}
+
+function renderDistrictSummary(sum, news, name) {
+  const label = sum && sum.district ? sum.district : name;
+  let html = '';
+
+  if (!sum || !sum.latest) {
+    html += '<div class="empty-state" style="padding:1rem;"><div class="empty-state-icon">🕓</div>' +
+      '<p class="empty-state-text">' + wrEscape((sum && sum.message) || 'Is district ka AI analysis abhi taiyar nahi hai.') + '</p>' +
+      '<p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">AI summary har 12 ghante (00:00 &amp; 12:00 IST) banti hai — sirf un districts ki jahan us cycle me news thi.</p></div>';
+  } else {
+    const s = sum.latest;
+    const when = s.created_at ? new Date(s.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    html += '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.65rem;">' +
+      '<span class="tag tag-blue" style="font-size:.62rem;">📊 ' + wrEscape(String(s.news_count || 0)) + ' headlines analysed</span>' +
+      '<span class="tag" style="font-size:.62rem;">🕐 ' + wrEscape(when) + '</span>' +
+      '<span class="tag" style="font-size:.62rem;">🗂 district_summary_' + wrEscape(String(sum.table || '').replace('district_summary_', '') || label.toLowerCase()) + '</span></div>';
+
+    html += wrSummaryBlock('Overall Situation', '🧭', '<p style="font-size:.8rem;line-height:1.55;color:var(--text-primary);margin:0;">' + wrEscape(s.overall_situation || '—') + '</p>', 'var(--blue)');
+    html += wrSummaryBlock('Key Developments', '📌', wrList(s.key_developments), 'var(--gold)');
+
+    const risks = Array.isArray(s.political_risks) ? s.political_risks : [];
+    const riskBody = risks.length
+      ? risks.map((r) => '<div style="margin-bottom:.35rem;"><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;"><b style="font-size:.75rem;color:var(--text-primary);">' + wrEscape(r && r.issue ? r.issue : String(r)) + '</b>' + (r && r.risk_level ? wrRiskChip(r.risk_level) : '') + '</div>' + (r && r.reason ? '<div style="font-size:.71rem;color:var(--text-muted);line-height:1.45;">' + wrEscape(r.reason) + '</div>' : '') + '</div>').join('')
+      : '<p style="font-size:.72rem;color:var(--text-muted);margin:.15rem 0 0;">—</p>';
+    html += wrSummaryBlock('Political Risks', '⚠️', riskBody, 'var(--red)');
+
+    html += wrSummaryBlock('BJP / Sarkar Activity', '🪷', wrList(s.bjp_activity), 'var(--green)');
+    html += wrSummaryBlock('Opposition Activity', '🥊', wrList(s.opposition_activity), '#c084fc');
+  }
+
+  const items = (news && news.items) || [];
+  html += '<div style="margin-top:.75rem;border-top:1px solid var(--border-subtle);padding-top:.6rem;">' +
+    '<div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">📡 Raw Headlines — live RSS (district_news table)</div>';
+  html += items.length
+    ? items.slice(0, 10).map((it, i) => '<a href="' + wrEscape(it.url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:.45rem .1rem;border-top:1px solid var(--border-subtle);color:var(--text-secondary);font-size:.78rem;line-height:1.45;text-decoration:none;"><span style="display:flex;gap:.5rem;"><b style="color:var(--gold);min-width:1.1rem;">' + (i + 1) + '</b><span>' + wrEscape(it.title) + '</span></span></a>').join('')
+    : '<p style="font-size:.72rem;color:var(--text-muted);margin:0;">Is district ki koi saved headline nahi mili.</p>';
+  html += '</div>';
+
+  return html;
+}
+
+async function loadWarRoomDistrict(name) {
+  const title = '🏛 ' + name + ' — AI War Room Summary';
+  openModal('<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading ' + wrEscape(name) + ' AI analysis…</p></div>', title);
+  try {
+    const [sum, news] = await Promise.all([
+      fetch('/api/district-summary?district=' + encodeURIComponent(name), { cache: 'no-store' }).then((r) => r.json()),
+      fetch('/api/district-news?district=' + encodeURIComponent(name) + '&limit=10', { cache: 'no-store' }).then((r) => r.json()).catch(() => ({ items: [] })),
+    ]);
+    openModal(renderDistrictSummary(sum, news, name), title);
+  } catch (error) {
+    openModal('<p style="font-size:.8rem;color:var(--red);">' + wrEscape(error.message) + '</p>', title);
+  }
+}
+
+window.loadWarRoomDistrict = loadWarRoomDistrict;

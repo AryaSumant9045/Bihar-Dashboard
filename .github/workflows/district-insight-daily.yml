@@ -1,0 +1,52 @@
+name: District AI Insight Daily
+
+# Har district ki apni news table (district_news_<district>) se pichhle 24 ghante ki
+# headlines padhkar AI (Gemini → Groq fallback) summary banata hai aur us district ki
+# apni summary table (district_summary_<district>) me save karta hai.
+# Ek district = ek job (matrix) — isse 60s serverless limit me aaram se rehta hai
+# aur ek district fail hone par baaki nahi rukte.
+# Chalta hai: 00:15 IST (UTC 18:45) aur 12:15 IST (UTC 06:45).
+# Manual run: Actions → "District AI Insight Daily" → Run workflow.
+
+on:
+  schedule:
+    - cron: '45 18 * * *' # 00:15 IST
+    - cron: '45 6 * * *'  # 12:15 IST
+  workflow_dispatch:
+
+jobs:
+  district-insight:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        district: [
+          Patna, Bhagalpur, Muzaffarpur, Bhojpur, Begusarai, Biharsharif, Buxar,
+          Saran, Gopalganj, Vaishali, Jehanabad, Siwan, Gaya, Aurangabad,
+          Kaimur, Nawada, Rohtas, Banka, Araria, Katihar, Khagaria,
+          Kishanganj, Madhepura, Munger, Purnia, Saharsa, Lakhisarai,
+          Jamui, Supaul, Darbhanga, Madhubani, West Champaran, East Champaran,
+          Samastipur, Sitamarhi, Arwal, Nalanda, Sheikhpura, Sheohar
+        ]
+    env:
+      APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
+      DISTRICT: ${{ matrix.district }}
+    steps:
+      - name: Generate ${{ matrix.district }} AI summary
+        run: |
+          url="$APP_URL/api/cron/district-insight?district=$(python3 -c "import urllib.parse,os;print(urllib.parse.quote(os.environ['DISTRICT']))")&secret=${{ secrets.CRON_SECRET }}"
+          for attempt in 1 2 3; do
+            echo "::group::$DISTRICT attempt $attempt"
+            if curl -sf --max-time 120 "$url"; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "$DISTRICT: attempt $attempt failed, retrying in 15s"
+            sleep 15
+          done
+          echo "::warning::$DISTRICT insight generation failed after 3 attempts"
+          exit 0

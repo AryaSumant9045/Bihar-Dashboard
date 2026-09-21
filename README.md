@@ -376,3 +376,71 @@ The 5-layer architecture implemented:
 
 *Bihar Political Command Center — Confidential — Authorised Personnel Only*  
 *Built for BJP Bihar | Vanilla HTML + CSS + JS | No framework dependencies*
+
+---
+
+## District-wise pipeline (district_news_<d> → district_summary_<d>)
+
+Har Bihar district ka apna table-pair hai (Supabase): `district_news_<district>` (raw RSS) aur
+`district_summary_<district>` (AI analysis). Mapping ek hi jagah rehti hai: [`lib/districts.js`](lib/districts.js).
+
+| Step | Endpoint | Kya karta hai |
+|---|---|---|
+| RSS ingest | `GET /api/cron/district-news?secret=…` | Live Hindustan ke district feeds → **us district ki apni** `district_news_<district>` table me (url-level dedup, last 7 din) |
+| AI summary | `GET /api/cron/district-insight?secret=…` | `district_news_<district>` ki pichhle 24 ghante ki headlines (max 60) → Gemini (Groq fallback) → **us district ki** `district_summary_<district>` table me. News na ho to **skip** (khali summary nahi banti) |
+| Read (map) | `GET /api/district-news?district=Ara` | Us district ki raw headlines (`district=all` → sab districts mixed, `district=bihar` → state feed) |
+| Read (War Room) | `GET /api/district-summary?district=Patna` | Us district ka latest AI summary + history |
+
+**UI wiring**
+- **Bihar Map** → district button (War Room wali hi list) → us district ki raw news (`district_news_<d>`).
+- **War Room** → district button → us district ka AI summary + raw headlines (`district_summary_<d>`); data na ho to "Is district ka AI analysis abhi taiyar nahi hai."
+- "Bihar (State Level)" / "Bihar (All)" buttons pehle jaise live RSS (`/api/rss-news`) se chalti hain.
+
+**Schedules** (dono 00:00 & 12:00 IST cycle)
+- `.github/workflows/district-news-daily.yml` — matrix (ek district = ek job) `30 18 * * *` + `30 6 * * *`
+- `.github/workflows/district-insight-daily.yml` — matrix, `45 18 * * *` + `45 6 * * *` (ingest ke 15 min baad)
+- `vercel.json` — backup `30 18 * * *` par `/api/cron/district-news?days=7&limit=60`
+
+**One-time DB step (zaroori)**
+`supabase/migrations/016_district_tables_hardening.sql` Supabase SQL editor me run karo — isse
+Darbhanga ke dono tables (`district_news_darbhanga`, `district_summary_darbhanga`) ban jate hain
+(wo pair missing tha) aur har `district_news_*` table par `url` UNIQUE index lag jata hai.
+
+**Aliases:** `Ara→Bhojpur`, `Chapra→Saran`, `Hajipur→Vaishali`, `Jahanabad→Jehanabad`,
+`Bhabua→Kaimur`, `Sasaram→Rohtas`, `Bagaha/Bettiah→West Champaran`, `Motihari→East Champaran`,
+`Biharsharif→bihar_sharif`. Chaaron `Arwal/Nalanda/Sheikhpura/Sheohar` ke liye dedicated Live Hindustan
+feed nahi hai, isliye unki news table khali rehti hai jab tak koi source add na ho.
+
+### District coverage fallback (v2 — 22 Sep 2026)
+
+Har district ko news milni chahiye — isliye ingestion 4 tiers me chalti hai:
+
+| Tier | Kya karta hai | Kab chalta hai |
+|---|---|---|
+| 1. Own feed | Live Hindustan district feed (last 7 din) | Hamesha |
+| 2. Wide window | Wahi feed, last **30 din** tak | Jab tier-1 se 0 items mile (e.g. Hajipur, Banka, Katihar ki newest news hi 9 din purani thi) |
+| 3. Cross-mention | Is run me mile saare items (state + baaki district feeds) me district ke naam/HQ keyword | Jab district abhi bhi thin ho (<3 items) |
+| 4. Google News RSS | `news.google.com/rss/search?q=<district> बिहार` (Hindi) | Jinka apna Live Hindustan feed hi nahi (Arwal, Sheikhpura, Sheohar) ya abhi bhi <3 items |
+
+Note: `?fallback=0` / `?google=0` se tier 3/4 band kar sakte ho.
+
+### LLM quota / provider notes
+
+- **Gemini free tier = 20 requests/day per model** (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`).
+  Poora dashboard (translate-news, generate-insight, pk-intel, pk-summary, leadership, issues, news + ye district pipeline)
+  ek hi `GEMINI_API_KEY` share karta hai — isliye 429 aana normal hai, koi bug nahi.
+- Ek 429/quota error ke baad `lib/llm-providers.js` Gemini ko **12 ghante** ke liye band kar deta hai
+  (short rate-limit → 60s) aur seedha Groq use karta hai — fail-fast, koi 10-minute wait nahi.
+- District pipeline **Groq-first** chalti hai (`prefer: 'groq'`), model `DISTRICT_LLM_MODEL`
+  (default `openai/gpt-oss-20b`) — Groq par Groq ka 429 aane par retries + backoff.
+- Gemini ko permanently skip karna ho: `.env` me `LLM_PRIMARY=groq`.
+- Har district ka apna model/time window response me `cells[].model` / `cells[].window` me dikhta hai.
+
+### Env knobs (optional)
+
+| Var | Default | Matlab |
+|---|---|---|
+| `DISTRICT_LLM_MODEL` | `openai/gpt-oss-20b` | District summary ka Groq model |
+| `DISTRICT_LLM_RETRIES` | `3` | Groq attempts per district |
+| `LLM_PRIMARY` | `auto` | `groq` = Gemini bilkul skip |
+| `GEMINI_DISABLED` | – | `1` = same |

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/x-social-pipeline",
       "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/cron/district-news?days=7&limit=60",
+      "schedule": "30 18 * * *"
     }
   ]
 }

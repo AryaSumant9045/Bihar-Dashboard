@@ -11,6 +11,7 @@
  */
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { geminiAvailable, noteGeminiFailure } from '../../../lib/llm-providers.js';
 
 export const maxDuration = 60;
 
@@ -57,6 +58,7 @@ ${JSON.stringify(payload)}`;
 
 async function runAI(prompt) {
   try {
+    if (!geminiAvailable()) throw new Error('Gemini quota cooldown active (free tier 20 req/day) — using Groq');
     const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await aiClient.models.generateContent({
       model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
@@ -67,7 +69,8 @@ async function runAI(prompt) {
     if (!parsed) throw new Error('Gemini returned invalid JSON');
     return { parsed, provider: 'gemini' };
   } catch (geminiError) {
-    console.warn(`[translate-news][GEMINI ERROR] ${geminiError.message}. Falling back to Groq...`);
+    noteGeminiFailure(geminiError);
+    console.warn(`[translate-news][GEMINI UNAVAILABLE] ${String(geminiError.message).slice(0, 120)} — Groq fallback.`);
     const { Groq } = await import('groq-sdk');
     const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
     const groqResponse = await groqClient.chat.completions.create({

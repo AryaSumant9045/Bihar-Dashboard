@@ -81,11 +81,16 @@
   <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;flex-wrap:wrap;">
     <div>
       <div class="card-title" style="margin:0;" id="pm-district-news-title">📰 Bihar State News</div>
-      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">Latest from all districts — filter below</div>
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">District button dabao — us district ki live RSS news uski apni district_news_&lt;district&gt; table se aati hai</div>
     </div>
     <span class="tag tag-blue" id="pm-district-news-count" style="display:none;"></span>
   </div>
   
+  <!-- District buttons — War Room wali list, yahan live RSS district news kholti hai -->
+  <div id="pm-district-btn-bar" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.85rem;padding:.6rem .1rem 0;border-top:1px dashed var(--border-subtle);">
+    <div id="pm-district-btn-grid" style="display:flex;flex-wrap:wrap;gap:.5rem;"></div>
+  </div>
+
   <!-- Filter Bar for District News -->
   <div style="display:flex;gap:.55rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;padding:.5rem 0;">
     <select class="select-dropdown" id="pm-news-district-select" style="min-width:160px;">
