@@ -34,6 +34,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   LIVEHINDUSTAN_FEEDS, DISTRICTS, DISTRICT_SLUGS,
   districtNewsTable, districtLabel, districtFallbackKeywords, districtQueryName,
+  districtFeedUrl, stateFeedUrl, googleNewsSearchUrl,
 } from '../../../../lib/districts.js';
 
 export const maxDuration = 60;
@@ -51,7 +52,6 @@ function makeSupabase() {
 const STATE_TABLE = 'district_news';
 const DEFAULT_DAYS = 7;
 const DEFAULT_PER_DISTRICT = 60;
-const FEED_BASE = 'https://api.livehindustan.com/feeds/rss/bihar';
 
 /* Fallback: agar kisi district ki apni feed se MIN_FRESH se kam items aaye,
    to cross-mention items se uski table FALLBACK_CAP tak bhar di jati hai. */
@@ -135,7 +135,8 @@ function toRows(fresh, isState) {
  * taki baad me thin districts ke liye cross-mention fallback chala sake.
  */
 async function fetchDistrictNews(entry, { days, perDistrict, allItems }) {
-  const feedUrl = entry.feed ? `${FEED_BASE}/${entry.feed}/rssfeed.xml` : `${FEED_BASE}/rssfeed.xml`;
+  /* Feed URL .env se (LH_FEED_<SLUG> / LH_FEED_STATE), warna default base se. */
+  const feedUrl = entry.feed ? districtFeedUrl(entry.feed) : stateFeedUrl();
   const xml = await fetchFeedXml(feedUrl);
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   const isState = !entry.feed;
@@ -242,7 +243,7 @@ function addFallbackRows(groups, counts, allItems, perDistrict) {
 
 /** Google News RSS — district-specific query (Hindi naam + बिहार). */
 async function fetchGoogleNews(slug) {
-  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(`${districtQueryName(slug)} बिहार`)}&hl=hi-IN&gl=IN&ceid=IN:hi`;
+  const url = googleNewsSearchUrl(`${districtQueryName(slug)} बिहार`);
   const res = await fetch(url, {
     cache: 'no-store',
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BiharDashboardBot/1.0)' },

@@ -48,7 +48,7 @@ export async function GET() {
   if (newsKey) {
     try {
       const r = await fetch(
-        `https://newsdata.io/api/1/news?apikey=${newsKey}&q=Bihar&language=en&country=in&size=1`,
+        `${process.env.NEWSDATA_URL || 'https://newsdata.io/api/1/news'}?apikey=${newsKey}&q=Bihar&language=en&country=in&size=1`,
         { cache: 'no-store' }
       );
       const body = await r.json();

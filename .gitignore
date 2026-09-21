@@ -6,3 +6,6 @@ node_modules/
 .instaloader-*.session
 public/instagram/
 public/instagram-feed.json
+
+# .env ke local backups — kabhi commit nahi
+.env.backup-*

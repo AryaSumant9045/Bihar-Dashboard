@@ -83,7 +83,7 @@ def fetch_and_save(client):
         params = {"apikey": NEWS_API_KEY, "q": "Bihar", "language": "hi,en", "country": "in"}
         if next_page:
             params["page"] = next_page
-        response = requests.get("https://newsdata.io/api/1/news", params=params, timeout=30)
+        response = requests.get(os.getenv("NEWSDATA_URL", "https://newsdata.io/api/1/news"), params=params, timeout=30)
         response.raise_for_status()
         payload = response.json()
         if payload.get("status") != "success":

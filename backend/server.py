@@ -23,6 +23,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 
 
+import os
+
 app = FastAPI()
 
 app.add_middleware(
@@ -33,10 +35,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-RSS_FEEDS = {
-    "bhaskar": ("Bhaskar Bihar News", "https://www.bhaskar.com/rss-v1--category-3679.xml"),
-    "livehindustan": ("LiveHindustan Bihar News", "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml"),
-}
+
+# ── RSS feed URLs — sab .env se (LH_BASE_URL / LH_FEED_<SLUG>) ──────────────
+LH_DISTRICT_FEED_SLUGS = ['patna', 'bhagalpur', 'muzaffarpur', 'ara', 'begusarai', 'biharsharif', 'buxar', 'chapra', 'gopalganj', 'hajipur', 'jahanabad', 'siwan', 'gaya', 'aurangabad', 'bhabua', 'nawada', 'sasaram', 'banka', 'araria', 'katihar', 'khagaria', 'kishanganj', 'madhepura', 'munger', 'purnia', 'saharsa', 'lakhisarai', 'jamui', 'supaul', 'darbhanga', 'madhubani', 'bagaha', 'bettiah', 'motihari', 'samastipur', 'sitamarhi']
+
+def lh_base_url():
+    return os.getenv("LH_BASE_URL", "https://api.livehindustan.com/feeds/rss/bihar").rstrip("/")
+
+def lh_feed_url(slug=None):
+    """Live Hindustan feed URL — .env ka LH_FEED_<SLUG> / LH_FEED_STATE, warna default base."""
+    if not slug:
+        return (os.getenv("LH_FEED_STATE") or os.getenv("HINDUSTAN_BIHAR_RSS_URL")
+                or f"{lh_base_url()}/rssfeed.xml")
+    key = "LH_FEED_" + str(slug).upper().replace("-", "_")
+    return os.getenv(key) or f"{lh_base_url()}/{slug}/rssfeed.xml"
+
+def rss_feed_sources():
+    """[(label, url)] — Google News + Bhaskar + Live Hindustan (state + har district)."""
+    feeds = [
+        ("Google News", os.getenv("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search?q=Bihar&hl=hi-IN&gl=IN&ceid=IN:hi")),
+        ("Bhaskar Bihar News", os.getenv("BHASKAR_BIHAR_RSS_URL", "https://www.bhaskar.com/rss-v1--category-3679.xml")),
+        ("LiveHindustan Bihar", lh_feed_url(None)),
+    ]
+    for slug in LH_DISTRICT_FEED_SLUGS:
+        feeds.append((f"LiveHindustan {slug.capitalize()}", lh_feed_url(slug)))
+    return feeds
 
 LIVEHINDUSTAN_DISTRICTS = {
     "patna": "पटना", "bhagalpur": "भागलपुर", "muzaffarpur": "मुजफ्फरपुर", "ara": "आरा",
@@ -50,10 +73,16 @@ LIVEHINDUSTAN_DISTRICTS = {
     "bettiah": "बेतिया", "motihari": "मोतिहारी", "samastipur": "समस्तीपुर", "sitamarhi": "सीतामढ़ी",
 }
 
-LIVEHINDUSTAN_FEEDS = {
-    "livehindustan": "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml",
-    **{f"livehindustan-{slug}": f"https://api.livehindustan.com/feeds/rss/bihar/{slug}/rssfeed.xml" for slug in LIVEHINDUSTAN_DISTRICTS},
+RSS_FEEDS = {
+    "bhaskar": ("Bhaskar Bihar News", os.getenv("BHASKAR_BIHAR_RSS_URL", "https://www.bhaskar.com/rss-v1--category-3679.xml")),
+    "livehindustan": ("LiveHindustan Bihar News", lh_feed_url(None)),
 }
+
+LIVEHINDUSTAN_FEEDS = {
+    "livehindustan": lh_feed_url(None),
+    **{f"livehindustan-{slug}": lh_feed_url(slug) for slug in LIVEHINDUSTAN_DISTRICTS},
+}
+
 
 @app.get("/api/live-news")
 def live_news():
@@ -141,4 +170,3 @@ if __name__ == "__main__":
 
     import uvicorn
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
-

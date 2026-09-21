@@ -7,48 +7,16 @@
 
 import Parser from 'rss-parser';
 import { getSupabase } from '../../../lib/supabase';
+import { bhaskarFeedUrl, livehindustanSources } from '../../../lib/districts.js';
 
 const parser = new Parser();
-const BIHAR_RSS_FEEDS = [
-    ['Bhaskar Bihar News', 'https://www.bhaskar.com/rss-v1--category-3679.xml'],
-    ['LiveHindustan Bihar', 'https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml'],
-    ['LiveHindustan Patna', 'https://api.livehindustan.com/feeds/rss/bihar/patna/rssfeed.xml'],
-    ['LiveHindustan Bhagalpur', 'https://api.livehindustan.com/feeds/rss/bihar/bhagalpur/rssfeed.xml'],
-    ['LiveHindustan Muzaffarpur', 'https://api.livehindustan.com/feeds/rss/bihar/muzaffarpur/rssfeed.xml'],
-    ['LiveHindustan Ara', 'https://api.livehindustan.com/feeds/rss/bihar/ara/rssfeed.xml'],
-    ['LiveHindustan Begusarai', 'https://api.livehindustan.com/feeds/rss/bihar/begusarai/rssfeed.xml'],
-    ['LiveHindustan Biharsharif', 'https://api.livehindustan.com/feeds/rss/bihar/biharsharif/rssfeed.xml'],
-    ['LiveHindustan Buxar', 'https://api.livehindustan.com/feeds/rss/bihar/buxar/rssfeed.xml'],
-    ['LiveHindustan Chapra', 'https://api.livehindustan.com/feeds/rss/bihar/chapra/rssfeed.xml'],
-    ['LiveHindustan Gopalganj', 'https://api.livehindustan.com/feeds/rss/bihar/gopalganj/rssfeed.xml'],
-    ['LiveHindustan Hajipur', 'https://api.livehindustan.com/feeds/rss/bihar/hajipur/rssfeed.xml'],
-    ['LiveHindustan Jahanabad', 'https://api.livehindustan.com/feeds/rss/bihar/jahanabad/rssfeed.xml'],
-    ['LiveHindustan Siwan', 'https://api.livehindustan.com/feeds/rss/bihar/siwan/rssfeed.xml'],
-    ['LiveHindustan Gaya', 'https://api.livehindustan.com/feeds/rss/bihar/gaya/rssfeed.xml'],
-    ['LiveHindustan Aurangabad', 'https://api.livehindustan.com/feeds/rss/bihar/aurangabad/rssfeed.xml'],
-    ['LiveHindustan Bhabua', 'https://api.livehindustan.com/feeds/rss/bihar/bhabua/rssfeed.xml'],
-    ['LiveHindustan Nawada', 'https://api.livehindustan.com/feeds/rss/bihar/nawada/rssfeed.xml'],
-    ['LiveHindustan Sasaram', 'https://api.livehindustan.com/feeds/rss/bihar/sasaram/rssfeed.xml'],
-    ['LiveHindustan Banka', 'https://api.livehindustan.com/feeds/rss/bihar/banka/rssfeed.xml'],
-    ['LiveHindustan Araria', 'https://api.livehindustan.com/feeds/rss/bihar/araria/rssfeed.xml'],
-    ['LiveHindustan Katihar', 'https://api.livehindustan.com/feeds/rss/bihar/katihar/rssfeed.xml'],
-    ['LiveHindustan Khagaria', 'https://api.livehindustan.com/feeds/rss/bihar/khagaria/rssfeed.xml'],
-    ['LiveHindustan Kishanganj', 'https://api.livehindustan.com/feeds/rss/bihar/kishanganj/rssfeed.xml'],
-    ['LiveHindustan Madhepura', 'https://api.livehindustan.com/feeds/rss/bihar/madhepura/rssfeed.xml'],
-    ['LiveHindustan Munger', 'https://api.livehindustan.com/feeds/rss/bihar/munger/rssfeed.xml'],
-    ['LiveHindustan Purnia', 'https://api.livehindustan.com/feeds/rss/bihar/purnia/rssfeed.xml'],
-    ['LiveHindustan Saharsa', 'https://api.livehindustan.com/feeds/rss/bihar/saharsa/rssfeed.xml'],
-    ['LiveHindustan Lakhisarai', 'https://api.livehindustan.com/feeds/rss/bihar/lakhisarai/rssfeed.xml'],
-    ['LiveHindustan Jamui', 'https://api.livehindustan.com/feeds/rss/bihar/jamui/rssfeed.xml'],
-    ['LiveHindustan Supaul', 'https://api.livehindustan.com/feeds/rss/bihar/supaul/rssfeed.xml'],
-    ['LiveHindustan Darbhanga', 'https://api.livehindustan.com/feeds/rss/bihar/darbhanga/rssfeed.xml'],
-    ['LiveHindustan Madhubani', 'https://api.livehindustan.com/feeds/rss/bihar/madhubani/rssfeed.xml'],
-    ['LiveHindustan Bagaha', 'https://api.livehindustan.com/feeds/rss/bihar/bagaha/rssfeed.xml'],
-    ['LiveHindustan Bettiah', 'https://api.livehindustan.com/feeds/rss/bihar/bettiah/rssfeed.xml'],
-    ['LiveHindustan Motihari', 'https://api.livehindustan.com/feeds/rss/bihar/motihari/rssfeed.xml'],
-    ['LiveHindustan Samastipur', 'https://api.livehindustan.com/feeds/rss/bihar/samastipur/rssfeed.xml'],
-    ['LiveHindustan Sitamarhi', 'https://api.livehindustan.com/feeds/rss/bihar/sitamarhi/rssfeed.xml']
-];
+/** RSS sources — URLs .env se (BHASKAR_BIHAR_RSS_URL / LH_FEED_*). */
+function biharRssFeeds() {
+    return [
+        ['Bhaskar Bihar News', bhaskarFeedUrl()],
+        ...livehindustanSources().map(([label, url]) => [`LiveHindustan ${label}`, url]),
+    ];
+}
 const YOUTUBE_CHANNELS = {
     'Bihar Tak': 'UCnAp2J0bR9b8pM-Avp1GFOQ',
     'News18 Bihar': 'UC531MlZA5LUbeGwEN_zcppw',
@@ -74,7 +42,7 @@ function severityFor(text) {
 }
 
 async function fetchBiharRss() {
-    const feeds = await Promise.allSettled(BIHAR_RSS_FEEDS.map(async ([source, feedUrl]) => {
+    const feeds = await Promise.allSettled(biharRssFeeds().map(async ([source, feedUrl]) => {
         const response = await fetch(feedUrl, { cache: 'no-store', headers: { 'user-agent': 'Bihar-Command-Center/1.0' } });
         if (!response.ok) throw new Error(`${source} returned ${response.status}`);
         const feed = await parser.parseString(await response.text());

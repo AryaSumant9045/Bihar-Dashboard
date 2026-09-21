@@ -125,47 +125,7 @@ def fetch_newsdata():
 
 def fetch_rss_news():
     results = []
-    feeds = [
-        ("Google News", "https://news.google.com/rss/search?q=Bihar&hl=hi-IN&gl=IN&ceid=IN:hi"),
-        ("Bhaskar Bihar News", "https://www.bhaskar.com/rss-v1--category-3679.xml"),
-        ("LiveHindustan Bihar", "https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml"),
-        ("LiveHindustan Patna", "https://api.livehindustan.com/feeds/rss/bihar/patna/rssfeed.xml"),
-        ("LiveHindustan Bhagalpur", "https://api.livehindustan.com/feeds/rss/bihar/bhagalpur/rssfeed.xml"),
-        ("LiveHindustan Muzaffarpur", "https://api.livehindustan.com/feeds/rss/bihar/muzaffarpur/rssfeed.xml"),
-        ("LiveHindustan Ara", "https://api.livehindustan.com/feeds/rss/bihar/ara/rssfeed.xml"),
-        ("LiveHindustan Begusarai", "https://api.livehindustan.com/feeds/rss/bihar/begusarai/rssfeed.xml"),
-        ("LiveHindustan Biharsharif", "https://api.livehindustan.com/feeds/rss/bihar/biharsharif/rssfeed.xml"),
-        ("LiveHindustan Buxar", "https://api.livehindustan.com/feeds/rss/bihar/buxar/rssfeed.xml"),
-        ("LiveHindustan Chapra", "https://api.livehindustan.com/feeds/rss/bihar/chapra/rssfeed.xml"),
-        ("LiveHindustan Gopalganj", "https://api.livehindustan.com/feeds/rss/bihar/gopalganj/rssfeed.xml"),
-        ("LiveHindustan Hajipur", "https://api.livehindustan.com/feeds/rss/bihar/hajipur/rssfeed.xml"),
-        ("LiveHindustan Jahanabad", "https://api.livehindustan.com/feeds/rss/bihar/jahanabad/rssfeed.xml"),
-        ("LiveHindustan Siwan", "https://api.livehindustan.com/feeds/rss/bihar/siwan/rssfeed.xml"),
-        ("LiveHindustan Gaya", "https://api.livehindustan.com/feeds/rss/bihar/gaya/rssfeed.xml"),
-        ("LiveHindustan Aurangabad", "https://api.livehindustan.com/feeds/rss/bihar/aurangabad/rssfeed.xml"),
-        ("LiveHindustan Bhabua", "https://api.livehindustan.com/feeds/rss/bihar/bhabua/rssfeed.xml"),
-        ("LiveHindustan Nawada", "https://api.livehindustan.com/feeds/rss/bihar/nawada/rssfeed.xml"),
-        ("LiveHindustan Sasaram", "https://api.livehindustan.com/feeds/rss/bihar/sasaram/rssfeed.xml"),
-        ("LiveHindustan Banka", "https://api.livehindustan.com/feeds/rss/bihar/banka/rssfeed.xml"),
-        ("LiveHindustan Araria", "https://api.livehindustan.com/feeds/rss/bihar/araria/rssfeed.xml"),
-        ("LiveHindustan Katihar", "https://api.livehindustan.com/feeds/rss/bihar/katihar/rssfeed.xml"),
-        ("LiveHindustan Khagaria", "https://api.livehindustan.com/feeds/rss/bihar/khagaria/rssfeed.xml"),
-        ("LiveHindustan Kishanganj", "https://api.livehindustan.com/feeds/rss/bihar/kishanganj/rssfeed.xml"),
-        ("LiveHindustan Madhepura", "https://api.livehindustan.com/feeds/rss/bihar/madhepura/rssfeed.xml"),
-        ("LiveHindustan Munger", "https://api.livehindustan.com/feeds/rss/bihar/munger/rssfeed.xml"),
-        ("LiveHindustan Purnia", "https://api.livehindustan.com/feeds/rss/bihar/purnia/rssfeed.xml"),
-        ("LiveHindustan Saharsa", "https://api.livehindustan.com/feeds/rss/bihar/saharsa/rssfeed.xml"),
-        ("LiveHindustan Lakhisarai", "https://api.livehindustan.com/feeds/rss/bihar/lakhisarai/rssfeed.xml"),
-        ("LiveHindustan Jamui", "https://api.livehindustan.com/feeds/rss/bihar/jamui/rssfeed.xml"),
-        ("LiveHindustan Supaul", "https://api.livehindustan.com/feeds/rss/bihar/supaul/rssfeed.xml"),
-        ("LiveHindustan Darbhanga", "https://api.livehindustan.com/feeds/rss/bihar/darbhanga/rssfeed.xml"),
-        ("LiveHindustan Madhubani", "https://api.livehindustan.com/feeds/rss/bihar/madhubani/rssfeed.xml"),
-        ("LiveHindustan Bagaha", "https://api.livehindustan.com/feeds/rss/bihar/bagaha/rssfeed.xml"),
-        ("LiveHindustan Bettiah", "https://api.livehindustan.com/feeds/rss/bihar/bettiah/rssfeed.xml"),
-        ("LiveHindustan Motihari", "https://api.livehindustan.com/feeds/rss/bihar/motihari/rssfeed.xml"),
-        ("LiveHindustan Samastipur", "https://api.livehindustan.com/feeds/rss/bihar/samastipur/rssfeed.xml"),
-        ("LiveHindustan Sitamarhi", "https://api.livehindustan.com/feeds/rss/bihar/sitamarhi/rssfeed.xml")
-    ]
+    feeds = rss_feed_sources()  # URLs .env se
     for source_name, feed_url in feeds:
         try:
             feed = feedparser.parse(feed_url)
@@ -348,3 +308,28 @@ def get_all_live_news(save_to_db: bool = True):
         save_raw_items_to_db(combined)
 
     return combined
+
+# ── RSS feed URLs — sab .env se (LH_BASE_URL / LH_FEED_<SLUG>) ──────────────
+LH_DISTRICT_FEED_SLUGS = ['patna', 'bhagalpur', 'muzaffarpur', 'ara', 'begusarai', 'biharsharif', 'buxar', 'chapra', 'gopalganj', 'hajipur', 'jahanabad', 'siwan', 'gaya', 'aurangabad', 'bhabua', 'nawada', 'sasaram', 'banka', 'araria', 'katihar', 'khagaria', 'kishanganj', 'madhepura', 'munger', 'purnia', 'saharsa', 'lakhisarai', 'jamui', 'supaul', 'darbhanga', 'madhubani', 'bagaha', 'bettiah', 'motihari', 'samastipur', 'sitamarhi']
+
+def lh_base_url():
+    return os.getenv("LH_BASE_URL", "https://api.livehindustan.com/feeds/rss/bihar").rstrip("/")
+
+def lh_feed_url(slug=None):
+    """Live Hindustan feed URL — .env ka LH_FEED_<SLUG> / LH_FEED_STATE, warna default base."""
+    if not slug:
+        return (os.getenv("LH_FEED_STATE") or os.getenv("HINDUSTAN_BIHAR_RSS_URL")
+                or f"{lh_base_url()}/rssfeed.xml")
+    key = "LH_FEED_" + str(slug).upper().replace("-", "_")
+    return os.getenv(key) or f"{lh_base_url()}/{slug}/rssfeed.xml"
+
+def rss_feed_sources():
+    """[(label, url)] — Google News + Bhaskar + Live Hindustan (state + har district)."""
+    feeds = [
+        ("Google News", os.getenv("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search?q=Bihar&hl=hi-IN&gl=IN&ceid=IN:hi")),
+        ("Bhaskar Bihar News", os.getenv("BHASKAR_BIHAR_RSS_URL", "https://www.bhaskar.com/rss-v1--category-3679.xml")),
+        ("LiveHindustan Bihar", lh_feed_url(None)),
+    ]
+    for slug in LH_DISTRICT_FEED_SLUGS:
+        feeds.append((f"LiveHindustan {slug.capitalize()}", lh_feed_url(slug)))
+    return feeds

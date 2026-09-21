@@ -6,28 +6,18 @@
  */
 
 import Parser from 'rss-parser';
+import { bhaskarFeedUrl, stateFeedUrl, livehindustanFeedList } from '../../../lib/districts.js';
 
 const parser = new Parser();
-const RSS_FEEDS = {
-    bhaskar: ['Bhaskar Bihar News', 'https://www.bhaskar.com/rss-v1--category-3679.xml'],
-    livehindustan: ['LiveHindustan Bihar News', 'https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml']
-};
-const LIVEHINDUSTAN_DISTRICTS = {
-    patna: 'पटना', bhagalpur: 'भागलपुर', muzaffarpur: 'मुजफ्फरपुर', ara: 'आरा', begusarai: 'बेगूसराय',
-    biharsharif: 'बिहारशरीफ', buxar: 'बक्सर', chapra: 'छपरा', gopalganj: 'गोपालगंज', hajipur: 'हाजीपुर',
-    jahanabad: 'जहानाबाद', siwan: 'सीवान', gaya: 'गया', aurangabad: 'औरंगाबाद', bhabua: 'भभुआ', nawada: 'नवादा',
-    sasaram: 'सासाराम', banka: 'बांका', araria: 'अररिया', katihar: 'कटिहार', khagaria: 'खगड़िया', kishanganj: 'किशनगंज',
-    madhepura: 'मधेपुरा', munger: 'मुंगेर', purnia: 'पूर्णिया', saharsa: 'सहरसा', lakhisarai: 'लखीसराय', jamui: 'जमुई',
-    supaul: 'सुपौल', darbhanga: 'दरभंगा', madhubani: 'मधुबनी', bagaha: 'बगहा', bettiah: 'बेतिया', motihari: 'मोतिहारी',
-    samastipur: 'समस्तीपुर', sitamarhi: 'सीतामढ़ी'
-};
 
+/* Feed URLs .env se aate hain (lib/districts.js). */
 function getFeed(source) {
-    if (source === 'bhaskar' || source === 'livehindustan') return RSS_FEEDS[source];
+    if (source === 'bhaskar') return ['Bhaskar Bihar News', bhaskarFeedUrl()];
+    if (source === 'livehindustan') return ['LiveHindustan Bihar News', stateFeedUrl()];
     if (source.startsWith('livehindustan-')) {
         const slug = source.slice('livehindustan-'.length);
-        const district = LIVEHINDUSTAN_DISTRICTS[slug];
-        if (district) return [`LiveHindustan ${district} News`, `https://api.livehindustan.com/feeds/rss/bihar/${slug}/rssfeed.xml`];
+        const entry = livehindustanFeedList().find((f) => f.slug === slug);
+        if (entry) return [`LiveHindustan ${entry.label} News`, entry.url];
     }
     return null;
 }
