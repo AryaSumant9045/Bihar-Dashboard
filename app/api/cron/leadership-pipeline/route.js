@@ -18,7 +18,7 @@ import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import Parser from 'rss-parser';
 
-export const maxDuration = 300;
+export const maxDuration = 60; // Vercel Hobby free-plan limit
 export const dynamic = 'force-dynamic';
 
 /* ── Known Bihar leaders registry (seed; pipeline upserts by name) ── */
@@ -159,10 +159,10 @@ function buildPrompt(s, compact = false) {
 }
 
 async function runAI(prompt, compactPrompt) {
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      // Wait 60s between retries so Gemini's per-minute free quota fully resets
-      if (attempt > 0) await new Promise(r => setTimeout(r, 60000));
+      // short retry — 60s limit on Vercel Hobby
+      if (attempt > 0) await new Promise(r => setTimeout(r, 12000)); // short wait — must finish < 60s on Vercel Hobby
       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const resp = await aiClient.models.generateContent({
         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash', contents: prompt,

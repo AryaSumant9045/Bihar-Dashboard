@@ -1,6 +1,6 @@
 import { runAnalysisCycle } from '../../../../lib/gemini-analysis';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function GET(request) {
     const secret = (process.env.CRON_SECRET || 'bihar-cron-secret-2026');

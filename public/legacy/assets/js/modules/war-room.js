@@ -465,7 +465,7 @@ function renderIntelligenceSummary(summary, container) {
         </div>
       </div>`;
     }).join('')}</div>`;
-    if (tpItems.length) cards.push(intelCard('🎯', 'आज की टॉप प्रायोरिटी', 'var(--amber)', 'rgba(255,159,67,0.06)', inner, true));
+    if (tpItems.length) cards.push(intelCard('🎯', 'आज की टॉप प्रायोरिटी', 'var(--amber)', 'rgba(255,159,67,0.06)', inner));
   }
 
   // ✅ BJP Action Points

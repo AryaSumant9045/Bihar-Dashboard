@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 
-export const maxDuration = 300;
+export const maxDuration = 60; // Vercel Hobby free-plan limit
 export const dynamic = 'force-dynamic';
 
 const SYSTEM_PROMPT = `आप BJP Bihar President के Command Dashboard के Lead Political Intelligence Analyst हैं। आपका काम है Prashant Kishor (PK) और Jan Suraaj की राजनीतिक गतिविधियों का विश्लेषण करके BJP के नज़रिए से decision-ready intelligence तैयार करना — BJP को क्या risk है, BJP का क्या फायदा है, और BJP को क्या करना चाहिए।
@@ -99,7 +99,7 @@ function buildPrompt(s, compact = false) {
 async function runAI(prompt, compactPrompt) {
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      if (attempt > 0) await new Promise(r => setTimeout(r, 60000)); // Gemini per-minute quota reset
+      if (attempt > 0) await new Promise(r => setTimeout(r, 12000)); // short wait — 60s Vercel Hobby limit
       const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const resp = await aiClient.models.generateContent({
         model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash', contents: prompt,

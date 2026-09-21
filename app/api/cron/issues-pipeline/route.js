@@ -108,11 +108,11 @@ async function runGemini(prompt) {
 
 async function runAI(prompt, compactPrompt) {
   // Gemini: 3 attempts (rate limits are per-minute; retry after 20s)
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       if (attempt > 0) {
         console.log(`[issues-pipeline] Gemini retry ${attempt} after 20s...`);
-        await new Promise(r => setTimeout(r, 20000));
+        await new Promise(r => setTimeout(r, 12000)); // short wait — 60s Vercel Hobby limit
       }
       const parsed = await runGemini(prompt);
       return { parsed, provider: 'gemini' };
