@@ -17,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { GoogleGenAI } from '@google/genai';
 import Parser from 'rss-parser';
+import { callLLMQuick } from '../../../../lib/llm-providers.js';
 
 export const maxDuration = 60; // Vercel Hobby free-plan limit
 export const dynamic = 'force-dynamic';
@@ -158,33 +159,37 @@ function buildPrompt(s, compact = false) {
   return lines.join('\n');
 }
 
-async function runAI(prompt, compactPrompt) {
+async function runAI(prompt) {
+  /* Shared hardened chain: Groq-first (openai/gpt-oss-20b), JSON mode, retries,
+     key rotation, timeouts. Pehle yahan Gemini do baar (bina timeout) aur Groq
+     bina retries/json-mode try hota tha — "Groq returned invalid JSON" par
+     poora run fail ho jata tha. */
+  const marker = '## State-level Bihar political news:';
+  const newsPart = marker + (String(prompt).split(marker)[1] || '');
+  const instruction = '\n\n⚡ नियम: अधिकतम 8 activities, हर summary 1-2 lines, केवल valid JSON {"activities":[...]}, values हिंदी में।';
+
+  let lastErr = null;
   for (let attempt = 0; attempt < 2; attempt++) {
+    const userPrompt = (attempt === 0 ? newsPart : newsPart.slice(0, 4000)) + instruction;
     try {
-      // short retry — 60s limit on Vercel Hobby
-      if (attempt > 0) await new Promise(r => setTimeout(r, 12000)); // short wait — must finish < 60s on Vercel Hobby
-      const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const resp = await aiClient.models.generateContent({
-        model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash', contents: prompt,
-        config: { temperature: 0.2, maxOutputTokens: 3000, responseMimeType: 'application/json' },
+      const res = await callLLMQuick(SYSTEM_PROMPT, userPrompt, {
+        prefer: 'groq',
+        model: process.env.LEADERSHIP_LLM_MODEL || 'openai/gpt-oss-20b',
+        retries: 1,
+        maxOutputTokens: 2500,
       });
-      const parsed = extractJson(resp.text);
-      if (parsed) return { parsed, provider: 'gemini' };
-    } catch (e) { console.warn(`[leadership][GEMINI ${attempt + 1}] ${e.message}`); }
+      const parsed = extractJson(res.content);
+      if (parsed && Array.isArray(parsed.activities) && parsed.activities.length) {
+        return { parsed, provider: res.provider };
+      }
+      lastErr = new Error('model returned invalid/incomplete JSON');
+    } catch (error) {
+      lastErr = error;
+      console.warn(`[leadership] AI attempt ${attempt + 1} failed: ${String(error.message).slice(0, 140)}`);
+    }
+    await new Promise((r) => setTimeout(r, 1500));
   }
-  // Groq fallback — small prompt, few headlines, plain-text JSON (no forced json_object)
-  const { Groq } = await import('groq-sdk');
-  const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const simplePrompt = `List 6-10 Bihar political leader activities from these headlines. JSON only, values in Hindi, max 10 activities. leader_name, designation, category(Cabinet|MP|MLA|Office-Bearer), party, district, event_type, issue_domain(Infrastructure|Flood/Agriculture|Law & Order|Youth/Employment|Party Cadre Conflict|Opposition Attack|Scheme/Welfare|Other), title, summary, priority(ROUTINE|WATCH|DEVELOPING|CRITICAL), date(YYYY-MM-DD). Start with {.
-{"activities":[...]}
-Headlines:
-${compactPrompt.split('## District news')[1] ? compactPrompt.split('## District news')[1].slice(0, 2500) : compactPrompt.slice(0, 2500)}`;
-  const resp = await groqClient.chat.completions.create({
-    messages: [{ role: 'user', content: simplePrompt }], model: 'openai/gpt-oss-20b', temperature: 0.2, max_tokens: 2500,
-  });
-  const parsed = extractJson(resp.choices[0].message.content);
-  if (!parsed) throw new Error('Groq returned invalid JSON');
-  return { parsed, provider: 'groq' };
+  throw new Error(`AI could not produce valid activities JSON: ${String(lastErr?.message || '').slice(0, 160)}`);
 }
 
 
@@ -290,7 +295,7 @@ async function handle(request) {
     const total = sources.state.length + sources.district.length;
     if (!total) return NextResponse.json({ status: 'skipped', message: 'No news sources available.' });
 
-    const { parsed, provider } = await runAI(buildPrompt(sources), buildPrompt(sources, true));
+    const { parsed, provider } = await runAI(buildPrompt(sources, true));
     const activities = sanitize(parsed.activities);
     if (!activities.length) return NextResponse.json({ status: 'failed', error: 'AI returned zero activities', provider }, { status: 500 });
 
