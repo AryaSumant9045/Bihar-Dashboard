@@ -342,8 +342,13 @@ async function handleCron(request) {
         const msg = String(error.message);
         llmErrors.push(`attempt ${attempt + 1} (${batch.length} headlines): ${msg.slice(0, 120)}`);
         console.warn(`[INSIGHT] LLM attempt ${attempt + 1} failed: ${msg.slice(0, 140)}`);
-        /* Quota khatam (lamba retry-after) — dobara koshish bekaar hai, turant niklo */
+        /* Groq ka quota out (lamba retry-after): Groq par dobara koshish bekaar,
+           par attempt 2 Gemini se try karta hai (uska free tier alag hota hai). */
         if (/retry-after=(\d{3,})/.test(msg) || /quota/i.test(msg)) {
+          if (attempt + 1 < RETRY_HEADLINE_STEPS.length) {
+            llmErrors.push('groq quota out — attempt 2 Gemini se');
+            continue;
+          }
           llmErrors.push('quota exhausted — next scheduled run me phir try hoga');
           break;
         }
