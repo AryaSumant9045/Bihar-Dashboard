@@ -63,7 +63,7 @@ async function fetchAndRenderOppositionLive() {
     oppSummaryData = payload.summary || null;
 
     updateStatCounts(payload.counts || {});
-    renderOppositionSummary(oppSummaryData);
+    renderOppositionSummary(oppSummaryData, payload.fetched_at);
     renderPartyPanel(oppCurrentParty);  // re-render active tab
   } catch (err) {
     console.error('[Opposition] fetch failed:', err.message);
@@ -254,7 +254,7 @@ function renderPartyPanel(party) {
 }
 
 // ── Render AI Summary Card ───────────────────────────────────
-function renderOppositionSummary(summary) {
+function renderOppositionSummary(summary, fetchedAt) {
   const cardEl  = document.getElementById('opp-summary-card');
   const timeEl  = document.getElementById('opp-summary-time');
   const badgeEl = document.getElementById('opp-summary-badge');
@@ -276,9 +276,28 @@ function renderOppositionSummary(summary) {
 
   // Timestamp + count badge
   if (timeEl && summary.created_at) {
-    timeEl.textContent = new Date(summary.created_at).toLocaleString('en-IN', {
+    const madeAt = new Date(summary.created_at);
+    const ageH = (Date.now() - madeAt.getTime()) / 3600000;
+    timeEl.textContent = madeAt.toLocaleString('en-IN', {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true,
-    });
+    }) + (ageH > 5 ? '  ⚠️' : '');
+    timeEl.title = ageH > 5
+      ? 'AI summary ' + ageH.toFixed(1) + ' ghante purani hai — LLM quota/rate-limit ki wajah se nayi summary nahi ban payi. Data (news) alag se update hota rehta hai.'
+      : 'Latest AI summary ka time';
+    /* Confusion door karne ke liye: news data update ka time alag se dikhao */
+    const subEl = document.querySelector('#opp-summary-card')?.closest('.card')?.querySelector('div[style*="text-muted"]')
+      || document.querySelector('#opp-summary-card')?.parentElement?.querySelector('div');
+    let newsLine = document.getElementById('opp-news-updated');
+    if (!newsLine && subEl) {
+      newsLine = document.createElement('div');
+      newsLine.id = 'opp-news-updated';
+      newsLine.style.cssText = 'font-size:.68rem; color:var(--text-muted); margin-top:.35rem;';
+      subEl.parentElement.appendChild(newsLine);
+    }
+    if (newsLine && fetchedAt) {
+      const f = new Date(fetchedAt);
+      if (!isNaN(f.getTime())) newsLine.textContent = '📡 News data updated: ' + f.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+    }
   }
   if (badgeEl && summary.news_count) {
     badgeEl.textContent = `${summary.news_count} headlines analysed`;

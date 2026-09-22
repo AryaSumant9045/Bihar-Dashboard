@@ -225,13 +225,17 @@ async function generateOppositionSummary(supabase, errors) {
   const userPrompt = `इन ${headlines.length} opposition headlines का विश्लेषण करें:\n\n` +
     headlines.map((h, i) => `${i + 1}. [${h.party}] ${h.heading}`).join('\n');
 
-  let llmResult;
-  try {
-    llmResult = await callLLMWithFallback(OPPOSITION_SYSTEM_PROMPT, userPrompt);
-  } catch (err) {
-    errors.push(`LLM: ${err.message}`);
-    return null;
+  /* 2 attempts — quota/rate-limit bursts me ek retry se kaam ban jata hai */
+  let llmResult = null;
+  for (let attempt = 0; attempt < 2 && !llmResult; attempt++) {
+    try {
+      llmResult = await callLLMWithFallback(OPPOSITION_SYSTEM_PROMPT, userPrompt);
+    } catch (err) {
+      errors.push(`LLM attempt ${attempt + 1}: ${String(err.message).slice(0, 140)}`);
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
+    }
   }
+  if (!llmResult) return null;
 
   let parsed;
   try {
