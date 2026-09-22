@@ -13,20 +13,17 @@ const TIME_BUDGET_MS = Number(process.env.INSIGHT_TIME_BUDGET_MS) || 45000;
 const MAX_ITEMS_PER_FEED = 40;
 /* Groq free tier: 8000 TPM (prompt + max_tokens dono ginte hain) — isliye
    headlines aur output tokens dono cap karte hain, warna 413 aata hai. */
-const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 30;
-const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3500;
+const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 25;
+const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3000;
 /* Attempt 2 me headlines kam kar dete hain — chhote prompt se pura JSON aata hai */
-const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 18];
+const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 15];
 
 const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
 
 आपको News headlines (latest cycle, district tags के साथ) और पिछले cycle का summary (context के लिए, अगर दिया गया हो) दिए जाएंगे। इनका विश्लेषण करके एक comprehensive, decision-ready "Intelligence Report" तैयार करें।
 
-## मुख्य फोकस — BJP-centric विश्लेषण
-आपका हर विश्लेषण राजनीतिक रूप से relevant और BJP Bihar के नज़रिए से हो। हर मुद्दे में साफ़ दिखाएं:
-- BJP/सरकार/CM image को क्या RISK है (political_risks)
-- स्थिति या विपक्ष की कमज़ोरी से BJP का क्या फायदा है (bjp_advantage_points)
-- BJP को क्या करना चाहिए — ठोस, actionable कदम (top_priority_today और counter_strategy_points)
+## मुख्य फोकस — BJP-centric
+हर मुद्दे में साफ़ दिखाएं: (a) BJP/सरकार/CM image को RISK (political_risks), (b) विपक्ष की कमज़ोरी/हालात से BJP का फायदा (bjp_advantage_points), (c) BJP के लिए ठोस actionable कदम (top_priority_today, counter_strategy_points)।
 
 ## सख्त नियम
 1. केवल valid JSON लौटाएं — कोई markdown fencing, backtick, preamble या extra text नहीं। पहला character सीधे { होना चाहिए।
