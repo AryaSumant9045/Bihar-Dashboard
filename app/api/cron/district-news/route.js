@@ -299,48 +299,80 @@ function isMissingTable(error) {
 
 /**
  * Save one table's rows.
- * NOTE: district tables par url UNIQUE constraint nahi hai (legacy shared table
- * par hai), isliye ON CONFLICT available nahi — dedup code me karte hain.
+ *
+ * District tables par DO unique constraints hain: URL aur HEADING.
+ *   • Fast path: ek hi `upsert(onConflict:'url', ignoreDuplicates)` — common case.
+ *   • Koi bhi conflict (23505 url/heading, ya 42P10 = url constraint hi nahi)
+ *     aaye to row-by-row insert: jo row clash kare wo skip, baaki save.
+ *     (Google News same headline ko rotate hue link ke saath dobara bhejta hai —
+ *      isliye heading-level clash normal hai aur silently skip hona chahiye.)
+ * Missing table report hota hai, throw nahi karta.
  */
-async function saveTable(supabase, table, rows) {
-  const unique = [...new Map(rows.map((r) => [r.url, r])).values()];
+function normHeading(value) {
+  return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
 
-  /* Fast path: table par url UNIQUE hai (migration 016 ke baad) →
-     ek hi upsert me dedup. Warna select+insert fallback (patch se pehle wale tables). */
+/** Existing urls (chunked) — filter string safe rahe isliye try/catch ke saath. */
+async function existingUrls(supabase, table, urls) {
+  const found = new Set();
+  try {
+    for (let i = 0; i < urls.length; i += 100) {
+      const chunk = urls.slice(i, i + 100).filter(Boolean);
+      if (!chunk.length) continue;
+      const { data, error } = await supabase.from(table).select('url').in('url', chunk);
+      if (error) throw error;
+      (data || []).forEach((r) => found.add(r.url));
+    }
+  } catch {
+    return new Set(); // filter fail ho to best-effort: sab rows try karo
+  }
+  return found;
+}
+
+async function saveTable(supabase, table, rows) {
+  /* 1. payload dedup — url aur heading dono par */
+  const byUrl = [...new Map(rows.map((r) => [r.url, r])).values()];
+  const seenHeadings = new Set();
+  const unique = byUrl.filter((r) => {
+    const key = normHeading(r.heading || r.title);
+    if (key && seenHeadings.has(key)) return false;
+    if (key) seenHeadings.add(key);
+    return true;
+  });
+
+  /* 2. fast path — ek hi upsert */
   try {
     const { data, error, count } = await supabase
       .from(table)
       .upsert(unique, { onConflict: 'url', ignoreDuplicates: true, count: 'exact' });
     if (error) throw error;
-    const saved = count ?? (data ? data.length : 0);
-    return { table, fetched: unique.length, saved, ok: true, mode: 'upsert' };
+    return { table, fetched: unique.length, saved: count ?? (data ? data.length : 0), ok: true, mode: 'upsert' };
   } catch (error) {
-    if (!/42P10|no unique or exclusion constraint/i.test(`${error?.code || ''} ${error?.message || ''}`)) {
-      return { table, fetched: unique.length, saved: 0, ok: false, missing_table: isMissingTable(error), error: error.message };
+    if (isMissingTable(error)) {
+      return { table, fetched: unique.length, saved: 0, ok: false, missing_table: true, error: error.message };
     }
-  }
-
-  const existing = new Set();
-  try {
-    for (let i = 0; i < unique.length; i += 100) {
-      const chunk = unique.slice(i, i + 100).map((r) => r.url);
-      const { data, error } = await supabase.from(table).select('url').in('url', chunk);
-      if (error) throw error;
-      (data || []).forEach((r) => existing.add(r.url));
+    const msg = `${error?.code || ''} ${error?.message || ''}`;
+    const constraintIssue = /42P10|23505|duplicate key|no unique or exclusion constraint/i.test(msg);
+    if (!constraintIssue) {
+      return { table, fetched: unique.length, saved: 0, ok: false, error: error.message };
     }
-  } catch (error) {
-    return { table, fetched: unique.length, saved: 0, ok: false, missing_table: isMissingTable(error), error: error.message };
-  }
 
-  const fresh = unique.filter((r) => !existing.has(r.url));
-  if (!fresh.length) return { table, fetched: unique.length, saved: 0, duplicates: unique.length, ok: true };
-
-  try {
-    const { data, error } = await supabase.from(table).insert(fresh).select('id');
-    if (error) throw error;
-    return { table, fetched: unique.length, saved: (data || []).length, duplicates: unique.length - fresh.length, ok: true, mode: 'select-insert' };
-  } catch (error) {
-    return { table, fetched: unique.length, saved: 0, ok: false, missing_table: isMissingTable(error), error: error.message };
+    /* 3. row-by-row fallback — per-row skip, kabhi poora batch fail nahi */
+    try {
+      const existing = await existingUrls(supabase, table, unique.map((r) => r.url));
+      const candidates = unique.filter((r) => !existing.has(r.url));
+      let saved = 0;
+      let skipped = 0;
+      for (const row of candidates) {
+        const { data, error } = await supabase.from(table).insert(row).select('id');
+        if (error) { skipped++; continue; }
+        saved += (data || []).length;
+      }
+      console.log(`[Cron] ${table}: row-by-row saved ${saved}, skipped ${skipped} (constraint clash)`);
+      return { table, fetched: unique.length, saved, duplicates: unique.length - candidates.length, skipped, ok: true, mode: 'row-by-row' };
+    } catch (fallbackError) {
+      return { table, fetched: unique.length, saved: 0, ok: false, missing_table: isMissingTable(fallbackError), error: fallbackError.message };
+    }
   }
 }
 
@@ -363,28 +395,39 @@ export async function GET(request) {
   const useFallback = searchParams.get('fallback') !== '0';
   const useGoogle = searchParams.get('google') !== '0';
 
+  /* Targets poore registry se resolve karte hain (feedless districts — Arwal,
+     Nalanda, Sheikhpura, Sheohar — bhi include), taaki ?district=<unnaam> chale. */
+  const UNIQUE = DISTRICT_SLUGS.map((slug) => DISTRICTS.find((d) => d.slug === slug));
   let targets;
   let stateOnly = false;
   if (single) {
     const needle = single.trim().toLowerCase();
-    targets = LIVEHINDUSTAN_FEEDS.filter((d) =>
-      [d.slug, d.en, d.hi, d.feed, ...(d.aliases || [])].some((v) => String(v).toLowerCase() === needle)
-    );
-    if (needle === 'all') targets = LIVEHINDUSTAN_FEEDS;
-    if (needle === 'bihar' || needle === 'state') { targets = LIVEHINDUSTAN_FEEDS; stateOnly = true; }
+    if (needle === 'all') {
+      targets = UNIQUE.filter((d) => d.feed);
+    } else if (needle === 'bihar' || needle === 'state') {
+      targets = UNIQUE.filter((d) => d.feed);
+      stateOnly = true;
+    } else {
+      targets = UNIQUE.filter((d) =>
+        [d.slug, d.en, d.hi, d.feed, ...(d.aliases || [])].some((v) => v && String(v).toLowerCase() === needle)
+      );
+    }
   } else {
-    targets = LIVEHINDUSTAN_FEEDS;
+    targets = UNIQUE.filter((d) => d.feed);
   }
 
   if (single && !targets.length) {
     return Response.json({ error: `Unknown district: ${single}` }, { status: 400 });
   }
 
+  /* Feedless districts: feed fetch skip, sirf Google News tier se bharenge. */
+  const feedTargets = targets.filter((d) => d.feed);
+
   console.log(`[Cron] district-news: ${targets.length} feed(s), days=${days}, perDistrict=${perDistrict}, fallback=${useFallback}`);
 
   try {
     const stateEntry = { slug: null, feed: null };
-    const entries = stateOnly ? [stateEntry] : (single ? targets : [stateEntry, ...targets]);
+    const entries = stateOnly ? [stateEntry] : (single ? feedTargets : [stateEntry, ...feedTargets]);
 
     const { groups, counts, errors, allItems, wideWindow } = await fetchInBatches(entries, 6, { days, perDistrict });
     const fallbackFilled = useFallback && !stateOnly ? addFallbackRows(groups, counts, allItems, perDistrict) : [];
@@ -392,7 +435,9 @@ export async function GET(request) {
     /* Google News top-up: sirf un districts ke liye jinki table abhi bhi patli hai. */
     let googleFilled = [];
     if (useGoogle && !stateOnly) {
-      const thinSlugs = DISTRICT_SLUGS.filter((slug) => (groups.get(districtNewsTable(slug)) || []).length < GOOGLE_MIN);
+      /* Single district maanga gaya ho to sirf usi ko fill karo, warna sab thin ones. */
+      const candidates = single ? targets.map((d) => d.slug) : DISTRICT_SLUGS;
+      const thinSlugs = candidates.filter((slug) => (groups.get(districtNewsTable(slug)) || []).length < GOOGLE_MIN);
       if (thinSlugs.length) googleFilled = await addGoogleFallback(groups, thinSlugs);
     }
 
@@ -400,6 +445,7 @@ export async function GET(request) {
       return Response.json({
         status: 'dry-run',
         districts_requested: targets.length,
+        feed_districts: feedTargets.length,
         items_seen: allItems.length,
         tables: [...groups.entries()].map(([table, rows]) => ({ table, rows: rows.length, sample: rows.slice(0, 1) })),
         fallback_filled: fallbackFilled,
