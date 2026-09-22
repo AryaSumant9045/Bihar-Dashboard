@@ -13,10 +13,19 @@ const TIME_BUDGET_MS = Number(process.env.INSIGHT_TIME_BUDGET_MS) || 45000;
 const MAX_ITEMS_PER_FEED = 40;
 /* Groq free tier: 8000 TPM (prompt + max_tokens dono ginte hain) — isliye
    headlines aur output tokens dono cap karte hain, warna 413 aata hai. */
-const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 30;
+/* Opposition pipeline jaisa smart-pack: token budget ke andar jitni headlines fit ho,
+   utni ek call me (input + output dono ginte hain). */
+const INSIGHT_MAX_HEADLINES = Number(process.env.INSIGHT_MAX_HEADLINES) || 150;
+const MAX_HEADLINES_LLM = INSIGHT_MAX_HEADLINES;
+/* Attempt-wise input token budgets: attempt 1 = Gemini-friendly (bada), 2-3 = Groq-safe */
+const PACK_BUDGETS = [
+  Number(process.env.INSIGHT_PACK_BUDGET_GEMINI) || 14000,  // Gemini: TPM bahut bada
+  Number(process.env.INSIGHT_PACK_BUDGET_GROQ) || 4200,     // Groq free tier: 8000 TPM (output ke baad)
+  Number(process.env.INSIGHT_PACK_BUDGET_MIN) || 2600,
+];
 const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3000;
 /* Attempt 2 me headlines kam kar dete hain — chhote prompt se pura JSON aata hai */
-const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 22];  // pehla bada, phir chhota (JSON complete aane ke liye)
+
 /* Ek cycle me kitne LLM calls (chunks). 1 = 30 headlines; 2-3 = 60-90 headlines
    (chunk-wise analysis, phir merge). Zyada chunks = zyada LLM quota + time. */
 const INSIGHT_CHUNKS = Math.max(1, Math.min(Number(process.env.INSIGHT_CHUNKS) || 1, 4));
@@ -184,6 +193,21 @@ function isUsableInsight(obj) {
   const core = typeof obj.overall_situation === 'string' && obj.overall_situation.trim().length > 20;
   const filled = NON_EMPTY_KEYS.filter((k) => Array.isArray(obj[k]) && obj[k].length > 0).length;
   return core && filled >= 2;
+}
+
+/** Headlines ko token budget ke andar pack karo (Hindi ≈ 2.6 chars/token). */
+function packHeadlines(news, tokenBudget, maxOutputTokens) {
+  const perLineTokens = (t) => Math.ceil((String(t).length + 12) / 2.6);
+  const usable = Math.max(1200, tokenBudget - (maxOutputTokens || 3000) - 400);
+  const lines = [];
+  let used = 0;
+  for (const n of news) {
+    const cost = perLineTokens(n.heading);
+    if (used + cost > usable) break;
+    used += cost;
+    lines.push(`- [${n.district || 'General'}] ${n.heading}`);
+  }
+  return { text: lines.join('\n'), count: lines.length, tokens: used };
 }
 
 /* ── Tolerant RSS/Atom parsing (Live Hindustan ka XML rss-parser se parse NAHI
@@ -409,7 +433,7 @@ async function handleCron(request) {
           .select('heading, district, created_at')
           .eq('district', name)
           .order('created_at', { ascending: false })
-          .limit(60);
+          .limit(300);
         return data || [];
       })
     );
@@ -465,114 +489,46 @@ async function handleCron(request) {
     let llmUsage = null;
     let partialInsight = false;
 
-    /* Chunks banao (round-robin balanced pool se) */
-    const chunkList = [];
-    if (INSIGHT_CHUNKS > 1) {
-      const per = Math.ceil(analysisNews.length / INSIGHT_CHUNKS);
-      for (let i = 0; i < analysisNews.length; i += per) chunkList.push(analysisNews.slice(i, i + per));
-    }
+    /* Smart-pack: har attempt me token budget ke andar jitni headlines fit ho utni */
+    const attemptPlans = [
+      { inputBudget: PACK_BUDGETS[0], geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 10000, maxOutputTokens: 3000, prefer: null },
+      { inputBudget: PACK_BUDGETS[1], prefer: 'groq', model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b', maxOutputTokens: 3000 },
+      { inputBudget: PACK_BUDGETS[2], prefer: 'groq', model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b', maxOutputTokens: 3000 },
+    ];
 
-    /* Multi-chunk mode: har chunk ka alag LLM call, phir merge */
-    if (chunkList.length > 1) {
-      const merged = {};
-      const mergeKeys = ['political_risks', 'bjp_action_points', 'bjp_advantage_points', 'opposition_activity', 'counter_strategy_points', 'election_watch_items', 'top_priority_today', 'most_active_opposition_voices_this_cycle'];
-      const chunkInfo = [];
-      let totalAnalyzed = 0;
-      for (const chunk of chunkList) {
-        if (Date.now() > deadlineMs) { chunkInfo.push({ chunk: chunk.length, status: 'skipped_time' }); break; }
-        try {
-          const text = chunk.map((n) => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
-          const res = await callLLMQuick(SYSTEM_PROMPT, `${prevCycleContext}## इस Cycle की ${chunk.length} News Headlines:\n\n${text}`, {
-            retries: 1, maxOutputTokens: MAX_OUTPUT_TOKENS_LLM, geminiMaxOutputTokens: 10000,
-          });
-          const cand = extractJson(res.content) || repairJson(res.content);
-          if (!cand) throw new Error('invalid JSON');
-          aiProvider = res.provider;
-          totalAnalyzed += chunk.length;
-          chunkInfo.push({ chunk: chunk.length, status: 'ok', provider: res.provider });
-          /* merge: first chunk ka overall_situation/health; baaki arrays concat */
-          if (!merged.overall_situation && cand.overall_situation) merged.overall_situation = cand.overall_situation;
-          for (const k of mergeKeys) {
-            if (Array.isArray(cand[k]) && cand[k].length) merged[k] = (merged[k] || []).concat(cand[k]);
-          }
-          if (!merged.political_health_score && cand.political_health_score != null) merged.political_health_score = cand.political_health_score;
-          if (!merged.health_trend_direction && cand.health_trend_direction) merged.health_trend_direction = cand.health_trend_direction;
-          if (!merged.data_quality_note && cand.data_quality_note) merged.data_quality_note = cand.data_quality_note;
-        } catch (e) {
-          chunkInfo.push({ chunk: chunk.length, status: 'failed', error: String(e.message).slice(0, 90) });
-        }
-      }
-      if (merged.overall_situation) {
-        /* dedupe arrays */
-        for (const k of mergeKeys) {
-          if (Array.isArray(merged[k])) {
-            const seen = new Set();
-            merged[k] = merged[k].filter((x) => { const s2 = JSON.stringify(x).slice(0, 120); if (seen.has(s2)) return false; seen.add(s2); return true; });
-          }
-        }
-        parsedJson = normalizeInsight(merged);
-        analyzedCount = totalAnalyzed;
-        if (!merged.political_health_score) parsedJson.political_health_score = null;
-      }
-      console.log('[INSIGHT] chunks:', JSON.stringify(chunkInfo));
-      if (parsedJson) {
-        return Response.json({
-          status: 'success', mode: 'chunked', provider: aiProvider,
-          inserted_articles: insertedCount, headlines_analyzed: analyzedCount,
-          chunks: chunkInfo, source_breakdown: perSource, analysis_mix: analysisBreakdown,
-          insight_generated: true,
-        });
-      }
-      /* sab chunks fail → single-call fallback neeche */
-    }
-
-    for (let attempt = 0; attempt < RETRY_HEADLINE_STEPS.length && !parsedJson; attempt++) {
+    for (let attempt = 0; attempt < attemptPlans.length && !parsedJson; attempt++) {
+      const plan = attemptPlans[attempt];
       if (Date.now() > deadlineMs) { llmErrors.push('time budget exceeded'); break; }
-      /* attempt 2 me kam headlines → chhota prompt → pura JSON fit ho jata hai */
-      const cap = Math.min(RETRY_HEADLINE_STEPS[attempt], analysisNews.length);
+      const cap = Math.min(MAX_HEADLINES_LLM, analysisNews.length);
       const batch = analysisNews.slice(0, cap);
-      const headlinesText = batch.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
-      const attemptContent = `${prevCycleContext}## इस Cycle की ${batch.length} News Headlines:\n\n${headlinesText}`;
+      const packed = packHeadlines(batch, plan.inputBudget, plan.maxOutputTokens);
+      const attemptContent = `${prevCycleContext}## इस Cycle की ${packed.count} News Headlines:\n\n${packed.text}`;
       try {
-        /* Attempt 1: Groq-first (fast, free tier). Attempt 2: Gemini bhi try karo
-           (uska free tier sirf 20 req/din hai, par Groq quota out hone par kaam aata hai). */
         const res = await callLLMQuick(SYSTEM_PROMPT, attemptContent, {
-          /* Gemini pehle (fresh quota), Groq fallback — kisi ek quota out ho
-             to doosra sambhal lega */
-          model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
+          ...plan,
           retries: 1,
-          maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
-          /* Gemini ka TPM bada hai — poora JSON (schema bada hai) banane ke liye chhut */
-          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 10000,
+          geminiMaxOutputTokens: plan.geminiMaxOutputTokens,
         });
         const candidate = extractJson(res.content) || repairJson(res.content);
         if (!candidate) {
-          console.warn(`[INSIGHT] unparseable output — provider=${res.provider} len=${String(res.content || '').length} truncated=${res.truncated} tail=${String(res.content || '').slice(-180).replace(/\n/g, ' ')}`);
+          console.warn(`[INSIGHT] unparseable — provider=${res.provider} len=${String(res.content || '').length} truncated=${res.truncated} tail=${String(res.content || '').slice(-160).replace(/\n/g, ' ')}`);
           throw new Error(`model returned invalid JSON (len=${String(res.content || '').length})`);
         }
-        const isLast = attempt + 1 >= RETRY_HEADLINE_STEPS.length;
-        const ok = isCompleteInsight(candidate) || (isLast && isUsableInsight(candidate));
+        const ok = isCompleteInsight(candidate) || (attempt + 1 >= attemptPlans.length && isUsableInsight(candidate));
         if (!ok) throw new Error('JSON missing required sections');
         parsedJson = normalizeInsight(candidate);
-        /* jo batch actually analyze hua wahi mix report karo */
-        analysisBreakdown = batch.reduce((acc, n) => { const k = n.district || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
-        if (!isCompleteInsight(candidate)) partialInsight = true;
-        aiProvider = res.provider;
-        analyzedCount = batch.length;
+        analyzedCount = packed.count;
+        analysisBreakdown = batch.slice(0, packed.count).reduce((acc, n) => { const k = n.district || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
         llmUsage = { input_tokens: res.inputTokens, output_tokens: res.outputTokens };
+        if (!isCompleteInsight(candidate)) partialInsight = true;
       } catch (error) {
         const msg = String(error.message);
-        llmErrors.push(`attempt ${attempt + 1} (${batch.length} headlines): ${msg.slice(0, 120)}`);
-        console.warn(`[INSIGHT] LLM attempt ${attempt + 1} failed: ${msg.slice(0, 140)}`);
-        /* Groq ka quota out (lamba retry-after): Groq par dobara koshish bekaar,
-           par attempt 2 Gemini se try karta hai (uska free tier alag hota hai). */
-        if (/retry-after=(\d{3,})/.test(msg) || /quota/i.test(msg)) {
-          if (attempt + 1 < RETRY_HEADLINE_STEPS.length) {
-            llmErrors.push('groq quota out — attempt 2 Gemini se');
-            continue;
-          }
-          llmErrors.push('quota exhausted — next scheduled run me phir try hoga');
-          break;
+        llmErrors.push(`attempt ${attempt + 1} (${packed.count} headlines): ${msg.slice(0, 130)}`);
+        console.warn(`[INSIGHT] LLM attempt ${attempt + 1} failed: ${msg.slice(0, 150)}`);
+        /* Quota out (lamba retry-after): Groq par dobara bekaar — agli attempt Gem.
+           Attempt 1 me prefer Groq ho to bhi chain Gemini fallback handle karti hai. */
+        if (/retry-after=(\d{3,})/.test(msg) && attempt + 1 < attemptPlans.length) {
+          llmErrors.push('groq quota out — agli attempt doosre provider se');
         }
       }
     }
