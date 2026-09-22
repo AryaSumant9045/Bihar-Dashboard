@@ -97,8 +97,13 @@ function buildSystemPrompt(district, eventType, audience, topic, opts = {}) {
 
 function buildUserPrompt(district, topic, { news, summary, opposition, freshness, neighborData, lastBrief }) {
   const parts = [];
-  parts.push(`## ${district} district की latest headlines (${news.length}):`);
-  parts.push(news.length ? news.map((n, i) => `${i + 1}. ${n.heading}`).join('\n') : '(कोई headline उपलब्ध नहीं)');
+  const fmtWhen = (iso) => {
+    const t = Date.parse(iso || '');
+    if (isNaN(t)) return '';
+    return new Date(t).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+  parts.push(`## ${district} district की latest headlines (${news.length}) — हर headline के आगे उसका समय है:`);
+  parts.push(news.length ? news.map((n, i) => `${i + 1}. ${fmtWhen(n.published_at) ? `[${fmtWhen(n.published_at)}] ` : ''}${n.heading}`).join('\n') : '(कोई headline उपलब्ध नहीं)');
 
   if (summary) {
     parts.push(`\n## ${district} का latest AI political summary:`);
@@ -341,6 +346,7 @@ export async function POST(request) {
 - सिर्फ़ दिए गए data पर आधारित जवाब दें — कोई तथ्य न गढ़ें। Data में न हो तो साफ़ कहें "इस बारे में data उपलब्ध नहीं"।
 - जवाब हिंदी (देवनागरी) में, concise (4-8 lines या 3-5 bullets), actionable रखें।
 - जहाँ आंकड़ा/तथ्य हो उसे quote करें। Opposition की बात हो तो neutral रहें।
+- **हर बात/point के साथ तारीख-समय बताएं** जब data में available हो (जैसे "22 Sept, 6:24 pm की headline के मुताबिक…") — headlines के आगे उनका timestamp दिया गया है, उसी को use करें।
 - सिर्फ़ plain text जवाब दें (कोई JSON नहीं)।`;
     const askUser = `${ctx}\n\n## उपयोगकर्ता का सवाल:\n${question}\n\nउपरोक्त data के आधार पर सीधा जवाब दें।`;
 
@@ -353,13 +359,23 @@ export async function POST(request) {
           return Response.json({
             status: 'success', mode: 'ask', district: askEntry.en, question, answer,
             provider: res.provider,
+            data_last_at: d.freshness?.last_updated || null,
+            data_age_hours: d.freshness?.age_hours != null ? d.freshness.age_hours : null,
+            answered_at: new Date().toISOString(),
             sources: { news: d.news.length, has_summary: !!d.summary, opposition: d.opposition.length },
           });
         }
         throw new Error('empty answer');
       } catch (e) { errorsAsk.push(String(e.message).slice(0, 120)); await new Promise((r) => setTimeout(r, 1200)); }
     }
-    return Response.json({ status: 'llm_failed', mode: 'ask', district: askEntry.en, errors: errorsAsk }, { status: 200 });
+    return Response.json({
+      status: 'llm_failed', mode: 'ask', district: askEntry.en,
+      data_last_at: d.freshness?.last_updated || null,
+      data_age_hours: d.freshness?.age_hours != null ? d.freshness.age_hours : null,
+      answered_at: new Date().toISOString(),
+      sources: { news: d.news.length, has_summary: !!d.summary, opposition: d.opposition.length },
+      errors: errorsAsk,
+    }, { status: 200 });
   }
 
   if (!districtInput || !event_type || !audience || !topic) {

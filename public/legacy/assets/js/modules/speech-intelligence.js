@@ -79,8 +79,17 @@ async function siAskAI() {
     });
     const j = await res.json();
     if (j.status !== 'success') throw new Error((j.errors || []).join(' | ') || j.error || 'failed');
+    const fmtT = (iso) => { const t = Date.parse(iso || ''); return isNaN(t) ? null : new Date(t).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }); };
+    const dataAt = fmtT(j.data_last_at);
+    const ansAt = fmtT(j.answered_at);
+    const ageTxt = (j.data_age_hours != null) ? (j.data_age_hours < 1 ? 'abhi-abhi' : j.data_age_hours.toFixed(1) + ' ghante purana') : null;
     if (out) out.innerHTML = '<div style="font-size:.82rem;color:var(--text-primary);line-height:1.6;">' + siEsc(j.answer).replace(/\n/g, '<br>') + '</div>' +
-      '<div style="font-size:.62rem;color:var(--text-muted);margin-top:.5rem;">via ' + siEsc(j.provider || 'AI') + ' · data: ' + (j.sources?.news || 0) + ' news + summary</div>';
+      '<div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.55rem;">' +
+        (dataAt ? '<span class="tag" style="font-size:.6rem;">🗓 Data as of ' + siEsc(dataAt) + (ageTxt ? ' · ' + siEsc(ageTxt) : '') + '</span>' : '') +
+        (ansAt ? '<span class="tag" style="font-size:.6rem;">⏱ Jawab: ' + siEsc(ansAt) + '</span>' : '') +
+        '<span class="tag" style="font-size:.6rem;">via ' + siEsc(j.provider || 'AI') + '</span>' +
+        '<span class="tag" style="font-size:.6rem;">📊 ' + (j.sources?.news || 0) + ' news' + (j.sources?.has_summary ? ' + AI summary' : '') + (j.sources?.opposition ? ' + ' + j.sources.opposition + ' opposition' : '') + '</span>' +
+      '</div>';
   } catch (e) {
     if (out) out.innerHTML = '<div style="font-size:.75rem;color:var(--red);">Ask AI failed: ' + siEsc(e.message) + '</div>';
   }
