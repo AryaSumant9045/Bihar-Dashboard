@@ -17,6 +17,9 @@ const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 30;
 const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3000;
 /* Attempt 2 me headlines kam kar dete hain — chhote prompt se pura JSON aata hai */
 const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 22];  // pehla bada, phir chhota (JSON complete aane ke liye)
+/* Ek cycle me kitne LLM calls (chunks). 1 = 30 headlines; 2-3 = 60-90 headlines
+   (chunk-wise analysis, phir merge). Zyada chunks = zyada LLM quota + time. */
+const INSIGHT_CHUNKS = Math.max(1, Math.min(Number(process.env.INSIGHT_CHUNKS) || 1, 4));
 
 const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
 
@@ -461,6 +464,67 @@ async function handleCron(request) {
     const llmErrors = [];
     let llmUsage = null;
     let partialInsight = false;
+
+    /* Chunks banao (round-robin balanced pool se) */
+    const chunkList = [];
+    if (INSIGHT_CHUNKS > 1) {
+      const per = Math.ceil(analysisNews.length / INSIGHT_CHUNKS);
+      for (let i = 0; i < analysisNews.length; i += per) chunkList.push(analysisNews.slice(i, i + per));
+    }
+
+    /* Multi-chunk mode: har chunk ka alag LLM call, phir merge */
+    if (chunkList.length > 1) {
+      const merged = {};
+      const mergeKeys = ['political_risks', 'bjp_action_points', 'bjp_advantage_points', 'opposition_activity', 'counter_strategy_points', 'election_watch_items', 'top_priority_today', 'most_active_opposition_voices_this_cycle'];
+      const chunkInfo = [];
+      let totalAnalyzed = 0;
+      for (const chunk of chunkList) {
+        if (Date.now() > deadlineMs) { chunkInfo.push({ chunk: chunk.length, status: 'skipped_time' }); break; }
+        try {
+          const text = chunk.map((n) => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
+          const res = await callLLMQuick(SYSTEM_PROMPT, `${prevCycleContext}## इस Cycle की ${chunk.length} News Headlines:\n\n${text}`, {
+            retries: 1, maxOutputTokens: MAX_OUTPUT_TOKENS_LLM, geminiMaxOutputTokens: 10000,
+          });
+          const cand = extractJson(res.content) || repairJson(res.content);
+          if (!cand) throw new Error('invalid JSON');
+          aiProvider = res.provider;
+          totalAnalyzed += chunk.length;
+          chunkInfo.push({ chunk: chunk.length, status: 'ok', provider: res.provider });
+          /* merge: first chunk ka overall_situation/health; baaki arrays concat */
+          if (!merged.overall_situation && cand.overall_situation) merged.overall_situation = cand.overall_situation;
+          for (const k of mergeKeys) {
+            if (Array.isArray(cand[k]) && cand[k].length) merged[k] = (merged[k] || []).concat(cand[k]);
+          }
+          if (!merged.political_health_score && cand.political_health_score != null) merged.political_health_score = cand.political_health_score;
+          if (!merged.health_trend_direction && cand.health_trend_direction) merged.health_trend_direction = cand.health_trend_direction;
+          if (!merged.data_quality_note && cand.data_quality_note) merged.data_quality_note = cand.data_quality_note;
+        } catch (e) {
+          chunkInfo.push({ chunk: chunk.length, status: 'failed', error: String(e.message).slice(0, 90) });
+        }
+      }
+      if (merged.overall_situation) {
+        /* dedupe arrays */
+        for (const k of mergeKeys) {
+          if (Array.isArray(merged[k])) {
+            const seen = new Set();
+            merged[k] = merged[k].filter((x) => { const s2 = JSON.stringify(x).slice(0, 120); if (seen.has(s2)) return false; seen.add(s2); return true; });
+          }
+        }
+        parsedJson = normalizeInsight(merged);
+        analyzedCount = totalAnalyzed;
+        if (!merged.political_health_score) parsedJson.political_health_score = null;
+      }
+      console.log('[INSIGHT] chunks:', JSON.stringify(chunkInfo));
+      if (parsedJson) {
+        return Response.json({
+          status: 'success', mode: 'chunked', provider: aiProvider,
+          inserted_articles: insertedCount, headlines_analyzed: analyzedCount,
+          chunks: chunkInfo, source_breakdown: perSource, analysis_mix: analysisBreakdown,
+          insight_generated: true,
+        });
+      }
+      /* sab chunks fail → single-call fallback neeche */
+    }
 
     for (let attempt = 0; attempt < RETRY_HEADLINE_STEPS.length && !parsedJson; attempt++) {
       if (Date.now() > deadlineMs) { llmErrors.push('time budget exceeded'); break; }
