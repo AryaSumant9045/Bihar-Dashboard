@@ -6,6 +6,7 @@ let siActiveId = 1;
 let siShowingLibrary = false;
 
 function initSpeechIntelligence() {
+  siLoadPastBriefs();
   renderRecentCards();
   renderSpeechList(SPEECHES_DATA);
   renderSpeechDetail(SPEECHES_DATA[0]);
@@ -33,224 +34,240 @@ function toggleSIView() {
 }
 
 /* ── Brief Generator ──────────────────────────────────────── */
-function generateSpeechBrief() {
+function siToggleCustomEvent() {
+  const sel = document.getElementById('si-event-sel');
+  const custom = document.getElementById('si-event-custom');
+  if (!sel || !custom) return;
+  custom.style.display = sel.value === '__custom__' ? 'block' : 'none';
+}
+
+async function generateSpeechBrief() {
   const district = document.getElementById('si-district-sel')?.value;
-  const event    = document.getElementById('si-event-sel')?.value;
+  const eventSel = document.getElementById('si-event-sel')?.value;
+  const eventCustom = document.getElementById('si-event-custom')?.value?.trim();
+  const event = eventSel === '__custom__' ? eventCustom : eventSel;
   const audience = document.getElementById('si-audience-sel')?.value;
-  const topic    = document.getElementById('si-topic-sel')?.value;
+  const topic = document.getElementById('si-topic-input')?.value?.trim();
 
   if (!district || !event || !audience || !topic) {
-    showToast('Incomplete', 'Please select District, Event, Audience and Topic', 'warning');
+    showToast('Incomplete', 'District, Event, Audience aur Topic — chaaro bharna zaroori hai', 'warning');
     return;
   }
 
   const btn = document.getElementById('si-generate-btn');
-  if (btn) { btn.textContent = '⏳ Generating…'; btn.disabled = true; }
+  const out = document.getElementById('si-brief-output');
+  if (btn) { btn.textContent = '⏳ Briefing taiyar ho rahi hai…'; btn.disabled = true; }
+  if (out) {
+    out.style.display = 'block';
+    out.innerHTML = '<div class="card" style="padding:1.5rem;"><div class="empty-state"><div class="spinner"></div><p class="empty-state-text" style="margin-top:0.5rem;">🎙 ' + district + ' के लिए briefing तैयार हो रही है…<br><span style="font-size:.72rem;color:var(--text-muted);">District news + AI summary + opposition data से बन रही है</span></p></div></div>';
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
-  setTimeout(() => {
+  try {
+    const res = await fetch('/api/speech-brief', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ district, event_type: event, audience, topic }),
+    });
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
+    if (payload.status !== 'success') {
+      renderBriefError(district, event, audience, topic, payload);
+      return;
+    }
+    renderGeneratedBrief(district, event, audience, topic, payload);
+    siLoadPastBriefs(true);
+  } catch (error) {
+    if (out) {
+      out.innerHTML = '<div class="card" style="padding:1rem;"><div class="empty-state"><div class="empty-state-icon">⚠️</div><p class="empty-state-text">' + siEsc(error.message) + '</p></div></div>';
+    }
+  } finally {
     if (btn) { btn.textContent = '⚡ Generate Intelligence Brief'; btn.disabled = false; }
-    renderGeneratedBrief(district, event, audience, topic);
-  }, 1200);
+  }
 }
 
-function renderGeneratedBrief(district, event, audience, topic) {
+function renderBriefError(district, event, audience, topic, payload) {
   const el = document.getElementById('si-brief-output');
   if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML = '<div class="card" style="padding:1rem;"><div class="empty-state"><div class="empty-state-icon">🕓</div>' +
+    '<p class="empty-state-text">Briefing अभी generate नहीं हो सकी — AI quota/rate-limit की वजह से।</p>' +
+    '<p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">Thodi der baad phir try karo — data mila tha: ' +
+    siEsc(String((payload.sources||{}).news || 0)) + ' news, summary ' + ((payload.sources||{}).has_summary ? '✓' : '✗') + ', opposition ' + siEsc(String((payload.sources||{}).opposition || 0)) + '</p></div></div>';
+}
 
-  // Find relevant data for this district
-  const distData = DISTRICTS_DATA.find(d => d.name === district);
-  const distIssues = ISSUES_DATA.filter(i => i.district === district).slice(0, 3);
-  const oppActivity = OPPOSITION_DATA.districtActivity[district] || 'low';
-  const topNarrative = OPPOSITION_DATA.attackNarratives[0];
-  const topCounter = OPPOSITION_DATA.counterStrategies[0];
+function siEsc(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c])); }
 
-  // Topic-specific talking points
-  const talkingPoints = {
-    'Development & Infrastructure': [
-      `${district} mein ₹1,200 Cr ki sadak pariyojana chal rahi hai — BJP ki drishti dikha rahi hai`,
-      'Bihar mein 28,000+ km sadak nirmaan 2015-2025 mein — ek record hai',
-      'CM Nitish Kumar ki "Saat Nishchay" yojana ne ${district} ko naya roop diya hai',
-      'National Highway expansion se ${district} ke karyakarta aur vyapari dono khush hain'
-    ],
-    'Employment & Youth': [
-      'Bihar mein BPSC, SSC bharti ke 72,000+ posts available hain — yuvaon ko avsar',
-      'Udyami Yojana ke tahat 10,000 yuvaon ko loan diya gaya — rozgar srijan',
-      `${district} ke engineering colleges se 3,000+ graduates iss saal naukri mein`,
-      'Skill Development Mission: 5 lakh yuvaon ko training — Bihar ka bhavishya'
-    ],
-    'Agriculture & Floods': [
-      `${district} mein is saal fasal bima yojana se 45,000 kisan labhanvit hue`,
-      'Mukhyamantri Kisan Sahayata Yojana: har kisaan ke liye direct relief',
-      'Flood management mein ₹3,800 Cr kharcha — embankments strengthen kiye gaye',
-      'Kosi-Gandak interlinking project se north Bihar mein sukha relief milega'
-    ],
-    'NDA Achievements': [
-      'Bihar mein 2005 ke comparison mein crime rate 65% kam — law & order bana',
-      'Per capita income 4x badha hai 2005 se — vikas ki raah par Bihar',
-      'Bijli: 24x7 supply 38 jilo mein — pehle sirf 8 ghante milti thi',
-      'National highway se jude sare jile — connectivity revolution'
-    ],
-    'Counter-Opposition': [
-      `RJD ke 15 saal: jungle raj, bijli nahi, sadak nahi — log bhool nahi sakte`,
-      `${topNarrative?.topic || 'Opposition narrative'} ek jhooth hai — yahan ke aakde alag bol rahe hain`,
-      'Prashant Kishor ka Jan Suraaj: na manifesto, na organization — sirf publicity',
-      'INC-RJD alliance mein ek doosre ka vishwaas nahi — toot jayega chunaav se pehle'
-    ]
-  };
+function renderGeneratedBrief(district, event, audience, topic, payload) {
+  const el = document.getElementById('si-brief-output');
+  if (!el) return;
+  const b = payload.brief || {};
+  const when = payload.created_at ? new Date(payload.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const src = payload.sources || {};
 
-  const points = talkingPoints[topic] || [
-    'Bihar ka vikas hum sab ki zimmedari hai — BJP is par kaam kar rahi hai',
-    `${district} ke logon ki seva karna BJP ka pradhaan lakshya hai`,
-    '2025 mein phir ek baar NDA ki sarkar — development continue karega',
-    'Hum sab milkar Bihar ko ek strong aur prosperous state banayenge'
-  ];
+  const list = (items, icon) => (!items || !items.length)
+    ? '<p style="font-size:.74rem;color:var(--text-muted);margin:0;">— इस विषय पर district-specific data उपलब्ध नहीं</p>'
+    : '<ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.3rem;">' + items.map((t) => '<li style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;">' + siEsc(t) + '</li>').join('') + '</ul>';
 
-  // Opposition claims to counter
-  const oppClaims = [
-    { claim: 'Unemployment badhaa hai', fact: 'BPSC/SSC mein 72,000+ vacancies open — largest in 10 years' },
-    { claim: 'Floods mein government fail', fact: 'NDRF teams pre-deployed in 14 districts — response time 4hrs' },
-    { claim: 'BJP ne development nahi kiya', fact: `${district}: ₹1,200 Cr highway, 340 MW bijli, 8 new schools opened` },
-  ];
+  const fr = payload.data_freshness || {};
+  const freshBadge = fr.last_updated
+    ? '<span class="tag" style="font-size:.62rem;' + (fr.warning ? 'color:var(--amber);border-color:var(--amber);' : '') + '">🗓 Data as of ' + new Date(fr.last_updated).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + (fr.warning ? ' ⚠️' : '') + '</span>'
+    : '';
+
+  const avoid = (!b.avoid_mentioning || !b.avoid_mentioning.length) ? ''
+    : '<div class="card" style="margin-bottom:1rem;border-color:rgba(230,57,70,.45);">' +
+      '<div class="card-title" style="margin-bottom:0.6rem;color:var(--red);">⛔ Danger Zone — ये न बोलें</div>' +
+      b.avoid_mentioning.map((a) => '<div style="padding:.5rem .6rem;border-left:3px solid var(--red);background:rgba(230,57,70,.07);border-radius:6px;margin-bottom:.4rem;">' +
+        '<div style="font-size:.79rem;font-weight:700;color:var(--text-primary);">' + siEsc(a.topic) + '</div>' +
+        (a.reason ? '<div style="font-size:.73rem;color:var(--text-muted);line-height:1.45;">' + siEsc(a.reason) + '</div>' : '') + '</div>').join('') +
+      '</div>';
+
+  const qa = (!b.anticipated_tough_questions || !b.anticipated_tough_questions.length) ? ''
+    : '<div class="card" style="margin-bottom:1rem;"><div class="card-title" style="margin-bottom:0.6rem;">❓ Anticipated Tough Questions (Q&amp;A Prep)</div>' +
+      b.anticipated_tough_questions.map((q, i) => '<div style="padding:.5rem .6rem;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-elevated);margin-bottom:.45rem;">' +
+        '<div style="font-size:.78rem;font-weight:700;color:var(--text-primary);">Q' + (i + 1) + '. ' + siEsc(q.likely_question) + '</div>' +
+        '<div style="font-size:.74rem;color:var(--text-secondary);line-height:1.5;margin-top:.2rem;">↳ <b>Response angle:</b> ' + siEsc(q.suggested_response_direction) + '</div></div>').join('') +
+      '</div>';
+
+  const connect = (!b.local_connect_points || !b.local_connect_points.length) ? ''
+    : '<div class="card"><div class="card-title" style="margin-bottom:0.6rem;">📍 Local Connect Points</div>' + list(b.local_connect_points) + '</div>';
+
+  const compare = b.comparative_context
+    ? '<div class="card" style="margin-top:1rem;"><div class="card-title" style="margin-bottom:0.5rem;">⚖️ Comparative Context</div><p style="font-size:.79rem;color:var(--text-secondary);line-height:1.5;margin:0;">' + siEsc(b.comparative_context) + '</p></div>'
+    : '';
+
+  const claims = (!b.opposition_claims_context || !b.opposition_claims_context.length)
+    ? '<p style="font-size:.74rem;color:var(--text-muted);margin:0;">— कोई opposition claim data में नहीं मिला</p>'
+    : b.opposition_claims_context.map((c) =>
+        '<div style="padding:.55rem .65rem;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-elevated);margin-bottom:.45rem;">' +
+        '<div style="font-size:.76rem;color:var(--red);font-weight:600;margin-bottom:.2rem;">⚠ ' + siEsc(c.claim) + '</div>' +
+        '<div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">✅ <b>Factual context:</b> ' + siEsc(c.factual_context) + '</div></div>'
+      ).join('');
+
+  const tp = (b.suggested_talking_points || []).map((t, i) =>
+    '<div style="display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .65rem;border-left:3px solid var(--gold);background:rgba(245,197,24,.08);border-radius:6px;margin-bottom:.4rem;">' +
+    '<b style="color:var(--gold);font-size:.85rem;min-width:1.3rem;">' + (i + 1) + '.</b>' +
+    '<span style="font-size:.82rem;color:var(--text-primary);line-height:1.5;">' + siEsc(t) + '</span></div>'
+  ).join('') || '<p style="font-size:.74rem;color:var(--text-muted);">—</p>';
 
   el.style.display = 'block';
   el.innerHTML = `
-    <!-- Brief Header -->
     <div class="card card-gold" style="margin-bottom:1rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
         <div>
-          <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Pre-Event Intelligence Brief</div>
-          <h2 style="font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:800;color:var(--text-primary);">📍 ${district} — ${event}</h2>
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">👥 Audience: ${audience} &nbsp;•&nbsp; 📌 Topic: ${topic}</div>
+          <div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.3rem;">Pre-Event Intelligence Brief ${payload.saved ? '· 💾 Saved' : ''}</div>
+          <h2 style="font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:800;color:var(--text-primary);">📍 ${siEsc(district)} — ${siEsc(event)}</h2>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">👥 ${siEsc(audience)} &nbsp;•&nbsp; 📌 ${siEsc(topic)} ${when ? '&nbsp;•&nbsp; 🕐 ' + when : ''}</div>
+          <div style="display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin-top:0.35rem;">
+            <span class="tag" style="font-size:.62rem;">${src.news || 0} district news</span>
+            <span class="tag" style="font-size:.62rem;">AI summary ${src.has_summary ? '✓' : '✗'}</span>
+            <span class="tag" style="font-size:.62rem;">${src.opposition || 0} opposition</span>
+            ${freshBadge}
+          </div>
+          ${fr.warning ? '<div style="font-size:.7rem;color:var(--amber);margin-top:.3rem;">⚠️ ' + siEsc(fr.warning) + '</div>' : ''}
         </div>
         <div style="display:flex;gap:0.5rem;">
-          <button class="btn btn-ghost btn-sm" onclick="printBrief()">🖨 Print Brief</button>
-          <button class="btn btn-primary btn-sm" onclick="showToast('Saved','Brief saved to Communication Hub','success')">💾 Save</button>
+          <button class="btn btn-primary btn-sm" onclick="siCopyWhatsApp()">📲 WhatsApp Text</button>
+          <button class="btn btn-ghost btn-sm" onclick="siCopyBrief()">📋 Copy</button>
+          <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨 Print</button>
         </div>
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:1rem;border-color:rgba(245,197,24,.4);">
+      <div class="card-title" style="margin-bottom:0.65rem;">🎯 Suggested Talking Points <span class="tag tag-gold" style="font-size:.6rem;margin-left:.3rem;">TOP PRIORITY</span></div>
+      ${tp}
+    </div>
+
+    ${avoid}
+    ${qa}
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-
-      <!-- Local Facts -->
-      <div class="card">
-        <div class="card-title" style="margin-bottom:0.75rem;">📊 Local District Facts</div>
-        <div style="display:flex;flex-direction:column;gap:0.4rem;">
-          ${distData ? `
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
-              <span style="color:var(--text-muted);">Assembly Seats</span>
-              <span style="color:var(--gold);font-weight:700;">${distData.seats}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
-              <span style="color:var(--text-muted);">BJP Seats</span>
-              <span style="color:var(--bjp-color);font-weight:700;">${distData.bjp}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
-              <span style="color:var(--text-muted);">JDU Seats</span>
-              <span style="color:var(--jdu-color);font-weight:700;">${distData.jdu}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--border-subtle);">
-              <span style="color:var(--text-muted);">Opposition</span>
-              <span style="color:var(--rjd-color);font-weight:700;">${distData.rjd + distData.inc}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;">
-              <span style="color:var(--text-muted);">Total Voters</span>
-              <span style="color:var(--text-primary);font-weight:700;">${(distData.totalVotes/100000).toFixed(1)}L</span>
-            </div>
-          ` : `<div style="font-size:0.8rem;color:var(--text-muted);">District data loading…</div>`}
-        </div>
-      </div>
-
-      <!-- Local Concerns -->
-      <div class="card">
-        <div class="card-title" style="margin-bottom:0.75rem;">⚠️ Local Concerns to Address</div>
-        ${distIssues.length > 0 ? distIssues.map(i=>`
-          <div style="display:flex;align-items:flex-start;gap:0.5rem;padding:0.4rem 0;border-bottom:1px solid var(--border-subtle);">
-            <span style="font-size:0.75rem;color:${i.priority==='urgent'?'var(--red)':'var(--amber)'};">▶</span>
-            <div>
-              <div style="font-size:0.8rem;font-weight:500;color:var(--text-primary);">${i.title}</div>
-              <div style="font-size:0.7rem;color:var(--text-muted);">${i.category} • Status: ${i.status}</div>
-            </div>
-          </div>
-        `).join('') : `
-          <div style="font-size:0.8rem;color:var(--green);padding:0.5rem 0;">✓ No major active issues in this district</div>
-          <div style="font-size:0.78rem;color:var(--text-muted);">General concerns: infrastructure, employment and education remain voter priorities.</div>
-        `}
-        <div style="margin-top:0.6rem;padding:0.5rem 0.75rem;background:rgba(230,57,70,0.08);border-radius:var(--radius-sm);border-left:2px solid var(--red);">
-          <div style="font-size:0.73rem;color:var(--red);font-weight:600;">Opposition Activity: ${oppActivity.replace('-',' ').toUpperCase()}</div>
-          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem;">Narrative: "${topNarrative?.topic || 'Development failures'}"</div>
-        </div>
-      </div>
-
+      <div class="card"><div class="card-title" style="margin-bottom:0.6rem;">📊 Local Development Facts</div>${list(b.local_development_facts)}</div>
+      <div class="card"><div class="card-title" style="margin-bottom:0.6rem;">🪷 BJP / Sarkar Achievements</div>${list(b.govt_bjp_achievements)}</div>
+      <div class="card"><div class="card-title" style="margin-bottom:0.6rem;">⚠️ Current Local Concerns</div>${list(b.current_local_concerns)}</div>
+      <div class="card"><div class="card-title" style="margin-bottom:0.6rem;">📈 Relevant Statistics</div>${list(b.relevant_statistics)}</div>
     </div>
 
-    <!-- Key Talking Points -->
     <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title" style="margin-bottom:0.75rem;">💬 Suggested Talking Points</div>
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        ${points.map((pt,i)=>`
-          <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.65rem 0.9rem;background:var(--glass-bg);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-            <div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#f5c518,#e8a900);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:800;color:#080d1a;flex-shrink:0;">${i+1}</div>
-            <div style="font-size:0.84rem;color:var(--text-secondary);line-height:1.55;">${pt.replace(/\${district}/g, district)}</div>
-          </div>
-        `).join('')}
-      </div>
+      <div class="card-title" style="margin-bottom:0.6rem;">🥊 Opposition Claims — Factual Context</div>
+      ${claims}
     </div>
 
-    <!-- Opposition Claims & Factual Counter -->
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title" style="margin-bottom:0.75rem;">🛡 Opposition Claims — Factual Counter</div>
-      <div style="display:flex;flex-direction:column;gap:0.5rem;">
-        ${oppClaims.map(c=>`
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;padding:0.65rem;background:var(--glass-bg);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-            <div>
-              <div style="font-size:0.65rem;color:var(--red);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;">🔴 Their Claim</div>
-              <div style="font-size:0.8rem;color:var(--text-secondary);">${c.claim}</div>
-            </div>
-            <div style="border-left:1px solid var(--border-subtle);padding-left:0.5rem;">
-              <div style="font-size:0.65rem;color:var(--green);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;">✅ Factual Counter</div>
-              <div style="font-size:0.8rem;color:var(--text-primary);font-weight:500;">${c.fact.replace(/\${district}/g, district)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Relevant Stats -->
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-title" style="margin-bottom:0.75rem;">📈 Relevant Statistics to Quote</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;">
-        ${[
-          {label:'Bihar GSDP Growth',val:'10.6%',sub:'FY2024 — national top 5'},
-          {label:'Road Coverage',val:'28,000+',sub:'km built since 2015'},
-          {label:'Electrification',val:'99.7%',sub:'households electrified'},
-          {label:'PMAY Houses',val:'32 Lakh',sub:'Bihar in 10 years'}
-        ].map(s=>`
-          <div style="padding:0.75rem;text-align:center;background:var(--glass-bg);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
-            <div style="font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:800;color:var(--gold);">${s.val}</div>
-            <div style="font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-top:0.2rem;">${s.label}</div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.1rem;">${s.sub}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Audience-specific notes -->
     <div class="card">
-      <div class="card-title" style="margin-bottom:0.75rem;">👥 Audience Notes — ${audience}</div>
-      <div style="font-size:0.84rem;color:var(--text-secondary);line-height:1.7;">
-        ${getAudienceNote(audience, district)}
-      </div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-        <button class="btn btn-primary btn-sm" onclick="printBrief()">🖨 Print This Brief</button>
-        <button class="btn btn-ghost btn-sm" onclick="showToast('Shared','Brief shared with Communication Team','success')">📤 Share with Comms Team</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('si-brief-output').style.display='none';showToast('Cleared','Brief cleared','info')">✕ Close Brief</button>
-      </div>
+      <div class="card-title" style="margin-bottom:0.6rem;">🗓 Recent Local Developments</div>
+      ${list(b.recent_local_developments)}
     </div>
-  `;
 
-  // Scroll to brief
-  el.scrollIntoView({ behavior:'smooth', block:'start' });
-  showToast('Brief Ready', `${district} — ${event} brief generated`, 'success');
+    ${connect}
+    ${compare}`;
+  window.__siLastBrief = { district, event, audience, topic, brief: b, share_text: payload.share_text || null };
+}
+
+function siCopyWhatsApp() {
+  const d = window.__siLastBrief;
+  if (!d) return;
+  const text = d.share_text || siBriefToText(d);
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('WhatsApp text ready', 'Plain text copy ho gaya — WhatsApp me paste karke bhej do', 'success'))
+    .catch(() => showToast('Copy failed', 'Manual select karke copy karo', 'warning'));
+}
+
+function siBriefToText(d) { return (d.share_text || ''); }
+
+function siCopyBrief() {
+  const d = window.__siLastBrief;
+  if (!d) return;
+  const b = d.brief || {};
+  const sec = (title, items) => '\n' + title + '\n' + '-'.repeat(title.length) + '\n' + (items || []).map((t) => '• ' + t).join('\n');
+  let text = `SPEECH BRIEF — ${d.district} | ${d.event} | ${d.audience} | ${d.topic}` +
+    sec('SUGGESTED TALKING POINTS', b.suggested_talking_points) +
+    sec('LOCAL DEVELOPMENT FACTS', b.local_development_facts) +
+    sec('BJP / SARKAR ACHIEVEMENTS', b.govt_bjp_achievements) +
+    sec('CURRENT LOCAL CONCERNS', b.current_local_concerns) +
+    '\nOPPOSITION CLAIMS — CONTEXT\n' + '-'.repeat(24) + '\n' + (b.opposition_claims_context || []).map((c) => '• ' + c.claim + '\n  ↳ ' + c.factual_context).join('\n') +
+    sec('RELEVANT STATISTICS', b.relevant_statistics) +
+    sec('RECENT LOCAL DEVELOPMENTS', b.recent_local_developments);
+  navigator.clipboard.writeText(text).then(() => showToast('Copied', 'Briefing clipboard me copy ho gayi', 'success')).catch(() => showToast('Copy failed', 'Manual select karke copy karo', 'warning'));
+}
+
+async function siLoadPastBriefs(refresh) {
+  const listEl = document.getElementById('si-past-briefs-list');
+  if (!listEl) return;
+  try {
+    const res = await fetch('/api/speech-brief?limit=8', { cache: 'no-store' });
+    const payload = await res.json();
+    const items = payload.items || [];
+    if (!items.length) {
+      listEl.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:.4rem;">Abhi koi past briefing nahi — pehli briefing generate karo.</div>';
+      return;
+    }
+    listEl.innerHTML = items.map((it, i) =>
+      '<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border:1px solid var(--border-subtle);border-radius:8px;background:var(--bg-elevated);">' +
+      '<span style="font-size:1rem;">🎙</span>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<div style="font-size:.78rem;font-weight:700;color:var(--text-primary);">' + siEsc(it.district) + ' — ' + siEsc(it.event_type) + '</div>' +
+      '<div style="font-size:.68rem;color:var(--text-muted);">' + siEsc(it.topic) + ' · ' + siEsc(it.audience) + ' · ' + (it.created_at ? new Date(it.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" style="font-size:.62rem;" onclick="siReplayBrief(' + i + ')">👁 View</button></div>'
+    ).join('');
+    window.__siPastItems = items;
+  } catch (e) {
+    listEl.innerHTML = '<div style="font-size:.75rem;color:var(--text-muted);padding:.4rem;">Past briefs load nahi hui: ' + siEsc(e.message) + '</div>';
+  }
+}
+
+function siReplayBrief(i) {
+  const it = (window.__siPastItems || [])[i];
+  if (!it) return;
+  renderGeneratedBrief(it.district, it.event_type, it.audience, it.topic, {
+    brief: it,
+    saved: true,
+    created_at: it.created_at,
+    sources: { news: '?', has_summary: true, opposition: '?' },
+  });
+  const out = document.getElementById('si-brief-output');
+  if (out) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function getAudienceNote(audience, district) {

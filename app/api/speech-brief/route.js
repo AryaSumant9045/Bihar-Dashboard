@@ -1,0 +1,390 @@
+/**
+ * app/api/speech-brief/route.js — Speech Intelligence Engine
+ * ------------------------------------------------------------
+ * POST /api/speech-brief  { district, event_type, audience, topic }
+ *   District + Event + Audience + Topic se ek ready-to-use pre-event
+ *   briefing banata hai — REAL district data par:
+ *     1. district_news_<district>        → latest headlines
+ *     2. district_summary_<district>     → AI political summary (risks, bjp/opp activity)
+ *     3. opposition_news (district-tag)  → opposition claims
+ *   Phir LLM (Gemini → Groq) se structured JSON banata hai aur
+ *   speech_briefs table me save karta hai.
+ *
+ * GET /api/speech-brief?district=Patna&limit=6 → past briefs (history)
+ * GET /api/speech-brief?limit=10               → recent briefs
+ * ============================================================
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import { resolveDistrict, districtNewsTable, districtSummaryTable } from '../../../lib/districts.js';
+import { callLLMQuick } from '../../../lib/llm-providers.js';
+
+export const maxDuration = 60;
+
+function makeSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    global: { fetch: (...args) => fetch(args[0], { ...args[1], cache: 'no-store' }) },
+  });
+}
+
+const MAX_NEWS = 40;
+const MAX_OPPOSITION = 10;
+
+/* ── System prompt (spec ke mutabik, dynamic placeholders ke saath) ────── */
+function buildSystemPrompt(district, eventType, audience, topic) {
+  return `आप BJP Bihar War Room के लिए एक Speech Intelligence Assistant हैं। एक नेता ${district} district में एक ${eventType} में ${audience} के सामने ${topic} विषय पर बोलने वाले हैं। आपको दिया गया district-data (news, political summary, opposition activity) इस्तेमाल करके एक ready-to-use briefing तैयार करनी है।
+
+## नियम
+- सिर्फ़ दिए गए data के facts पर आधारित रहें — कोई तथ्य न गढ़ें।
+- Opposition के दावों को neutral भाषा में report करें, "factual context" दें (यानी अगर कोई आंकड़ा/दावा data में उपलब्ध है जो उस claim को context देता है, वो शामिल करें) — defame न करें।
+- Talking points actionable और audience-appropriate हों (जैसे "${audience}" audience के लिए मौजूदा topic से जुड़े points प्राथमिकता पाएँ)।
+- अगर किसी section के लिए district-data में पर्याप्त जानकारी नहीं है, तो वही लिखें: "इस विषय पर district-specific data उपलब्ध नहीं, सामान्य राज्य-स्तरीय जानकारी इस्तेमाल करें"।
+- पूरा output हिंदी (देवनागरी) में — JSON keys English रहेंगी।
+
+## Output — केवल valid JSON (कोई markdown/backtick नहीं):
+{
+  "local_development_facts": ["3-5 bullet points — is district ke recent development projects/facts, jo data me mile"],
+  "govt_bjp_achievements": ["3-5 bullet points — is district/topic se related BJP/sarkar ki achievements"],
+  "current_local_concerns": ["2-4 bullet points — is district me abhi jo major public issues hain (political_risks se)"],
+  "opposition_claims_context": [
+    {"claim": "opposition ne kya kaha", "factual_context": "iska factual jawab/context, sirf data-based"}
+  ],
+  "relevant_statistics": ["agar koi specific numbers/data district-data me mile, wo yahan list karo"],
+  "recent_local_developments": ["3-4 bullet points — pichle kuch dino ki important events is district me"],
+  "suggested_talking_points": ["5-7 bullet points — audience aur topic ke hisaab se speech me use karne layak points, priority order me"],
+  "avoid_mentioning": [
+    {"topic": "कौन सा मुद्दा/आंकड़ा न बोलें", "reason": "क्यों — data unverified / विवादित / sensitive है"}
+  ],
+  "anticipated_tough_questions": [
+    {"likely_question": "media या crowd से आ सकने वाला कठिन सवाल", "suggested_response_direction": "1 line का factual जवाब किस angle से दें"}
+  ],
+  "local_connect_points": ["इस district की local हस्तियाँ/जगह/हाल की घटनाएँ जिनसे audience तुरंत जुड़ाव महसूस करे — 2-4 points"],
+  "comparative_context": "पड़ोसी जिलों या राज्य-स्तर की तुलना में इस district की स्थिति — 1-2 lines (data na ho to खाली string)"
+}
+
+## अतिरिक्त ज़रूरी नियम (risk-mitigation)
+- "avoid_mentioning" में कम से कम 1-2 items डालें अगर data में कोई unverified आंकड़ा, विवादित मुद्दा या संवेदनशील बात दिखे (जैसे कोई केस जो अभी जाँच में है, कोई अपुष्ट figure)। कुछ न दिखे तो भी एक सामान्य सावधानी लिखें।
+- "anticipated_tough_questions" में 2-3 सवाल डालें जो इस district के मौजूदा मुद्दों से सबसे ज़्यादा संभावित हैं (खासकर concerns/opposition claims से जुड़े)।
+- "local_connect_points" में ऐसे points दें जो audience के साथ emotional/local जुड़ाव बनाएँ (local project, local हस्ती, हाल की घटना) — ये "recent_local_developments" से अलग, जुड़ाव वाला angle है।
+- ये सभी fields भी केवल दिए गए data के आधार पर भरें — कुछ न मिले तो खाली array/string रखें, गढ़ें नहीं।
+
+केवल valid JSON दें।`;
+}
+
+function buildUserPrompt(district, topic, { news, summary, opposition, freshness }) {
+  const parts = [];
+  parts.push(`## ${district} district की latest headlines (${news.length}):`);
+  parts.push(news.length ? news.map((n, i) => `${i + 1}. ${n.heading}`).join('\n') : '(कोई headline उपलब्ध नहीं)');
+
+  if (summary) {
+    parts.push(`\n## ${district} का latest AI political summary:`);
+    parts.push(`Overall: ${summary.overall_situation || '—'}`);
+    if (Array.isArray(summary.political_risks) && summary.political_risks.length) {
+      parts.push(`Political risks: ${summary.political_risks.map((r) => `${r?.issue || r} (${r?.risk_level || '?'})`).join(' | ')}`);
+    }
+    if (Array.isArray(summary.bjp_activity) && summary.bjp_activity.length) {
+      parts.push(`BJP/sarkar activity: ${summary.bjp_activity.join(' | ')}`);
+    }
+    if (Array.isArray(summary.opposition_activity) && summary.opposition_activity.length) {
+      parts.push(`Opposition activity: ${summary.opposition_activity.join(' | ')}`);
+    }
+  } else {
+    parts.push(`\n## ${district} का AI political summary: (उपलब्ध नहीं)`);
+  }
+
+  parts.push(`\n## Opposition news (district-related, ${opposition.length}):`);
+  parts.push(opposition.length ? opposition.map((o) => `- [${o.party || 'Opposition'}] ${o.heading}`).join('\n') : '(कोई district-tagged opposition news नहीं)');
+
+  if (freshness) {
+    parts.push(`\n## Data freshness: district data last updated ${freshness.last_updated || 'unknown'} (${freshness.age_hours != null ? freshness.age_hours + ' ghante purana' : 'age unknown'}).`);
+    if (freshness.warning) parts.push(`⚠️ ${freshness.warning}`);
+  }
+  parts.push(`\nTopic: "${topic}" — is topic se directly judti news/points ko प्राथमिकता दें।`);
+  parts.push('ऊपर के data से briefing JSON बनाएं।');
+  return parts.join('\n');
+}
+
+function extractJson(text) {
+  try {
+    let cleaned = String(text || '').trim().replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '');
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end > start) cleaned = cleaned.slice(start, end + 1);
+    return JSON.parse(cleaned.replace(/,\s*([}\]])/g, '$1'));
+  } catch { return null; }
+}
+
+/** Truncated JSON repair (aakhri brackets close kar ke). */
+function repairJson(text) {
+  let str = String(text || '').trim().replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '');
+  const start = str.indexOf('{');
+  if (start < 0) return null;
+  str = str.slice(start);
+  const cuts = [];
+  for (let i = str.length - 1; i > Math.max(0, str.length - 4000) && cuts.length < 25; i--) {
+    const ch = str[i];
+    if (ch === '}' || ch === ']') cuts.push(i + 1);
+  }
+  for (const cut of cuts) {
+    const candidate = str.slice(0, cut).replace(/,\s*$/, '');
+    const openArr = (candidate.match(/\[/g) || []).length - (candidate.match(/\]/g) || []).length;
+    const openObj = (candidate.match(/\{/g) || []).length - (candidate.match(/\}/g) || []).length;
+    const fixed = candidate + ']'.repeat(Math.max(openArr, 0)) + '}'.repeat(Math.max(openObj, 0));
+    try { return JSON.parse(fixed); } catch { /* next */ }
+  }
+  return null;
+}
+
+const asArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+
+function normalizeBrief(b) {
+  const out = { ...b };
+  for (const k of ['local_development_facts', 'govt_bjp_achievements', 'current_local_concerns', 'relevant_statistics', 'recent_local_developments', 'suggested_talking_points']) {
+    out[k] = asArray(out[k]);
+  }
+  out.opposition_claims_context = asArray(out.opposition_claims_context).map((c) =>
+    typeof c === 'string' ? { claim: c, factual_context: '' } : { claim: c?.claim || '', factual_context: c?.factual_context || '' }
+  );
+  out.avoid_mentioning = asArray(out.avoid_mentioning).map((a) =>
+    typeof a === 'string' ? { topic: a, reason: '' } : { topic: a?.topic || '', reason: a?.reason || '' }
+  ).filter((a) => a.topic);
+  out.anticipated_tough_questions = asArray(out.anticipated_tough_questions).map((q) =>
+    typeof q === 'string' ? { likely_question: q, suggested_response_direction: '' } : { likely_question: q?.likely_question || '', suggested_response_direction: q?.suggested_response_direction || '' }
+  ).filter((q) => q.likely_question);
+  out.local_connect_points = asArray(out.local_connect_points);
+  out.comparative_context = typeof out.comparative_context === 'string' ? out.comparative_context : '';
+  return out;
+}
+
+/** Supabase query ko safe chalao — error/exception par { data: [] }. */
+async function safeQuery(builder) {
+  try {
+    const res = await builder;
+    if (res?.error) { console.warn('[speech-brief] query error:', res.error.message); return { data: [] }; }
+    return res || { data: [] };
+  } catch (e) {
+    console.warn('[speech-brief] query exception:', e.message);
+    return { data: [] };
+  }
+}
+
+/* ── Data collection ───────────────────────────────────────────────────── */
+async function collectDistrictData(supabase, entry) {
+  const newsTable = districtNewsTable(entry.slug);
+  const { data: news } = await safeQuery(
+    supabase.from(newsTable).select('heading, url, published_at').order('published_at', { ascending: false }).limit(MAX_NEWS)
+  );
+  const newsRows = news || [];
+
+  const { data: sumRows } = await safeQuery(
+    supabase
+      .from(districtSummaryTable(entry.slug))
+      .select('overall_situation, political_risks, bjp_activity, opposition_activity, news_count, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+  );
+  const summary = (sumRows || [])[0] || null;
+
+  /* opposition_news: district match (EN ya HQ alias), warna state-level recent */
+  const names = [entry.en, entry.hi, ...(entry.aliases || [])].filter(Boolean);
+  let opposition = [];
+  for (const n of names) {
+    const { data } = await safeQuery(
+      supabase
+        .from('opposition_news')
+        .select('party, heading, url, district, published_at')
+        .ilike('district', `%${n}%`)
+        .order('published_at', { ascending: false })
+        .limit(MAX_OPPOSITION)
+    );
+    if ((data || []).length) { opposition = data; break; }
+  }
+  if (!opposition.length) {
+    const { data } = await safeQuery(
+      supabase
+        .from('opposition_news')
+        .select('party, heading, url, district, published_at')
+        .order('published_at', { ascending: false })
+        .limit(5)
+    );
+    opposition = data || [];
+  }
+
+  /* Data freshness — sabse taaza timestamp (news ya summary) */
+  const stamps = [
+    ...newsRows.map((n) => n.published_at),
+    summary?.created_at,
+  ].filter(Boolean).map((d) => Date.parse(d)).filter((n) => !isNaN(n));
+  const newest = stamps.length ? Math.max(...stamps) : null;
+  const ageHours = newest ? Math.round((Date.now() - newest) / 3600000 * 10) / 10 : null;
+  const freshness = {
+    last_updated: newest ? new Date(newest).toISOString() : null,
+    news_last_at: newsRows.map((n) => n.published_at).filter(Boolean)[0] || null,
+    summary_last_at: summary?.created_at || null,
+    age_hours: ageHours,
+    warning: ageHours != null && ageHours > 24
+      ? `Ye data ${Math.round(ageHours / 24)} din purana hai — latest cheezein khud verify karein.`
+      : null,
+  };
+
+  return { news: newsRows, summary, opposition, freshness };
+}
+
+/** WhatsApp-shareable plain text (field staff ke liye forwardable). */
+function buildShareText(district, eventType, audience, topic, brief, freshness) {
+  const line = (t) => '─'.repeat(Math.min(String(t).length, 40));
+  const sec = (title, items) => (items && items.length)
+    ? `\n*${title}*\n${line(title)}\n${items.map((x) => '• ' + x).join('\n')}\n` : '';
+  const claims = (brief.opposition_claims_context || [])
+    .map((c) => `• *${c.claim}*\n  ↳ ${c.factual_context}`).join('\n');
+  const qa = (brief.anticipated_tough_questions || [])
+    .map((q, i) => `${i + 1}. *Q:* ${q.likely_question}\n   *A-angle:* ${q.suggested_response_direction}`).join('\n');
+  const avoid = (brief.avoid_mentioning || [])
+    .map((a) => `⛔ ${a.topic}${a.reason ? ' — ' + a.reason : ''}`).join('\n');
+
+  return `🎙 *SPEECH BRIEF — ${district}*\n📅 ${eventType} | 👥 ${audience} | 📌 ${topic}\n` +
+    (freshness?.last_updated ? `🗓 Data as of: ${new Date(freshness.last_updated).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}${freshness.warning ? ' ⚠️ (' + freshness.warning + ')' : ''}\n` : '') +
+    sec('🎯 सबसे पहले ये कहें (Talking Points)', brief.suggested_talking_points) +
+    (avoid ? `\n*⛔ इन्हें न बोलें (Danger Zone)*\n${line('Danger Zone')}\n${avoid}\n` : '') +
+    sec('📊 Local Development Facts', brief.local_development_facts) +
+    sec('🪷 BJP / Sarkar Achievements', brief.govt_bjp_achievements) +
+    sec('⚠️ Current Local Concerns', brief.current_local_concerns) +
+    (claims ? `\n*🥊 Opposition Claims — Factual Context*\n${line('Opposition')}\n${claims}\n` : '') +
+    (qa ? `\n*❓ आ सकने वाले कठिन सवाल (Q&A Prep)*\n${line('Q&A')}\n${qa}\n` : '') +
+    sec('📍 Local Connect Points', brief.local_connect_points) +
+    sec('📈 Relevant Statistics', brief.relevant_statistics) +
+    sec('🗓 Recent Local Developments', brief.recent_local_developments) +
+    (brief.comparative_context ? `\n*⚖️ Comparative Context*\n${brief.comparative_context}\n` : '') +
+    `\n— BJP Bihar War Room`;
+}
+
+/* ── POST: generate ────────────────────────────────────────────────────── */
+export async function POST(request) {
+  let body = {};
+  try { body = await request.json(); } catch { /* empty */ }
+  const { district: districtInput, event_type, audience, topic } = body;
+
+  if (!districtInput || !event_type || !audience || !topic) {
+    return Response.json({ error: 'district, event_type, audience aur topic — chaar fields zaroori hain' }, { status: 400 });
+  }
+
+  const supabase = makeSupabase();
+  if (!supabase) return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+
+  const entry = resolveDistrict(districtInput);
+  if (!entry) return Response.json({ error: `Unknown district: ${districtInput}` }, { status: 400 });
+  const districtName = entry.en;
+
+  const t0 = Date.now();
+  const data = await collectDistrictData(supabase, entry);
+
+  const systemPrompt = buildSystemPrompt(districtName, event_type, audience, topic);
+  const userPrompt = buildUserPrompt(districtName, topic, data);
+
+  let brief = null;
+  const errors = [];
+  for (let attempt = 0; attempt < 2 && !brief; attempt++) {
+    try {
+      const res = await callLLMQuick(systemPrompt, userPrompt, {
+        retries: 1,
+        geminiMaxOutputTokens: 6000,
+        maxOutputTokens: 3000,
+      });
+      const parsed = extractJson(res.content) || repairJson(res.content);
+      if (!parsed || !Array.isArray(parsed.suggested_talking_points) || !parsed.suggested_talking_points.length) {
+        throw new Error(`invalid/incomplete JSON (len=${String(res.content || '').length})`);
+      }
+      brief = normalizeBrief(parsed);
+    } catch (error) {
+      errors.push(`attempt ${attempt + 1}: ${String(error.message).slice(0, 140)}`);
+      console.warn(`[speech-brief] attempt ${attempt + 1} failed: ${String(error.message).slice(0, 160)}`);
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+
+  if (!brief) {
+    return Response.json({
+      status: 'llm_failed',
+      district: districtName,
+      sources: { news: data.news.length, has_summary: !!data.summary, opposition: data.opposition.length },
+      errors,
+    }, { status: 200 });
+  }
+
+  /* Save to speech_briefs (best-effort — table na ho to bhi briefing return ho) */
+  const row = {
+    district: districtName,
+    event_type,
+    audience,
+    topic,
+    local_development_facts: brief.local_development_facts,
+    govt_bjp_achievements: brief.govt_bjp_achievements,
+    current_local_concerns: brief.current_local_concerns,
+    opposition_claims_context: brief.opposition_claims_context,
+    relevant_statistics: brief.relevant_statistics,
+    recent_local_developments: brief.recent_local_developments,
+    suggested_talking_points: brief.suggested_talking_points,
+  };
+  let saved = null;
+  let saveError = null;
+  {
+    const full = {
+      ...row,
+      /* Extra sections — ye columns migration 017 ke baad honge. */
+      avoid_mentioning: brief.avoid_mentioning,
+      anticipated_tough_questions: brief.anticipated_tough_questions,
+      local_connect_points: brief.local_connect_points,
+      comparative_context: brief.comparative_context,
+      data_freshness: data.freshness,
+    };
+    const r1 = await supabase.from('speech_briefs').insert(full).select('id, created_at').single();
+    if (r1.error) {
+      /* Columns missing? base row se save karo taki cycle na tootey */
+      const r2 = await supabase.from('speech_briefs').insert(row).select('id, created_at').single();
+      saved = r2.data; saveError = r2.error;
+      if (r1.error) console.warn('[speech-brief] extra columns missing (migration 017?) — base row saved');
+    } else { saved = r1.data; }
+  }
+
+  return Response.json({
+    status: 'success',
+    district: districtName,
+    event_type,
+    audience,
+    topic,
+    brief,
+    data_freshness: data.freshness,
+    share_text: buildShareText(districtName, event_type, audience, topic, brief, data.freshness),
+    saved: !saveError,
+    saved_id: saved?.id || null,
+    created_at: saved?.created_at || null,
+    sources: { news: data.news.length, has_summary: !!data.summary, opposition: data.opposition.length },
+    elapsed_ms: Date.now() - t0,
+  });
+}
+
+/* ── GET: history ──────────────────────────────────────────────────────── */
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const districtInput = searchParams.get('district');
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit'), 10) || 6, 1), 20);
+
+  const supabase = makeSupabase();
+  if (!supabase) return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+
+  let query = supabase
+    .from('speech_briefs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (districtInput) {
+    const entry = resolveDistrict(districtInput);
+    if (entry) query = query.eq('district', entry.en);
+  }
+  const { data, error } = await query;
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  return Response.json({ status: 'success', items: data || [] });
+}
