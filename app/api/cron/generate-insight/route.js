@@ -13,10 +13,10 @@ const TIME_BUDGET_MS = Number(process.env.INSIGHT_TIME_BUDGET_MS) || 45000;
 const MAX_ITEMS_PER_FEED = 40;
 /* Groq free tier: 8000 TPM (prompt + max_tokens dono ginte hain) — isliye
    headlines aur output tokens dono cap karte hain, warna 413 aata hai. */
-const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 25;
+const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 30;
 const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3000;
 /* Attempt 2 me headlines kam kar dete hain — chhote prompt se pura JSON aata hai */
-const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 15];
+const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 22];  // pehla bada, phir chhota (JSON complete aane ke liye)
 
 const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
 
@@ -183,6 +183,59 @@ function isUsableInsight(obj) {
   return core && filled >= 2;
 }
 
+/* ── Tolerant RSS/Atom parsing (Live Hindustan ka XML rss-parser se parse NAHI
+   hota — "Unable to parse XML". Isliye khud regex se <item> nikalte hain.) ── */
+function decodeEntities(v) {
+  return String(v)
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function parseFeedItems(xml) {
+  const items = [];
+  const re = /<item[\s>]([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const block = m[1];
+    const grab = (tag) => {
+      const r = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`);
+      const mm = block.match(r);
+      return mm ? decodeEntities(mm[1].trim()) : '';
+    };
+    const title = grab('title');
+    const link = grab('link');
+    if (!title || !link) continue;
+    items.push({
+      title,
+      link,
+      snippet: (grab('description') || grab('content') || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600),
+      pubDate: grab('pubDate') || grab('dc:date') || '',
+    });
+  }
+  return items;
+}
+
+async function fetchFeedItems(name, url, limit = 60) {
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: { 'User-Agent': 'BiharDashboardBot/1.0 (+https://bihar-dashboard-ojls.vercel.app)' },
+    signal: AbortSignal.timeout(9000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const xml = await res.text();
+  const items = parseFeedItems(xml);
+  if (!items.length) throw new Error('no items in feed');
+  /* NOTE: bihar_news me `published_at` column nahi hai — sirf wahi columns
+     bhejte hain jo table me hain, warna poora bulk insert fail ho jata hai. */
+  return items.slice(0, limit).map((it) => ({
+    heading: it.title.slice(0, 500),
+    content: it.snippet,
+    district: name,
+  }));
+}
+
 /** Missing sections ko empty se bhar do (UI crash na ho). */
 function normalizeInsight(obj) {
   const out = { ...obj };
@@ -235,36 +288,54 @@ async function handleCron(request) {
     if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials missing");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 3. Fetch RSS Feeds — parser timeout + parallel fetch + bulk DB write
-    const parser = new Parser({ timeout: 8000 });
+    // 3. Fetch news sources — Google News + Bhaskar + Live Hindustan (tolerant parser)
+    //    + NewsData.io API. Sab bihar_news me source naam (district column) ke saath.
     const feedSources = [
-      { name: "Google News", url: process.env.GOOGLE_NEWS_RSS_URL },
-      { name: "Dainik Bhaskar", url: process.env.BHASKAR_BIHAR_RSS_URL },
-      { name: "Live Hindustan", url: process.env.HINDUSTAN_BIHAR_RSS_URL },
+      { name: 'Google News', url: process.env.GOOGLE_NEWS_RSS_URL || 'https://news.google.com/rss/search?q=bihar&hl=hi-IN&gl=IN&ceid=IN:hi' },
+      { name: 'Dainik Bhaskar', url: process.env.BHASKAR_BIHAR_RSS_URL || 'https://www.bhaskar.com/rss-v1--category-3679.xml' },
+      { name: 'Live Hindustan', url: process.env.HINDUSTAN_BIHAR_RSS_URL || 'https://api.livehindustan.com/feeds/rss/bihar/rssfeed.xml' },
     ];
 
-    const feedResults = await Promise.allSettled(
-      feedSources.filter((source) => source.url).map(async (source) => {
-        const feed = await parser.parseURL(source.url);
-        return {
-          source,
-          items: (feed.items || [])
-            .filter((item) => item.title)
-            .slice(0, MAX_ITEMS_PER_FEED)
-            .map((item) => ({
-              heading: item.title.trim(),
-              content: (item.contentSnippet || item.content || item.summary || '').slice(0, 1000),
-              district: source.name,
-            })),
-        };
-      })
-    );
+    const [feedResults, newsDataItems] = await Promise.all([
+      Promise.allSettled(feedSources.map((src) => fetchFeedItems(src.name, src.url))),
+      (async () => {
+        const apiKey = process.env.NEWS_DATA_API_KEY;
+        if (!apiKey) return [];
+        try {
+          const url = new URL(process.env.NEWSDATA_URL || 'https://newsdata.io/api/1/news');
+          url.searchParams.set('apikey', apiKey);
+          url.searchParams.set('q', 'Bihar');
+          url.searchParams.set('language', 'hi,en');
+          url.searchParams.set('country', 'in');
+          const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const j = await r.json();
+          return (j.results || []).map((a) => ({
+            heading: String(a.title || '').slice(0, 500),
+            content: String(a.description || '').slice(0, 600),
+            district: 'NewsData.io',
+          })).filter((x) => x.heading);
+        } catch (e) {
+          console.warn('[INSIGHT] newsdata.io failed:', String(e.message).slice(0, 80));
+          return [];
+        }
+      })(),
+    ]);
 
+    const perSource = {};
     const freshRows = [];
-    feedResults.forEach((r) => {
-      if (r.status === 'fulfilled') freshRows.push(...r.value.items);
-      else console.warn(`[INSIGHT] feed failed: ${String(r.reason?.message || r.reason).slice(0, 90)}`);
+    feedResults.forEach((r, idx) => {
+      const srcName = feedSources[idx].name;
+      if (r.status === 'fulfilled') {
+        perSource[srcName] = r.value.length;
+        freshRows.push(...r.value);
+      } else {
+        perSource[srcName] = 'FAIL: ' + String(r.reason?.message || r.reason).slice(0, 60);
+        console.warn(`[INSIGHT] feed failed (${srcName}): ${String(r.reason?.message || r.reason).slice(0, 90)}`);
+      }
     });
+    if (newsDataItems.length) { perSource['NewsData.io'] = newsDataItems.length; freshRows.push(...newsDataItems); }
+    console.log('[INSIGHT] sources:', JSON.stringify(perSource));
 
     let insertedCount = 0;
     if (freshRows.length) {
@@ -277,7 +348,13 @@ async function handleCron(request) {
       }
       const rows = uniqueRows.filter((r) => !existing.has(r.heading));
       if (rows.length) {
-        const { data, error } = await supabase.from('bihar_news').insert(rows).select('id');
+        let { data, error } = await supabase.from('bihar_news').insert(rows).select('id');
+        if (error && /column/i.test(error.message)) {
+          /* Koi extra column table me nahi hai? → sirf base columns se retry */
+          console.warn('[INSIGHT] insert failed, base columns se retry:', error.message.slice(0, 90));
+          const base = rows.map((r) => ({ heading: r.heading, content: r.content, district: r.district }));
+          ({ data, error } = await supabase.from('bihar_news').insert(base).select('id'));
+        }
         if (error) console.error('[INSIGHT] bulk insert failed:', error.message);
         insertedCount = (data || []).length;
       }
@@ -319,27 +396,56 @@ async function handleCron(request) {
         `\n`;
     }
 
-    // 5. Fetch News from the last 8 hours for AI Analysis
-    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString();
-    const { data: uiNews } = await supabase
-      .from('bihar_news')
-      .select('heading, district')
-      .gte('created_at', eightHoursAgo)
-      .order('created_at', { ascending: false });
+    // 5. Analysis ke liye news — HAR SOURCE se latest (ek hi source par nirbhar nahi).
+    //    (Sirf last-8h filter karne se purane sources poori tarah chhoot jate the.)
+    const SOURCE_NAMES = ['Google News', 'Dainik Bhaskar', 'Live Hindustan', 'NewsData.io'];
+    const perSourceRows = await Promise.all(
+      SOURCE_NAMES.map(async (name) => {
+        const { data } = await supabase
+          .from('bihar_news')
+          .select('heading, district, created_at')
+          .eq('district', name)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        return data || [];
+      })
+    );
+    const uiNews = perSourceRows.flat();
+    const srcMix = uiNews.reduce((a, n) => { a[n.district] = (a[n.district] || 0) + 1; return a; }, {});
+    console.log('[INSIGHT] pool mix:', JSON.stringify(srcMix));
 
-    if (!uiNews || uiNews.length === 0) {
-      return NextResponse.json({ status: 'success', message: 'No new news in the last 8 hours to analyze.' });
+    if (!uiNews.length) {
+      return NextResponse.json({ status: 'success', message: 'No news in bihar_news to analyze.' });
     }
 
-    // Optional: Log token usage estimation (approx 15 tokens per headline)
-    const estimatedTokens = uiNews.length * 15;
-    console.log(`[GEMINI] Fetching ${uiNews.length} news items for analysis. Estimated tokens: ${estimatedTokens} (Well below 250k TPM limit).`);
+    console.log(`[GEMINI] ${uiNews.length} news pool se analysis (cap ${Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM)}).`);
 
     // 6. Generate Insight via AI (Gemini with Groq fallback)
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
 
     // Free-model token discipline: cap headlines sent for analysis
-    let analysisNews = uiNews.slice(0, Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM));
+    /* Source-balanced selection: har source se barabar headlines lo (round-robin),
+       taki ek source (jo sabse naya hai) poori analysis par kabza na kar le. */
+    const perSourcePool = {};
+    for (const n of uiNews) {
+      const k = n.district || 'Other';
+      (perSourcePool[k] = perSourcePool[k] || []).push(n);
+    }
+    const sourceNames = Object.keys(perSourcePool);
+    const balanced = [];
+    const capTotal = Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM);
+    let round = 0;
+    while (balanced.length < capTotal && sourceNames.some((k) => perSourcePool[k].length > round)) {
+      for (const k of sourceNames) {
+        const item = perSourcePool[k][round];
+        if (item) balanced.push(item);
+        if (balanced.length >= capTotal) break;
+      }
+      round++;
+    }
+    let analysisNews = balanced.slice(0, capTotal);
+    let analysisBreakdown = analysisNews.reduce((acc, n) => { const k = n.district || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+    console.log('[INSIGHT] analysis mix:', JSON.stringify(analysisBreakdown));
 
     const headlinesText = analysisNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
     const userContent = `${prevCycleContext}## इस Cycle की ${analysisNews.length} News Headlines:\n\n${headlinesText}`;
@@ -367,12 +473,13 @@ async function handleCron(request) {
         /* Attempt 1: Groq-first (fast, free tier). Attempt 2: Gemini bhi try karo
            (uska free tier sirf 20 req/din hai, par Groq quota out hone par kaam aata hai). */
         const res = await callLLMQuick(SYSTEM_PROMPT, attemptContent, {
-          ...(attempt === 0 ? { prefer: 'groq' } : {}),
+          /* Gemini pehle (fresh quota), Groq fallback — kisi ek quota out ho
+             to doosra sambhal lega */
           model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
           retries: 1,
           maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
           /* Gemini ka TPM bada hai — poora JSON (schema bada hai) banane ke liye chhut */
-          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 8000,
+          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 10000,
         });
         const candidate = extractJson(res.content) || repairJson(res.content);
         if (!candidate) {
@@ -383,6 +490,8 @@ async function handleCron(request) {
         const ok = isCompleteInsight(candidate) || (isLast && isUsableInsight(candidate));
         if (!ok) throw new Error('JSON missing required sections');
         parsedJson = normalizeInsight(candidate);
+        /* jo batch actually analyze hua wahi mix report karo */
+        analysisBreakdown = batch.reduce((acc, n) => { const k = n.district || 'Other'; acc[k] = (acc[k] || 0) + 1; return acc; }, {});
         if (!isCompleteInsight(candidate)) partialInsight = true;
         aiProvider = res.provider;
         analyzedCount = batch.length;
@@ -410,6 +519,8 @@ async function handleCron(request) {
         status: 'llm_failed',
         inserted_articles: insertedCount,
         headlines_available: analyzedCount,
+        source_breakdown: perSource,
+        analysis_mix: analysisBreakdown,
         groq_keys_configured: groqKeyCount(),
         errors: llmErrors,
         hint: 'Groq/LLM call fail hui — quota/rate-limit check karo (INSIGHT_LLM_MODEL).',
@@ -449,6 +560,8 @@ async function handleCron(request) {
       inserted_articles: insertedCount,
       headlines_analyzed: analyzedCount,
       provider: aiProvider,
+      source_breakdown: perSource,
+      analysis_mix: analysisBreakdown,
       usage: llmUsage,
       partial: partialInsight,
       elapsed_ms: Date.now() - (deadlineMs - TIME_BUDGET_MS),
