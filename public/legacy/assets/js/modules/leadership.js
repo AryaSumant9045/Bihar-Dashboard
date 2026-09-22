@@ -46,6 +46,7 @@ function loadLiveLeadership() {
         stamp.textContent = '🔄 Live · ' + new Date(payload.updated_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
       }
 
+      renderFeaturedLeaders();
       renderLiveLeaderGrid();
       renderLiveLpiChart();
       renderLiveTimeline(LS_LIVE_ACTIVITIES[0]);
@@ -140,10 +141,29 @@ function lsFewerLeaders() {
   document.getElementById('ls-leader-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* Featured cards: live DB data (LS_LIVE_LEADERS) prefer karo, warna static */
+function lsFeaturedList() {
+  if (typeof LS_LIVE_LEADERS !== 'undefined' && Array.isArray(LS_LIVE_LEADERS) && LS_LIVE_LEADERS.length) {
+    return LS_LIVE_LEADERS.slice(0, 2).map((d) => ({
+      id: d.id,
+      name: d.name,
+      role: d.designation || '',
+      party: d.party || 'Other',
+      district: d.district || '',
+      constituency: d.district || '',
+      influence: (d.lpi != null ? d.lpi : 0),
+      sentiment: d.sentiment || 'neutral',
+      initials: String(d.name || '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase(),
+      recentActivities: [],
+    }));
+  }
+  return LEADERS_DATA.slice(0, 2);
+}
+
 function renderFeaturedLeaders() {
   const el = document.getElementById('ls-featured-cards');
   if (!el) return;
-  const featured = LEADERS_DATA.slice(0, 2);
+  const featured = lsFeaturedList();
   el.innerHTML = featured.map(l => `
     <div class="card card-gold card-shine" style="cursor:pointer; position:relative; overflow:hidden; padding:1.5rem;" onclick="selectLeader(${l.id})">
       <div style="position:absolute; top:0; right:0; width:80px; height:80px; background:radial-gradient(circle, ${partyGradient(l.party)}, transparent); opacity:0.15; border-radius:0 0 0 100%;"></div>
@@ -199,7 +219,9 @@ function renderLeaderGrid(data) {
 }
 
 function selectLeader(id) {
-  const leader = LEADERS_DATA.find(l => l.id === id);
+  const leader = lsFeaturedList().concat(
+    (typeof LS_LIVE_LEADERS !== 'undefined' ? LS_LIVE_LEADERS.map((d) => ({ id: d.id, name: d.name, role: d.designation || '', party: d.party || 'Other', district: d.district || '', constituency: d.district || '', influence: d.lpi || 0, sentiment: d.sentiment || 'neutral', initials: String(d.name || '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase(), recentActivities: [] })) : [])
+  ).concat(LEADERS_DATA).find(l => l.id === id);
   if (!leader) return;
   lsActiveLeader = leader;
   renderTimeline(leader);

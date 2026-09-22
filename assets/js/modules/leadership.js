@@ -3,6 +3,64 @@
    ============================================================ */
 
 let lsActiveLeader = null;
+/* Live data (DB `leaders` + `leader_activities` se) — static LS_DATA fallback hai */
+let LS_DATA = (typeof LEADERS_DATA !== 'undefined') ? LEADERS_DATA : [];
+let lsLiveAt = null;
+
+async function lsLoadLive() {
+  try {
+    const res = await fetch('/api/leadership?limit=60', { cache: 'no-store' });
+    const j = await res.json();
+    if (!j || !j.has_data || !Array.isArray(j.leaders) || !j.leaders.length) return;
+    const acts = j.activities || [];
+    const byLeader = {};
+    acts.forEach((a) => { const k = String(a.leader_name || '').toLowerCase().trim(); if (k) (byLeader[k] = byLeader[k] || []).push(a); });
+    const staticBase = (typeof LEADERS_DATA !== 'undefined') ? LEADERS_DATA : [];
+    const mapped = j.leaders.map((db) => {
+      const base = staticBase.find((l) => String(l.name).toLowerCase() === String(db.name || '').toLowerCase()) || {};
+      const myActs = byLeader[String(db.name || '').toLowerCase().trim()] || [];
+      const initials = String(db.name || '').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+      const last = myActs[0];
+      return {
+        ...base,
+        id: db.id,
+        name: db.name,
+        role: db.designation || base.role || '',
+        party: db.party || base.party || 'Other',
+        district: db.district || base.district || '',
+        constituency: base.constituency || db.district || '',
+        influence: (db.lpi != null ? db.lpi : (base.influence || 0)),
+        sentiment: db.sentiment || base.sentiment || 'neutral',
+        activeFlag: db.active_flag || base.activeFlag || 'ROUTINE',
+        activityCount: db.activity_count || myActs.length || 0,
+        initials: initials || base.initials || '??',
+        image: base.image || null,
+        phone: base.phone || '',
+        lastActivity: (last && last.title) || base.lastActivity || '',
+        lastActivityTime: last && last.occurred_at ? new Date(last.occurred_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : (base.lastActivityTime || ''),
+        activityType: (last && (last.event_type || 'event')) || base.activityType || 'event',
+        recentActivities: myActs.length
+          ? myActs.slice(0, 4).map((a) => ({ type: a.event_type || 'event', title: a.title || '', time: a.occurred_at ? new Date(a.occurred_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '' }))
+          : (base.recentActivities || []),
+      };
+    });
+    if (mapped.length) {
+      LS_DATA = mapped;
+      lsLiveAt = j.updated_at || new Date().toISOString();
+      lsRenderAll();
+      const badge = document.getElementById('ls-live-badge');
+      if (badge) badge.textContent = 'LIVE · ' + mapped.length + ' leaders · ' + new Date(lsLiveAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    }
+  } catch (e) { console.warn('[leadership] live load failed:', e.message); }
+}
+
+function lsRenderAll() {
+  renderFeaturedLeaders();
+  renderLeaderGrid(LS_DATA);
+  if (applyLeaderFilters) applyLeaderFilters();
+  if (LS_DATA[0]) renderTimeline(LS_DATA[0]);
+  if (typeof renderInfluenceChart === 'function') renderInfluenceChart();
+}
 let lsInfluenceChart = null;
 let lsPartyFilter = 'all';
 let lsSentimentFilter = 'all';
@@ -10,16 +68,17 @@ let lsSearchQuery = '';
 
 function initLeadership() {
   renderFeaturedLeaders();
-  renderLeaderGrid(LEADERS_DATA);
-  renderTimeline(LEADERS_DATA[0]);
+  renderLeaderGrid(LS_DATA);
+  renderTimeline(LS_DATA[0]);
   renderInfluenceChart();
   setupLeadershipFilters();
+  lsLoadLive();
 }
 
 function renderFeaturedLeaders() {
   const el = document.getElementById('ls-featured-cards');
   if (!el) return;
-  const featured = LEADERS_DATA.slice(0, 2);
+  const featured = LS_DATA.slice(0, 2);
   el.innerHTML = featured.map(l => `
     <div class="card card-gold card-shine" style="cursor:pointer; position:relative; overflow:hidden; padding:1.5rem;" onclick="selectLeader(${l.id})">
       <div style="position:absolute; top:0; right:0; width:80px; height:80px; background:radial-gradient(circle, ${partyGradient(l.party)}, transparent); opacity:0.15; border-radius:0 0 0 100%;"></div>
@@ -75,7 +134,7 @@ function renderLeaderGrid(data) {
 }
 
 function selectLeader(id) {
-  const leader = LEADERS_DATA.find(l => l.id === id);
+  const leader = LS_DATA.find(l => l.id === id);
   if (!leader) return;
   lsActiveLeader = leader;
   renderTimeline(leader);
@@ -145,7 +204,7 @@ function renderInfluenceChart() {
   const canvas = document.getElementById('ls-influence-chart');
   if (!canvas || typeof Chart === 'undefined') return;
   if (lsInfluenceChart) lsInfluenceChart.destroy();
-  const top6 = [...LEADERS_DATA].sort((a,b) => b.influence - a.influence).slice(0, 6);
+  const top6 = [...LS_DATA].sort((a,b) => b.influence - a.influence).slice(0, 6);
   lsInfluenceChart = new Chart(canvas, {
     type: 'bar',
     data: {
@@ -195,7 +254,7 @@ function setupLeadershipFilters() {
 }
 
 function applyLeaderFilters() {
-  let data = LEADERS_DATA;
+  let data = LS_DATA;
   if (lsPartyFilter !== 'all') data = data.filter(l => l.party === lsPartyFilter);
   if (lsSentimentFilter !== 'all') data = data.filter(l => l.sentiment === lsSentimentFilter);
   if (lsSearchQuery) data = data.filter(l => l.name.toLowerCase().includes(lsSearchQuery));

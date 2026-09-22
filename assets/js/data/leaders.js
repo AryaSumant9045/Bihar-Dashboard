@@ -3,8 +3,8 @@
    ============================================================ */
 const LEADERS_DATA = [
   {
-    id: 1, name: 'Nitish Kumar', role: 'Chief Minister', party: 'JDU',
-    constituency: 'Nalanda', district: 'Nalanda',
+    id: 1, name: 'Nitish Kumar', role: 'JD(U) National President', party: 'JDU',
+    constituency: 'MLC (Bihar)', district: 'Patna',
     influence: 94, sentiment: 'positive',
     lastActivity: 'Muzaffarpur Highway Inauguration',
     lastActivityTime: '3h ago', activityType: 'event',
@@ -16,8 +16,8 @@ const LEADERS_DATA = [
     ]
   },
   {
-    id: 2, name: 'Samrat Choudhary', role: 'Deputy Chief Minister', party: 'BJP',
-    constituency: 'Bihari', district: 'Patna',
+    id: 2, name: 'Samrat Choudhary', role: 'Chief Minister, Bihar', party: 'BJP',
+    constituency: 'Munger', district: 'Munger',
     influence: 82, sentiment: 'positive',
     lastActivity: 'BJP State Executive Meeting',
     lastActivityTime: '5h ago', activityType: 'event',
