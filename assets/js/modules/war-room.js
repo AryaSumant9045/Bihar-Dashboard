@@ -1255,11 +1255,12 @@ window.loadWarRoomDistrict = loadWarRoomDistrict;
 
 /* ── District button styling tiers (news volume ke hisab se) ─────────────── */
 function wrTierFor(n) { return n >= 20 ? 'hot' : n >= 5 ? 'warm' : n > 0 ? 'cool' : 'empty'; }
+/* Theme-safe: text colors CSS variables se (light/dark dono me readable) */
 function wrTierStyle(n) {
-  if (n >= 20) return { bg: 'linear-gradient(135deg,rgba(245,197,24,.26),rgba(255,107,43,.16))', border: '1px solid rgba(245,197,24,.8)', color: '#ffe08a', shadow: '0 6px 18px rgba(245,197,24,.20)', weight: '800', size: '.8rem', opacity: '1' };
-  if (n >= 5)  return { bg: 'linear-gradient(135deg,rgba(74,158,255,.22),rgba(74,158,255,.06))', border: '1px solid rgba(74,158,255,.62)', color: '#d7e7ff', shadow: '0 4px 14px rgba(74,158,255,.16)', weight: '700', size: '.78rem', opacity: '1' };
-  if (n > 0)   return { bg: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', shadow: 'none', weight: '600', size: '.76rem', opacity: '.92' };
-  return { bg: 'transparent', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', shadow: 'none', weight: '500', size: '.74rem', opacity: '.7' };
+  if (n >= 20) return { bg: 'linear-gradient(135deg, rgba(245,197,24,.36), rgba(255,107,43,.20))', border: '1.5px solid rgba(200,148,0,.85)', color: 'var(--text-primary)', shadow: '0 6px 18px rgba(245,197,24,.25)', weight: '800', size: '.8rem', opacity: '1' };
+  if (n >= 5)  return { bg: 'linear-gradient(135deg, rgba(74,158,255,.26), rgba(74,158,255,.08))', border: '1px solid rgba(50,130,230,.7)', color: 'var(--text-primary)', shadow: '0 4px 14px rgba(74,158,255,.18)', weight: '700', size: '.78rem', opacity: '1' };
+  if (n > 0)   return { bg: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', shadow: 'none', weight: '600', size: '.76rem', opacity: '1' };
+  return { bg: 'transparent', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', shadow: 'none', weight: '500', size: '.74rem', opacity: '.85' };
 }
 function wrPaintDistrictButton(btn, n) {
   const t = wrTierStyle(n);

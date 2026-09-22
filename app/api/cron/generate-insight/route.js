@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 import { createClient } from '@supabase/supabase-js';
-import { callLLMQuick } from '../../../../lib/llm-providers.js';
+import { callLLMQuick, groqKeyCount } from '../../../../lib/llm-providers.js';
 
 export const maxDuration = 60; // Allow up to 60 seconds for this function on Vercel
 export const dynamic = 'force-dynamic';
@@ -354,6 +354,7 @@ async function handleCron(request) {
         status: 'llm_failed',
         inserted_articles: insertedCount,
         headlines_available: analyzedCount,
+        groq_keys_configured: groqKeyCount(),
         errors: llmErrors,
         hint: 'Groq/LLM call fail hui — quota/rate-limit check karo (INSIGHT_LLM_MODEL).',
       }, { status: 200 });
