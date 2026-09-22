@@ -39,6 +39,7 @@ NEWS_API_KEY = os.getenv("NEWS_DATA_API_KEY")
 POLL_SECONDS = int(os.getenv("NEWS_POLL_SECONDS", "3600"))
 MAX_ARTICLES = int(os.getenv("NEWS_MAX_ARTICLES_PER_RUN", "10"))
 MAX_PAGES = int(os.getenv("NEWS_MAX_PAGES", "10"))
+NEWSDATA_API_URL = "https://newsdata.io/api/1/news"  # hardcoded
 
 BIHAR_DISTRICTS = [
     "Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar",
@@ -83,7 +84,7 @@ def fetch_and_save(client):
         params = {"apikey": NEWS_API_KEY, "q": "Bihar", "language": "hi,en", "country": "in"}
         if next_page:
             params["page"] = next_page
-        response = requests.get(os.getenv("NEWSDATA_URL", "https://newsdata.io/api/1/news"), params=params, timeout=30)
+        response = requests.get(NEWSDATA_API_URL, params=params, timeout=30)
         response.raise_for_status()
         payload = response.json()
         if payload.get("status") != "success":

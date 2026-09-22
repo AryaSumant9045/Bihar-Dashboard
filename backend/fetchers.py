@@ -312,22 +312,21 @@ def get_all_live_news(save_to_db: bool = True):
 # ── RSS feed URLs — sab .env se (LH_BASE_URL / LH_FEED_<SLUG>) ──────────────
 LH_DISTRICT_FEED_SLUGS = ['patna', 'bhagalpur', 'muzaffarpur', 'ara', 'begusarai', 'biharsharif', 'buxar', 'chapra', 'gopalganj', 'hajipur', 'jahanabad', 'siwan', 'gaya', 'aurangabad', 'bhabua', 'nawada', 'sasaram', 'banka', 'araria', 'katihar', 'khagaria', 'kishanganj', 'madhepura', 'munger', 'purnia', 'saharsa', 'lakhisarai', 'jamui', 'supaul', 'darbhanga', 'madhubani', 'bagaha', 'bettiah', 'motihari', 'samastipur', 'sitamarhi']
 
-def lh_base_url():
-    return os.getenv("LH_BASE_URL", "https://api.livehindustan.com/feeds/rss/bihar").rstrip("/")
+LH_FEED_BASE = "https://api.livehindustan.com/feeds/rss/bihar"   # hardcoded
+BHASKAR_FEED_URL = "https://www.bhaskar.com/rss-v1--category-3679.xml"
+GOOGLE_NEWS_BIHAR_RSS = "https://news.google.com/rss/search?q=Bihar&hl=hi-IN&gl=IN&ceid=IN:hi"
 
 def lh_feed_url(slug=None):
-    """Live Hindustan feed URL — .env ka LH_FEED_<SLUG> / LH_FEED_STATE, warna default base."""
+    """Live Hindustan feed URL (hardcoded): state feed ya <slug> wali district feed."""
     if not slug:
-        return (os.getenv("LH_FEED_STATE") or os.getenv("HINDUSTAN_BIHAR_RSS_URL")
-                or f"{lh_base_url()}/rssfeed.xml")
-    key = "LH_FEED_" + str(slug).upper().replace("-", "_")
-    return os.getenv(key) or f"{lh_base_url()}/{slug}/rssfeed.xml"
+        return f"{LH_FEED_BASE}/rssfeed.xml"
+    return f"{LH_FEED_BASE}/{slug}/rssfeed.xml"
 
 def rss_feed_sources():
     """[(label, url)] — Google News + Bhaskar + Live Hindustan (state + har district)."""
     feeds = [
-        ("Google News", os.getenv("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search?q=Bihar&hl=hi-IN&gl=IN&ceid=IN:hi")),
-        ("Bhaskar Bihar News", os.getenv("BHASKAR_BIHAR_RSS_URL", "https://www.bhaskar.com/rss-v1--category-3679.xml")),
+        ("Google News", GOOGLE_NEWS_BIHAR_RSS),
+        ("Bhaskar Bihar News", BHASKAR_FEED_URL),
         ("LiveHindustan Bihar", lh_feed_url(None)),
     ]
     for slug in LH_DISTRICT_FEED_SLUGS:

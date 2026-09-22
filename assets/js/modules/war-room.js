@@ -495,7 +495,7 @@ function renderIntelligenceSummary(summary, container) {
   if (Array.isArray(summary.political_risks) && summary.political_risks.length > 0) {
     risksHTML = `
       <div style="margin-top:.65rem;">
-        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ Political Risks & Weak Points</div>
+        <div style="font-size:.65rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;">⚠️ राजनीतिक जोखिम & Weak Points</div>
         <div style="display:flex;flex-direction:column;gap:.35rem;">
           ${summary.political_risks.map(r => {
             const rLevel = (r.risk_level || '').toLowerCase();
@@ -640,6 +640,7 @@ function initWarRoom() {
   loadIntelligenceSummary();     // NEW — load pipeline summary first
   startSummaryAutoRefresh();     // NEW — auto-refresh every 5 min
   connectWarRoom();
+  wrSortDistrictButtons();   // district buttons: news-volume se order + highlight
   window.addEventListener('bcc:langchange', () => {
     if (!wrAllNews.length) return;
     if (wrIsHi()) wrLoadTranslations(wrAllNews, false).then(() => wrRerenderNews());
@@ -1202,43 +1203,43 @@ function renderDistrictSummary(sum, news, name) {
 
   if (!sum || !sum.latest) {
     html += '<div class="empty-state" style="padding:1rem;"><div class="empty-state-icon">🕓</div>' +
-      '<p class="empty-state-text">' + wrEscape((sum && sum.message) || 'Is district ka AI analysis abhi taiyar nahi hai.') + '</p>' +
-      '<p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">AI summary har 12 ghante (00:00 &amp; 12:00 IST) banti hai — sirf un districts ki jahan us cycle me news thi.</p></div>';
+      '<p class="empty-state-text">' + wrEscape((sum && sum.message) || 'इस जिले का AI विश्लेषण अभी तैयार नहीं है।') + '</p>' +
+      '<p style="font-size:.72rem;color:var(--text-muted);margin-top:.3rem;">AI सारांश हर 12 घंटे (00:00 और 12:00 IST) बनता है — सिर्फ़ उन जिलों का जहाँ उस cycle में खबर थी।</p></div>';
   } else {
     const s = sum.latest;
     const when = s.created_at ? new Date(s.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
     html += '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.65rem;">' +
-      '<span class="tag tag-blue" style="font-size:.62rem;">📊 ' + wrEscape(String(s.news_count || 0)) + ' headlines analysed</span>' +
+      '<span class="tag tag-blue" style="font-size:.62rem;">📊 ' + wrEscape(String(s.news_count || 0)) + ' headlines का विश्लेषण</span>' +
       '<span class="tag" style="font-size:.62rem;">🕐 ' + wrEscape(when) + '</span>' +
       '<span class="tag" style="font-size:.62rem;">🗂 district_summary_' + wrEscape(String(sum.table || '').replace('district_summary_', '') || label.toLowerCase()) + '</span></div>';
 
-    html += wrSummaryBlock('Overall Situation', '🧭', '<p style="font-size:.8rem;line-height:1.55;color:var(--text-primary);margin:0;">' + wrEscape(s.overall_situation || '—') + '</p>', 'var(--blue)');
-    html += wrSummaryBlock('Key Developments', '📌', wrList(s.key_developments), 'var(--gold)');
+    html += wrSummaryBlock('समग्र स्थिति', '🧭', '<p style="font-size:.8rem;line-height:1.55;color:var(--text-primary);margin:0;">' + wrEscape(s.overall_situation || '—') + '</p>', 'var(--blue)');
+    html += wrSummaryBlock('मुख्य घटनाक्रम', '📌', wrList(s.key_developments), 'var(--gold)');
 
     const risks = Array.isArray(s.political_risks) ? s.political_risks : [];
     const riskBody = risks.length
       ? risks.map((r) => '<div style="margin-bottom:.35rem;"><div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;"><b style="font-size:.75rem;color:var(--text-primary);">' + wrEscape(r && r.issue ? r.issue : String(r)) + '</b>' + (r && r.risk_level ? wrRiskChip(r.risk_level) : '') + '</div>' + (r && r.reason ? '<div style="font-size:.71rem;color:var(--text-muted);line-height:1.45;">' + wrEscape(r.reason) + '</div>' : '') + '</div>').join('')
       : '<p style="font-size:.72rem;color:var(--text-muted);margin:.15rem 0 0;">—</p>';
-    html += wrSummaryBlock('Political Risks', '⚠️', riskBody, 'var(--red)');
+    html += wrSummaryBlock('राजनीतिक जोखिम', '⚠️', riskBody, 'var(--red)');
 
-    html += wrSummaryBlock('BJP / Sarkar Activity', '🪷', wrList(s.bjp_activity), 'var(--green)');
-    html += wrSummaryBlock('Opposition Activity', '🥊', wrList(s.opposition_activity), '#c084fc');
+    html += wrSummaryBlock('BJP / सरकार की गतिविधि', '🪷', wrList(s.bjp_activity), 'var(--green)');
+    html += wrSummaryBlock('विपक्ष की गतिविधि', '🥊', wrList(s.opposition_activity), '#c084fc');
   }
 
   const items = (news && news.items) || [];
   html += '<div style="margin-top:.75rem;border-top:1px solid var(--border-subtle);padding-top:.6rem;">' +
-    '<div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">📡 Raw Headlines — live RSS (district_news table)</div>';
+    '<div style="font-size:.65rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;">📡 ताज़ा headlines — live RSS (district_news table)</div>';
   html += items.length
     ? items.slice(0, 10).map((it, i) => '<a href="' + wrEscape(it.url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:.45rem .1rem;border-top:1px solid var(--border-subtle);color:var(--text-secondary);font-size:.78rem;line-height:1.45;text-decoration:none;"><span style="display:flex;gap:.5rem;"><b style="color:var(--gold);min-width:1.1rem;">' + (i + 1) + '</b><span>' + wrEscape(it.title) + '</span></span></a>').join('')
-    : '<p style="font-size:.72rem;color:var(--text-muted);margin:0;">Is district ki koi saved headline nahi mili.</p>';
+    : '<p style="font-size:.72rem;color:var(--text-muted);margin:0;">इस जिले की कोई सुरक्षित headline नहीं मिली।</p>';
   html += '</div>';
 
   return html;
 }
 
 async function loadWarRoomDistrict(name) {
-  const title = '🏛 ' + name + ' — AI War Room Summary';
-  openModal('<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">Loading ' + wrEscape(name) + ' AI analysis…</p></div>', title);
+  const title = '🏛 ' + name + ' — AI वॉर रूम सारांश';
+  openModal('<div class="empty-state" style="padding:1rem;"><div class="spinner"></div><p class="empty-state-text">' + wrEscape(name) + ' का AI विश्लेषण लोड हो रहा है…</p></div>', title);
   try {
     const [sum, news] = await Promise.all([
       fetch('/api/district-summary?district=' + encodeURIComponent(name), { cache: 'no-store' }).then((r) => r.json()),
@@ -1251,3 +1252,75 @@ async function loadWarRoomDistrict(name) {
 }
 
 window.loadWarRoomDistrict = loadWarRoomDistrict;
+
+/* ── District button styling tiers (news volume ke hisab se) ─────────────── */
+function wrTierFor(n) { return n >= 20 ? 'hot' : n >= 5 ? 'warm' : n > 0 ? 'cool' : 'empty'; }
+function wrTierStyle(n) {
+  if (n >= 20) return { bg: 'linear-gradient(135deg,rgba(245,197,24,.26),rgba(255,107,43,.16))', border: '1px solid rgba(245,197,24,.8)', color: '#ffe08a', shadow: '0 6px 18px rgba(245,197,24,.20)', weight: '800', size: '.8rem', opacity: '1' };
+  if (n >= 5)  return { bg: 'linear-gradient(135deg,rgba(74,158,255,.22),rgba(74,158,255,.06))', border: '1px solid rgba(74,158,255,.62)', color: '#d7e7ff', shadow: '0 4px 14px rgba(74,158,255,.16)', weight: '700', size: '.78rem', opacity: '1' };
+  if (n > 0)   return { bg: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', shadow: 'none', weight: '600', size: '.76rem', opacity: '.92' };
+  return { bg: 'transparent', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', shadow: 'none', weight: '500', size: '.74rem', opacity: '.7' };
+}
+function wrPaintDistrictButton(btn, n) {
+  const t = wrTierStyle(n);
+  Object.assign(btn.style, {
+    background: t.bg, border: t.border, color: t.color, boxShadow: t.shadow,
+    fontWeight: t.weight, fontSize: t.size, opacity: t.opacity,
+    padding: '.42rem .72rem', borderRadius: '999px',
+    display: 'inline-flex', alignItems: 'center', gap: '.35rem',
+    transition: 'transform .15s ease, box-shadow .15s ease',
+  });
+  btn.dataset.distTier = wrTierFor(n);
+  let badge = btn.querySelector('.dist-count-badge');
+  if (!badge) { badge = document.createElement('span'); badge.className = 'dist-count-badge'; btn.appendChild(badge); }
+  badge.textContent = n > 0 ? String(n) : '—';
+  Object.assign(badge.style, { fontSize: '.62rem', fontWeight: '800', opacity: '.9', letterSpacing: '.02em' });
+}
+
+/**
+ * War Room ke district buttons ko news volume ke hisab se lagata hai:
+ * sabse zyada news wale upar + golden highlight, kam/khaali wale neeche + halka.
+ */
+async function wrSortDistrictButtons() {
+  const first = document.querySelector('button[onclick^="loadWarRoomDistrict"]');
+  if (!first) return;
+  const container = first.parentElement;
+  const all = [...container.querySelectorAll('button')];
+  const distBtns = all.filter((b) => (b.getAttribute('onclick') || '').includes('loadWarRoomDistrict'));
+  if (!distBtns.length) return;
+
+  let lookup = {};
+  try {
+    const res = await fetch('/api/district-stats', { cache: 'no-store' });
+    const json = await res.json();
+    (json.districts || []).forEach((d) => { lookup[d.hi] = d; lookup[d.en] = d; lookup[d.slug] = d; });
+  } catch (e) { console.warn('[WarRoom] district stats unavailable:', e.message); return; }
+
+  const nameOf = (b) => ((b.getAttribute('onclick') || '').match(/loadWarRoomDistrict\('([^']+)'\)/) || [])[1] || '';
+  const items = distBtns.map((b, i) => {
+    const name = nameOf(b);
+    const s = lookup[name] || {};
+    return { btn: b, name, articles: typeof s.articles === 'number' ? s.articles : 0, idx: i };
+  });
+  items.sort((a, b) => (b.articles - a.articles) || (a.idx - b.idx));
+
+  container.querySelectorAll('.dist-group-divider').forEach((d) => d.remove());
+  let dividerPlaced = false;
+  items.forEach(({ btn, articles }) => {
+    wrPaintDistrictButton(btn, articles);
+    container.appendChild(btn);
+    if (!dividerPlaced && articles < 5) {
+      const div = document.createElement('span');
+      div.className = 'dist-group-divider';
+      div.textContent = '▾ कम / कोई नई खबर नहीं (कम priority)';
+      Object.assign(div.style, { fontSize: '.64rem', color: 'var(--text-muted)', fontWeight: '700', letterSpacing: '.04em', padding: '.3rem .2rem', flexBasis: '100%' });
+      container.appendChild(div);
+      dividerPlaced = true;
+    }
+  });
+  /* "Bihar (All)" button sabse aage */
+  const allBtn = all.find((b) => !(b.getAttribute('onclick') || '').includes('loadWarRoomDistrict'));
+  if (allBtn) container.insertBefore(allBtn, container.firstChild);
+}
+
+window.wrSortDistrictButtons = wrSortDistrictButtons;

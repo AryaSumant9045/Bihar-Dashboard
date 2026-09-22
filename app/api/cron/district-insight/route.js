@@ -31,8 +31,14 @@ const DEFAULT_HOURS = 24;
 const DISTRICT_GAP_MS = 1500;
 /* Groq free tier par fast + available model. .env ka GROQ_MODEL (bada model)
    yahan inherit nahi hota — district pipeline apna halka model use karta hai. */
-const DISTRICT_LLM_MODEL = process.env.DISTRICT_LLM_MODEL || 'openai/gpt-oss-20b';
-const DISTRICT_LLM_RETRIES = Number(process.env.DISTRICT_LLM_RETRIES) || 3;
+const DISTRICT_LLM_MODEL = process.env.DISTRICT_LLM_MODEL || 'qwen/qwen3.8-27b';
+/* Model order: pehla Hindi me sabse bharosemand, phir fallback */
+const DISTRICT_LLM_MODELS = [
+  DISTRICT_LLM_MODEL,
+  ...(process.env.DISTRICT_LLM_FALLBACK_MODELS || 'openai/gpt-oss-20b')
+    .split(',').map((m) => m.trim()).filter(Boolean),
+];
+const DISTRICT_LLM_RETRIES = Number(process.env.DISTRICT_LLM_RETRIES) || 2;
 const MAX_HEADLINE_CHARS = 200;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -84,7 +90,60 @@ function buildUserPrompt(districtLabel, headlines) {
 
 ${lines}
 
-ऊपर की headlines के आधार पर इस district का political intelligence JSON बनाएं।`;
+ऊपर की headlines के आधार पर इस district का political intelligence JSON बनाएं।
+
+⚡ याद रखें: JSON की सारी **values केवल हिंदी (देवनागरी)** में लिखनी हैं (keys English रहेंगी, risk_level Critical/High/Medium/Low रहेगा)।`;
+}
+
+
+/* ── Hindi enforcement ────────────────────────────────────────────────────
+   Kabhi-kabhi Groq ka model (fallback) English me jawab de deta hai. Isliye
+   output ko check karke, zarurat pade to ek "हिंदी में बदलो" pass chalate hain. */
+function devanagariCount(text) { return (String(text || '').match(/[\u0900-\u097f]/g) || []).length; }
+function latinWordCount(text) { return (String(text || '').match(/[A-Za-z]{3,}/g) || []).length; }
+
+function inferenceText(inference) {
+  return [
+    inference.overall_situation,
+    ...(Array.isArray(inference.key_developments) ? inference.key_developments : []),
+    ...(Array.isArray(inference.bjp_activity) ? inference.bjp_activity : []),
+    ...(Array.isArray(inference.opposition_activity) ? inference.opposition_activity : []),
+    ...(Array.isArray(inference.political_risks) ? inference.political_risks.map((r) => `${r?.issue || ''} ${r?.reason || ''}`) : []),
+  ].join(' ');
+}
+
+/** Output Hindi-dominant hai ya nahi? */
+function isHindiDominant(inference) {
+  const text = inferenceText(inference);
+  const dev = devanagariCount(text);
+  const lat = latinWordCount(text);
+  return dev >= 60 && dev > lat * 1.5;
+}
+
+const HINDI_SYSTEM_PROMPT = `आप एक हिंदी अनुवादक हैं। नीचे दिए JSON की सारी values को स्वाभाविक हिंदी (देवनागरी) में बदल दें।
+- JSON की keys वैसी ही रहेंगी (overall_situation, key_developments, political_risks, bjp_activity, opposition_activity)।
+- "risk_level" की value सिर्फ Critical / High / Medium / Low रहेगी (अनुवाद नहीं)।
+- पार्टी/संगठन/नेता/जगह के नाम और abbreviations (BJP, RJD, JD(U), MLA, CM, DM) जैसे हैं वैसे रहेंगे।
+- मतलब बिलकुल न बदले, न जोड़ें न घटाएँ।
+- केवल valid JSON दें।`;
+
+/** Agar output English-dominant ho to use Hindi me convert karke wapas karo. */
+async function ensureHindi(inference, label) {
+  if (isHindiDominant(inference)) return { inference, converted: false, provider: null, model: null };
+  const payload = JSON.stringify(inference);
+  const userPrompt = `JSON (${label}):\n${payload}\n\nइसे हिंदी में लिखें और वही JSON लौटाएं।`;
+  for (const model of DISTRICT_LLM_MODELS) {
+    try {
+      const res = await callLLMQuick(HINDI_SYSTEM_PROMPT, userPrompt, { prefer: 'groq', model, retries: 1 });
+      const parsed = parseJson(res.content);
+      if (parsed && parsed.overall_situation) {
+        return { inference: parsed, converted: true, provider: res.provider, model: res.model };
+      }
+    } catch (error) {
+      console.warn(`[Cron] hindi-pass ${model} failed: ${String(error.message).slice(0, 80)}`);
+    }
+  }
+  return { inference, converted: false, provider: null, model: null };
 }
 
 function parseJson(text) {
@@ -143,17 +202,19 @@ async function processDistrict(supabase, entry, { hours, force, dry }) {
      shared hai, isliye district pipeline usse wait nahi karta. */
   const systemPrompt = buildSystemPrompt(label);
   const userPrompt = buildUserPrompt(label, headlines);
-  let llm;
-  try {
-    llm = await callLLMQuick(systemPrompt, userPrompt, { prefer: 'groq', model: DISTRICT_LLM_MODEL, retries: DISTRICT_LLM_RETRIES });
-  } catch (firstError) {
-    /* ek aur poori koshish — rate-limit bursts ke liye safety net */
+  let llm = null;
+  const modelErrors = [];
+  for (const model of DISTRICT_LLM_MODELS) {
     try {
-      await sleep(2500);
-      llm = await callLLMQuick(systemPrompt, userPrompt, { prefer: 'groq', model: DISTRICT_LLM_MODEL, retries: 2 });
+      llm = await callLLMQuick(systemPrompt, userPrompt, { prefer: 'groq', model, retries: DISTRICT_LLM_RETRIES });
+      break;
     } catch (error) {
-      return { district: label, table: summaryTable, status: 'llm_failed', news_count: headlines.length, error: error.message.slice(0, 300), model: DISTRICT_LLM_MODEL };
+      modelErrors.push(`${model}: ${error.message.slice(0, 90)}`);
+      await sleep(1200);
     }
+  }
+  if (!llm) {
+    return { district: label, table: summaryTable, status: 'llm_failed', news_count: headlines.length, error: modelErrors.join(' | ').slice(0, 300), models: DISTRICT_LLM_MODELS };
   }
 
   let inference;
@@ -161,6 +222,16 @@ async function processDistrict(supabase, entry, { hours, force, dry }) {
     inference = parseJson(llm.content);
   } catch (error) {
     return { district: label, table: summaryTable, status: 'parse_failed', news_count: headlines.length, error: error.message };
+  }
+
+  /* Hindi enforcement — model English me chala gaya ho to convert karo */
+  let hindiInfo = { converted: false, provider: null, model: null };
+  try {
+    const h = await ensureHindi(inference, label);
+    inference = h.inference;
+    hindiInfo = h;
+  } catch (error) {
+    console.warn(`[Cron] ensureHindi failed for ${label}: ${String(error.message).slice(0, 80)}`);
   }
 
   const row = {
@@ -173,7 +244,7 @@ async function processDistrict(supabase, entry, { hours, force, dry }) {
   };
 
   if (dry) {
-    return { district: label, table: summaryTable, status: 'dry-run', news_count: headlines.length, provider: llm.provider, model: llm.model, window: windowUsed, row };
+    return { district: label, table: summaryTable, status: 'dry-run', news_count: headlines.length, provider: llm.provider, model: llm.model, hindi: hindiInfo, window: windowUsed, row };
   }
 
   const { error } = await supabase.from(summaryTable).insert(row);
@@ -184,7 +255,7 @@ async function processDistrict(supabase, entry, { hours, force, dry }) {
     };
   }
 
-  return { district: label, table: summaryTable, status: 'saved', news_count: headlines.length, provider: llm.provider, model: llm.model, window: windowUsed };
+  return { district: label, table: summaryTable, status: 'saved', news_count: headlines.length, provider: llm.provider, model: llm.model, hindi: hindiInfo, window: windowUsed };
 }
 
 export async function GET(request) {
@@ -235,7 +306,7 @@ export async function GET(request) {
 
   return Response.json({
     status: 'success',
-    llm: { ...geminiState(), district_model: DISTRICT_LLM_MODEL },
+    llm: { ...geminiState(), district_models: DISTRICT_LLM_MODELS },
     processed: results.length,
     saved,
     skipped_no_news: skipped,

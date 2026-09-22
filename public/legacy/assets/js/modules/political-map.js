@@ -18,7 +18,7 @@ const pmColor=(r,m)=>pmMode==='party'?PM_PARTY_COLORS[pmDominant(r)]:PM_RISK_COL
 const pmMatches=r=>(!pmSearch||r.name.toLowerCase().includes(pmSearch))&&(pmRisk==='all'||pmRiskLevel(pmMetric(r.name))===pmRisk)&&(pmMode!=='party'||pmParty==='all'||pmDominant(r)===pmParty);
 const pmNumber=v=>new Intl.NumberFormat('en-IN',{notation:'compact',maximumFractionDigits:1}).format(v||0);
 
-function initPoliticalMap(){if(pmControlAbort)pmControlAbort.abort();pmControlAbort=new AbortController();pmBuildControls(pmControlAbort.signal);pmBuildNewsFilters(pmControlAbort.signal);pmRenderPartyChart();pmRenderMap();pmLoadNews();pmBuildDistrictButtons();loadPmDistrictNews('all')}
+function initPoliticalMap(){if(pmControlAbort)pmControlAbort.abort();pmControlAbort=new AbortController();pmBuildControls(pmControlAbort.signal);pmBuildNewsFilters(pmControlAbort.signal);pmRenderPartyChart();pmRenderMap();pmLoadNews();pmBuildDistrictButtons();pmOrderDistrictButtonsByVolume();loadPmDistrictNews('all')}
 function pmBuildControls(signal){const select=document.getElementById('pm-district-select');if(!select)return;select.innerHTML=pmRows().sort((a,b)=>a.name.localeCompare(b.name)).map(r=>`<option value="${pmSafe(r.name)}">${pmSafe(r.name)}</option>`).join('');select.value=pmSelected;select.addEventListener('change',e=>pmSelect(e.target.value,true),{signal});const search=document.getElementById('pm-district-search');search?.addEventListener('input',e=>{pmSearch=e.target.value.trim().toLowerCase();pmRefresh()},{signal});document.querySelectorAll('[data-pm-mode]').forEach(b=>b.addEventListener('click',()=>{pmMode=b.dataset.pmMode;pmSetActive('[data-pm-mode]',b);pmRefresh()},{signal}));document.querySelectorAll('[data-pm-party]').forEach(b=>b.addEventListener('click',()=>{pmParty=b.dataset.pmParty;pmSetActive('[data-pm-party]',b);pmRefresh()},{signal}));document.querySelectorAll('[data-pm-risk]').forEach(b=>b.addEventListener('click',()=>{pmRisk=b.dataset.pmRisk;pmSetActive('[data-pm-risk]',b);pmRefresh()},{signal}));document.getElementById('pm-reset-map')?.addEventListener('click',pmReset,{signal})}
 function pmSetActive(q,active){document.querySelectorAll(q).forEach(i=>i.classList.toggle('active',i===active))}
 function pmReset(){pmSearch='';pmRisk='all';pmParty='all';const s=document.getElementById('pm-district-search');if(s)s.value='';pmSetActive('[data-pm-risk]',document.querySelector('[data-pm-risk="all"]'));pmSetActive('[data-pm-party]',document.querySelector('[data-pm-party="all"]'));if(pmMap&&pmGeoLayer)pmMap.fitBounds(pmGeoLayer.getBounds(),{padding:[18,18]});pmRefresh()}
@@ -62,3 +62,67 @@ function pmLoadDistrictButton(btn){const slug=btn.dataset.pmSlug,hi=btn.dataset.
   if(list)list.closest('section')?.scrollIntoView({behavior:'smooth',block:'start'})}
 window.pmBuildDistrictButtons=pmBuildDistrictButtons;
 window.pmLoadDistrictButton=pmLoadDistrictButton;
+
+/* ── District button styling tiers (news volume ke hisab se) ─────────────── */
+function pmTierFor(n) { return n >= 20 ? 'hot' : n >= 5 ? 'warm' : n > 0 ? 'cool' : 'empty'; }
+function pmTierStyle(n) {
+  if (n >= 20) return { bg: 'linear-gradient(135deg,rgba(245,197,24,.26),rgba(255,107,43,.16))', border: '1px solid rgba(245,197,24,.8)', color: '#ffe08a', shadow: '0 6px 18px rgba(245,197,24,.20)', weight: '800', size: '.8rem', opacity: '1' };
+  if (n >= 5)  return { bg: 'linear-gradient(135deg,rgba(74,158,255,.22),rgba(74,158,255,.06))', border: '1px solid rgba(74,158,255,.62)', color: '#d7e7ff', shadow: '0 4px 14px rgba(74,158,255,.16)', weight: '700', size: '.78rem', opacity: '1' };
+  if (n > 0)   return { bg: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)', shadow: 'none', weight: '600', size: '.76rem', opacity: '.92' };
+  return { bg: 'transparent', border: '1px dashed var(--border-subtle)', color: 'var(--text-muted)', shadow: 'none', weight: '500', size: '.74rem', opacity: '.7' };
+}
+function pmPaintDistrictButton(btn, n) {
+  const t = pmTierStyle(n);
+  Object.assign(btn.style, {
+    background: t.bg, border: t.border, color: t.color, boxShadow: t.shadow,
+    fontWeight: t.weight, fontSize: t.size, opacity: t.opacity,
+    padding: '.42rem .72rem', borderRadius: '999px',
+    display: 'inline-flex', alignItems: 'center', gap: '.35rem',
+    transition: 'transform .15s ease, box-shadow .15s ease',
+  });
+  btn.dataset.distTier = pmTierFor(n);
+  let badge = btn.querySelector('.dist-count-badge');
+  if (!badge) { badge = document.createElement('span'); badge.className = 'dist-count-badge'; btn.appendChild(badge); }
+  badge.textContent = n > 0 ? String(n) : '—';
+  Object.assign(badge.style, { fontSize: '.62rem', fontWeight: '800', opacity: '.9', letterSpacing: '.02em' });
+}
+
+/** Bihar Map ke district buttons bhi volume ke hisab se order + highlight. */
+async function pmOrderDistrictButtonsByVolume() {
+  const grid = document.getElementById('pm-district-btn-grid');
+  if (!grid) return;
+  const distBtns = [...grid.querySelectorAll('[data-pm-district]')].filter((b) => b.dataset.pmSlug !== 'all');
+  if (!distBtns.length) return;
+
+  let lookup = {};
+  try {
+    const res = await fetch('/api/district-stats', { cache: 'no-store' });
+    const json = await res.json();
+    (json.districts || []).forEach((d) => { lookup[d.hi] = d; lookup[d.en] = d; lookup[d.slug] = d; });
+  } catch (e) { console.warn('[PM] district stats unavailable:', e.message); return; }
+
+  const items = distBtns.map((b, i) => {
+    const s = lookup[b.dataset.pmDistrict] || lookup[b.dataset.pmEn] || lookup[b.dataset.pmSlug] || {};
+    return { btn: b, articles: typeof s.articles === 'number' ? s.articles : 0, idx: i };
+  });
+  items.sort((a, b) => (b.articles - a.articles) || (a.idx - b.idx));
+
+  grid.querySelectorAll('.dist-group-divider').forEach((d) => d.remove());
+  let dividerPlaced = false;
+  items.forEach(({ btn, articles }) => {
+    pmPaintDistrictButton(btn, articles);
+    grid.appendChild(btn);
+    if (!dividerPlaced && articles < 5) {
+      const div = document.createElement('span');
+      div.className = 'dist-group-divider';
+      div.textContent = '▾ कम / कोई नई खबर नहीं (कम priority)';
+      Object.assign(div.style, { fontSize: '.64rem', color: 'var(--text-muted)', fontWeight: '700', letterSpacing: '.04em', padding: '.3rem .2rem', flexBasis: '100%' });
+      grid.appendChild(div);
+      dividerPlaced = true;
+    }
+  });
+  const allBtn = grid.querySelector('[data-pm-slug="all"]');
+  if (allBtn) grid.insertBefore(allBtn, grid.firstChild);
+}
+
+window.pmOrderDistrictButtonsByVolume = pmOrderDistrictButtonsByVolume;

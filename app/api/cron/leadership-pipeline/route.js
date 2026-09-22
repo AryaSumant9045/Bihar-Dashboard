@@ -127,7 +127,7 @@ async function gatherSources(supabase) {
   const parser = new Parser({ timeout: 20000 });
   const out = { state: [], district: [] };
   const feeds = [
-    process.env.LEADERSHIP_NEWS_RSS_URL || 'https://news.google.com/rss/search?q=(%22Nitish+Kumar%22+OR+%22Samrat+Choudhary%22+OR+%22Bihar+minister%22+OR+%22Bihar+MLA%22+OR+%22Bihar+BJP%22)+when:2d&hl=hi&gl=IN&ceid=IN:hi',
+    'https://news.google.com/rss/search?q=(%22Nitish+Kumar%22+OR+%22Samrat+Choudhary%22+OR+%22Bihar+minister%22+OR+%22Bihar+MLA%22+OR+%22Bihar+BJP%22)+when:2d&hl=hi&gl=IN&ceid=IN:hi',
   ];
   await Promise.all(feeds.map(async url => {
     try {
