@@ -323,8 +323,10 @@ async function handleCron(request) {
       const headlinesText = batch.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
       const attemptContent = `${prevCycleContext}## इस Cycle की ${batch.length} News Headlines:\n\n${headlinesText}`;
       try {
+        /* Attempt 1: Groq-first (fast, free tier). Attempt 2: Gemini bhi try karo
+           (uska free tier sirf 20 req/din hai, par Groq quota out hone par kaam aata hai). */
         const res = await callLLMQuick(SYSTEM_PROMPT, attemptContent, {
-          prefer: 'groq',
+          ...(attempt === 0 ? { prefer: 'groq' } : {}),
           model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
           retries: 1,
           maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
