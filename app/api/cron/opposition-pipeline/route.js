@@ -367,8 +367,11 @@ async function handlePipeline(request) {
       ? { generated: true, provider: summaryResult.provider, newsCount: summaryResult.newsCount }
       : { generated: false },
     timestamp: new Date().toISOString(),
-    // Only show errors if ?debug=1 is passed (avoid leaking info in production)
-    ...(isDebug ? { errors, dbError } : {}),
+    /* Error count hamesha bhejo (isDebug par poore errors) — warna cron logs me
+       silently fail hone ka pata nahi chalta (yahi 5 din tak insert fail hone ki wajah thi). */
+    error_count: errors.length,
+    ...(dbError ? { dbError } : {}),
+    ...(isDebug ? { errors } : {}),
   });
 }
 
