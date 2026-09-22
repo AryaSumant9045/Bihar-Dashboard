@@ -153,6 +153,46 @@ function extractJson(text) {
   }
 }
 
+
+/** Truncated JSON ko theek karne ki koshish (aakhir me brackets close kar ke). */
+function repairJson(text) {
+  let str = String(text || '').trim().replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '');
+  const start = str.indexOf('{');
+  if (start < 0) return null;
+  str = str.slice(start);
+  const cuts = [];
+  for (let i = str.length - 1; i > Math.max(0, str.length - 3000) && cuts.length < 25; i--) {
+    const ch = str[i];
+    if (ch === '}' || ch === ']') cuts.push(i + 1);
+  }
+  for (const cut of cuts) {
+    const candidate = str.slice(0, cut).replace(/,\s*$/, '');
+    const openArr = (candidate.match(/\[/g) || []).length - (candidate.match(/\]/g) || []).length;
+    const openObj = (candidate.match(/\{/g) || []).length - (candidate.match(/\}/g) || []).length;
+    const fixed = candidate + ']'.repeat(Math.max(openArr, 0)) + '}'.repeat(Math.max(openObj, 0));
+    try { return JSON.parse(fixed); } catch { /* next cut */ }
+  }
+  return null;
+}
+
+/** Partial insight usable hai? (kam se kam core + 2 sections) */
+function isUsableInsight(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  const core = typeof obj.overall_situation === 'string' && obj.overall_situation.trim().length > 20;
+  const filled = NON_EMPTY_KEYS.filter((k) => Array.isArray(obj[k]) && obj[k].length > 0).length;
+  return core && filled >= 2;
+}
+
+/** Missing sections ko empty se bhar do (UI crash na ho). */
+function normalizeInsight(obj) {
+  const out = { ...obj };
+  for (const k of ['political_risks', 'bjp_action_points', 'bjp_advantage_points', 'opposition_activity', 'counter_strategy_points', 'election_watch_items', 'top_priority_today', 'most_active_opposition_voices_this_cycle']) {
+    if (!Array.isArray(out[k])) out[k] = [];
+  }
+  if (typeof out.overall_situation !== 'string') out.overall_situation = '';
+  return out;
+}
+
 // Small free models sometimes drop whole sections — a report without these keys is unusable.
 const REQUIRED_INSIGHT_KEYS = ['overall_situation', 'political_risks', 'bjp_action_points', 'opposition_activity', 'counter_strategy_points'];
 const NON_EMPTY_KEYS = ['political_risks', 'bjp_action_points', 'opposition_activity', 'counter_strategy_points'];
@@ -314,6 +354,7 @@ async function handleCron(request) {
     let analyzedCount = analysisNews.length;
     const llmErrors = [];
     let llmUsage = null;
+    let partialInsight = false;
 
     for (let attempt = 0; attempt < RETRY_HEADLINE_STEPS.length && !parsedJson; attempt++) {
       if (Date.now() > deadlineMs) { llmErrors.push('time budget exceeded'); break; }
@@ -331,12 +372,18 @@ async function handleCron(request) {
           retries: 1,
           maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
           /* Gemini ka TPM bada hai — poora JSON (schema bada hai) banane ke liye chhut */
-          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 6000,
+          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 8000,
         });
-        const candidate = extractJson(res.content);
-        if (!candidate) throw new Error('model returned invalid JSON');
-        if (!isCompleteInsight(candidate)) throw new Error('JSON missing required sections');
-        parsedJson = candidate;
+        const candidate = extractJson(res.content) || repairJson(res.content);
+        if (!candidate) {
+          console.warn(`[INSIGHT] unparseable output — provider=${res.provider} len=${String(res.content || '').length} truncated=${res.truncated} tail=${String(res.content || '').slice(-180).replace(/\n/g, ' ')}`);
+          throw new Error(`model returned invalid JSON (len=${String(res.content || '').length})`);
+        }
+        const isLast = attempt + 1 >= RETRY_HEADLINE_STEPS.length;
+        const ok = isCompleteInsight(candidate) || (isLast && isUsableInsight(candidate));
+        if (!ok) throw new Error('JSON missing required sections');
+        parsedJson = normalizeInsight(candidate);
+        if (!isCompleteInsight(candidate)) partialInsight = true;
         aiProvider = res.provider;
         analyzedCount = batch.length;
         llmUsage = { input_tokens: res.inputTokens, output_tokens: res.outputTokens };
@@ -403,6 +450,7 @@ async function handleCron(request) {
       headlines_analyzed: analyzedCount,
       provider: aiProvider,
       usage: llmUsage,
+      partial: partialInsight,
       elapsed_ms: Date.now() - (deadlineMs - TIME_BUDGET_MS),
       insight_generated: true,
     });
