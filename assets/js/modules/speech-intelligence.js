@@ -67,7 +67,11 @@ async function generateSpeechBrief() {
     const res = await fetch('/api/speech-brief', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ district, event_type: event, audience, topic }),
+      body: JSON.stringify({
+        district, event_type: event, audience, topic,
+        tone: document.getElementById('si-tone-sel')?.value || 'Balanced (Vikas-focused)',
+        duration: document.getElementById('si-duration-sel')?.value || '10 min',
+      }),
     });
     const payload = await res.json();
     if (payload.error) throw new Error(payload.error);
@@ -110,6 +114,24 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
     : '<ul style="margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.3rem;">' + items.map((t) => '<li style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;">' + siEsc(t) + '</li>').join('') + '</ul>';
 
   const fr = payload.data_freshness || {};
+  const conf = payload.data_confidence;
+  const confBadge = (conf != null)
+    ? '<span class="tag" style="font-size:.62rem;' + (conf >= 60 ? 'color:var(--green);border-color:var(--green);' : conf >= 35 ? 'color:var(--amber);border-color:var(--amber);' : 'color:var(--red);border-color:var(--red);') + '">🔒 Data confidence ' + conf + '%</span>'
+    : '';
+  const cmp = (payload.compared_with && payload.compared_with.length)
+    ? '<span class="tag" style="font-size:.62rem;">⚖️ Compared with ' + payload.compared_with.join(', ') + '</span>' : '';
+
+  const soundbites = (!b.media_soundbites || !b.media_soundbites.length) ? ''
+    : '<div class="card" style="margin-bottom:1rem;border-color:rgba(168,85,247,.35);">' +
+      '<div class="card-title" style="margin-bottom:0.55rem;">🎤 Media Soundbites <span class="tag" style="font-size:.58rem;color:#c084fc;border-color:#c084fc;">QUOTABLE</span></div>' +
+      b.media_soundbites.map((q) => '<div style="padding:.5rem .65rem;border-left:3px solid #a855f7;background:rgba(168,85,247,.07);border-radius:6px;margin-bottom:.4rem;font-size:.82rem;color:var(--text-primary);font-style:italic;line-height:1.5;">"' + siEsc(q) + '"</div>').join('') +
+      '</div>';
+
+  const whatsNew = (!b.whats_new_since_last || !b.whats_new_since_last.length) ? ''
+    : '<div class="card" style="margin-bottom:1rem;border-color:rgba(38,222,129,.3);">' +
+      '<div class="card-title" style="margin-bottom:0.5rem;">🆕 पिछली briefing से नया</div>' +
+      b.whats_new_since_last.map((t) => '<div style="font-size:.8rem;color:var(--text-secondary);line-height:1.5;padding:.25rem 0;">• ' + siEsc(t) + '</div>').join('') +
+      '</div>';
   const freshBadge = fr.last_updated
     ? '<span class="tag" style="font-size:.62rem;' + (fr.warning ? 'color:var(--amber);border-color:var(--amber);' : '') + '">🗓 Data as of ' + new Date(fr.last_updated).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) + (fr.warning ? ' ⚠️' : '') + '</span>'
     : '';
@@ -144,11 +166,20 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
         '<div style="font-size:.76rem;color:var(--text-secondary);line-height:1.5;">✅ <b>Factual context:</b> ' + siEsc(c.factual_context) + '</div></div>'
       ).join('');
 
-  const tp = (b.suggested_talking_points || []).map((t, i) =>
-    '<div style="display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .65rem;border-left:3px solid var(--gold);background:rgba(245,197,24,.08);border-radius:6px;margin-bottom:.4rem;">' +
-    '<b style="color:var(--gold);font-size:.85rem;min-width:1.3rem;">' + (i + 1) + '.</b>' +
-    '<span style="font-size:.82rem;color:var(--text-primary);line-height:1.5;">' + siEsc(t) + '</span></div>'
-  ).join('') || '<p style="font-size:.74rem;color:var(--text-muted);">—</p>';
+  const confChip = (c) => {
+    if (!c) return '';
+    const low = /low/i.test(c), med = /medium/i.test(c);
+    const color = low ? 'var(--red)' : med ? 'var(--amber)' : 'var(--green)';
+    return '<span class="tag" style="font-size:.56rem;color:' + color + ';border-color:' + color + ';flex-shrink:0;margin-top:.1rem;">' + siEsc(c) + (low ? ' ⚠' : '') + '</span>';
+  };
+  const tp = (b.suggested_talking_points || []).map((t, i) => {
+    const obj = typeof t === 'string' ? { point: t } : t || {};
+    return '<div style="display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .65rem;border-left:3px solid var(--gold);background:rgba(245,197,24,.08);border-radius:6px;margin-bottom:.4rem;">' +
+      '<b style="color:var(--gold);font-size:.85rem;min-width:1.3rem;">' + (i + 1) + '.</b>' +
+      '<div style="flex:1;"><div style="display:flex;gap:.4rem;align-items:flex-start;">' + confChip(obj.confidence) +
+      '<span style="font-size:.82rem;color:var(--text-primary);line-height:1.5;">' + siEsc(obj.point) + '</span></div>' +
+      (obj.source ? '<div style="font-size:.66rem;color:var(--text-muted);margin-top:.15rem;">📎 ' + siEsc(obj.source) + '</div>' : '') + '</div></div>';
+  }).join('') || '<p style="font-size:.74rem;color:var(--text-muted);">—</p>';
 
   el.style.display = 'block';
   el.innerHTML = `
@@ -163,6 +194,8 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
             <span class="tag" style="font-size:.62rem;">AI summary ${src.has_summary ? '✓' : '✗'}</span>
             <span class="tag" style="font-size:.62rem;">${src.opposition || 0} opposition</span>
             ${freshBadge}
+            ${confBadge}
+            ${cmp}
           </div>
           ${fr.warning ? '<div style="font-size:.7rem;color:var(--amber);margin-top:.3rem;">⚠️ ' + siEsc(fr.warning) + '</div>' : ''}
         </div>
@@ -174,11 +207,15 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
       </div>
     </div>
 
+    ${b.delivery_tone_guidance ? '<div class="card" style="margin-bottom:1rem;border-color:rgba(74,158,255,.3);"><div class="card-title" style="margin-bottom:0.5rem;">🗣 Delivery Style Guidance</div><p style="font-size:.8rem;color:var(--text-secondary);line-height:1.55;margin:0;">' + siEsc(b.delivery_tone_guidance) + '</p></div>' : ''}
+
     <div class="card" style="margin-bottom:1rem;border-color:rgba(245,197,24,.4);">
-      <div class="card-title" style="margin-bottom:0.65rem;">🎯 Suggested Talking Points <span class="tag tag-gold" style="font-size:.6rem;margin-left:.3rem;">TOP PRIORITY</span></div>
+      <div class="card-title" style="margin-bottom:0.65rem;">🎯 Suggested Talking Points <span class="tag tag-gold" style="font-size:.6rem;margin-left:.3rem;">TOP PRIORITY</span> <span style="font-size:.6rem;color:var(--text-muted);font-weight:500;margin-left:.3rem;">(High/Medium/Low = data confidence)</span></div>
       ${tp}
     </div>
 
+    ${soundbites}
+    ${whatsNew}
     ${avoid}
     ${qa}
 
@@ -200,8 +237,62 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
     </div>
 
     ${connect}
-    ${compare}`;
+    ${compare}
+
+    <div class="card" style="margin-top:1rem;border-color:rgba(38,222,129,.35);">
+      <div class="card-title" style="margin-bottom:0.55rem;">📝 Post-Event Feedback <span class="tag" style="font-size:.58rem;color:var(--green);border-color:var(--green);">LEARNING LOOP</span></div>
+      <div style="font-size:.7rem;color:var(--text-muted);margin-bottom:.6rem;">Speech ke baad bharna — agli briefing me iska learning use hota hai.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem;">
+        <div>
+          <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Media coverage tone</label>
+          <select class="select-dropdown" id="si-fb-tone" style="width:100%;"><option value="">—</option><option>Positive</option><option>Neutral</option><option>Negative</option></select>
+        </div>
+        <div>
+          <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Kya achha chala</label>
+          <input type="text" id="si-fb-worked" class="search-input" placeholder="jaise: local connect points ka impact" style="width:100%;" />
+        </div>
+      </div>
+      <div style="margin-bottom:.6rem;">
+        <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Kya achha NAHI chala</label>
+        <input type="text" id="si-fb-didnt" class="search-input" placeholder="jaise: employment ke aakde par sawal hua" style="width:100%;" />
+      </div>
+      <div style="margin-bottom:.7rem;">
+        <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Outcome notes</label>
+        <textarea id="si-fb-notes" class="search-input" rows="2" placeholder="Crowd response, media questions, kuch aur..." style="width:100%;"></textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="siSaveFeedback()">💾 Feedback Save Karo</button>
+      <div id="si-fb-status" style="font-size:.7rem;color:var(--text-muted);margin-top:.4rem;"></div>
+    </div>`;
   window.__siLastBrief = { district, event, audience, topic, brief: b, share_text: payload.share_text || null };
+}
+
+async function siSaveFeedback() {
+  const d = window.__siLastBrief;
+  const status = document.getElementById('si-fb-status');
+  if (!d || !d.saved_id) {
+    if (status) status.textContent = 'Ye brief DB me saved nahi hai — feedback save nahi ho sakti.';
+    return;
+  }
+  const body = {
+    id: d.saved_id,
+    media_coverage_tone: document.getElementById('si-fb-tone')?.value || '',
+    what_worked: document.getElementById('si-fb-worked')?.value || '',
+    what_didnt: document.getElementById('si-fb-didnt')?.value || '',
+    outcome_notes: document.getElementById('si-fb-notes')?.value || '',
+  };
+  if (!body.media_coverage_tone && !body.what_worked && !body.what_didnt && !body.outcome_notes) {
+    if (status) status.textContent = 'Kuch to bharna padega 🙂';
+    return;
+  }
+  if (status) { status.textContent = 'Saving…'; status.style.color = 'var(--text-muted)'; }
+  try {
+    const res = await fetch('/api/speech-brief', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const payload = await res.json();
+    if (payload.error) throw new Error(payload.error);
+    if (status) { status.textContent = '✅ Feedback save ho gayi — agli briefing me learning use hogi.'; status.style.color = 'var(--green)'; }
+  } catch (e) {
+    if (status) { status.textContent = '⚠ ' + e.message; status.style.color = 'var(--amber)'; }
+  }
 }
 
 function siCopyWhatsApp() {

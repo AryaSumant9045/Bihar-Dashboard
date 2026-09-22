@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0.75rem;margin-bottom:1rem;" class="si-form-grid">
       <div>
         <label style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;display:block;margin-bottom:0.35rem;">📍 District</label>
         <select class="select-dropdown" id="si-district-sel" style="width:100%;">
@@ -204,3 +204,8 @@
     <div id="si-detail" style="display:flex;flex-direction:column;gap:1rem;"></div>
   </div>
 </div>
+
+<style>
+  @media (max-width: 1100px) { .si-form-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+  @media (max-width: 700px)  { .si-form-grid { grid-template-columns: 1fr 1fr !important; } }
+</style>
