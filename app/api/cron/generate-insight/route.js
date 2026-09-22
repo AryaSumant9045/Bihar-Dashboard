@@ -330,6 +330,8 @@ async function handleCron(request) {
           model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
           retries: 1,
           maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
+          /* Gemini ka TPM bada hai — poora JSON (schema bada hai) banane ke liye chhut */
+          geminiMaxOutputTokens: Number(process.env.INSIGHT_GEMINI_MAX_OUTPUT_TOKENS) || 6000,
         });
         const candidate = extractJson(res.content);
         if (!candidate) throw new Error('model returned invalid JSON');
