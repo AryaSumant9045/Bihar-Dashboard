@@ -325,7 +325,7 @@ async function handlePipeline(request) {
 
       const { data: inserted, error } = await supabase
         .from('opposition_news')
-        .upsert(uniqueYt, { onConflict: 'opposition_news_heading_party_key', ignoreDuplicates: true })
+        .upsert(uniqueYt, { onConflict: 'heading,party', ignoreDuplicates: true })
         .select('id');
       
       if (error) { errors.push(`YT DB insert: ${error.message}`); dbError = error.message; }
@@ -348,7 +348,7 @@ async function handlePipeline(request) {
 
     const { data: inserted, error } = await supabase
       .from('opposition_news')
-      .upsert(uniqueRss, { onConflict: 'opposition_news_heading_party_key', ignoreDuplicates: true })
+      .upsert(uniqueRss, { onConflict: 'heading,party', ignoreDuplicates: true })
       .select('id');
     if (error) { errors.push(`RSS DB upsert: ${error.message}`); dbError = error.message; }
     else rssInserted = inserted?.length || 0;
