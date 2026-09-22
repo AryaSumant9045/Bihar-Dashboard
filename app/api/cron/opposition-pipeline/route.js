@@ -225,9 +225,15 @@ async function generateOppositionSummary(supabase, errors) {
   const userPrompt = `इन ${headlines.length} opposition headlines का विश्लेषण करें:\n\n` +
     headlines.map((h, i) => `${i + 1}. [${h.party}] ${h.heading}`).join('\n');
 
-  /* 2 attempts — quota/rate-limit bursts me ek retry se kaam ban jata hai */
+  /* 2 attempts — par route 60s limit ke andar rehna chahiye, isliye retry sirf tab
+     jab pehli koshish jaldi fail hui ho (< 30s). Warna Vercel par 504 aata hai. */
+  const summaryStartedAt = Date.now();
   let llmResult = null;
   for (let attempt = 0; attempt < 2 && !llmResult; attempt++) {
+    if (attempt > 0 && Date.now() - summaryStartedAt > 30000) {
+      errors.push('LLM retry skipped (time budget — 60s serverless limit)');
+      break;
+    }
     try {
       llmResult = await callLLMWithFallback(OPPOSITION_SYSTEM_PROMPT, userPrompt);
     } catch (err) {
