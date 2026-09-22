@@ -34,6 +34,96 @@ function toggleSIView() {
 }
 
 /* ── Brief Generator ──────────────────────────────────────── */
+/* ── Batch mode (multi-district tour) ─────────────────────────────────── */
+function siToggleBatch() {
+  const on = document.getElementById('si-batch-toggle')?.checked;
+  const wrap = document.getElementById('si-batch-wrap');
+  if (wrap) wrap.style.display = on ? 'block' : 'none';
+  const multi = document.getElementById('si-batch-districts');
+  const single = document.getElementById('si-district-sel');
+  if (on && multi && !multi.options.length && single) {
+    multi.innerHTML = [...single.options].filter((o) => o.value).map((o) => '<option>' + o.textContent + '</option>').join('');
+  }
+  const btn = document.getElementById('si-generate-btn');
+  if (btn) btn.textContent = on ? '⚡ Generate Batch Briefings' : '⚡ Generate Intelligence Brief';
+}
+
+function siBriefCompact(district, payload) {
+  const b = payload.brief || {};
+  const tp = (b.suggested_talking_points || []).map((t, i) => {
+    const o = typeof t === 'string' ? { point: t } : (t || {});
+    const c = o.confidence ? ' <span style="font-size:.6rem;color:' + (/low/i.test(o.confidence) ? 'var(--red)' : /medium/i.test(o.confidence) ? 'var(--amber)' : 'var(--green)') + ';">[' + siEsc(o.confidence) + ']</span>' : '';
+    return '<div style="font-size:.78rem;color:var(--text-secondary);line-height:1.5;padding:.2rem 0;">' + (i + 1) + '. ' + siEsc(o.point) + c + '</div>';
+  }).join('');
+  const sb = (b.media_soundbites || []).map((q) => '<div style="font-size:.76rem;color:var(--text-secondary);font-style:italic;padding:.15rem 0;">"' + siEsc(q) + '"</div>').join('');
+  const dz = (b.avoid_mentioning || []).map((a) => '<div style="font-size:.74rem;color:var(--red);padding:.1rem 0;">⛔ ' + siEsc(a.topic) + '</div>').join('');
+  return '<div class="card" style="margin-bottom:.8rem;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.45rem;">' +
+    '<b style="font-size:.9rem;color:var(--text-primary);">📍 ' + siEsc(district) + '</b>' +
+    '<span style="font-size:.62rem;color:var(--text-muted);">confidence ' + (payload.data_confidence ?? '—') + '% · ' + siEsc((payload.sources || {}).news || 0) + ' news</span></div>' +
+    '<div style="font-size:.66rem;color:var(--gold);font-weight:700;margin-bottom:.25rem;">🎯 TALKING POINTS</div>' + (tp || '<div style="font-size:.74rem;color:var(--text-muted);">—</div>') +
+    (sb ? '<div style="font-size:.66rem;color:#c084fc;font-weight:700;margin:.4rem 0 .2rem;">🎤 SOUNDBITES</div>' + sb : '') +
+    (dz ? '<div style="font-size:.66rem;color:var(--red);font-weight:700;margin:.4rem 0 .2rem;">⛔ DANGER ZONE</div>' + dz : '') +
+    '<button class="btn btn-ghost btn-sm" style="width:100%;margin-top:.5rem;font-size:.66rem;" onclick="siShowSingle(' + siEsc(JSON.stringify(district)) + ')">👁 Full brief</button>' +
+    '</div>';
+}
+
+async function generateBatchBriefs(districts, event, audience, topic, tone, duration) {
+  const out = document.getElementById('si-brief-output');
+  const btn = document.getElementById('si-generate-btn');
+  const results = [];
+  if (btn) btn.disabled = true;
+  for (let i = 0; i < districts.length; i++) {
+    if (out) out.innerHTML = '<div class="card" style="padding:1.2rem;"><div class="empty-state"><div class="spinner"></div><p class="empty-state-text">' + (i + 1) + '/' + districts.length + ' — ' + siEsc(districts[i]) + ' ki briefing ban rahi hai…</p></div></div>';
+    try {
+      const res = await fetch('/api/speech-brief', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ district: districts[i], event_type: event, audience, topic, tone, duration }),
+      });
+      const payload = await res.json();
+      if (payload.status === 'success') results.push({ district: districts[i], payload });
+      else results.push({ district: districts[i], error: (payload.errors || []).join(' | ') || 'failed' });
+    } catch (e) { results.push({ district: districts[i], error: e.message }); }
+  }
+  if (btn) btn.disabled = false;
+
+  const ok = results.filter((r) => r.payload);
+  if (out) {
+    out.style.display = 'block';
+    out.innerHTML = '<div class="card card-gold" style="margin-bottom:1rem;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;">' +
+      '<div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;">Batch Briefings</div>' +
+      '<div style="font-size:1rem;font-weight:800;color:var(--text-primary);">📋 ' + ok.length + '/' + results.length + ' districts · ' + siEsc(event) + ' · ' + siEsc(topic) + '</div>' +
+      '<div style="font-size:.7rem;color:var(--text-muted);margin-top:.15rem;">👥 ' + siEsc(audience) + ' · 🎨 ' + siEsc(tone) + ' · ⏱ ' + siEsc(duration) + '</div></div>' +
+      (ok.length ? '<button class="btn btn-primary btn-sm" onclick="siCopyBatch()">📲 Copy All (WhatsApp)</button>' : '') +
+      '</div></div>' +
+      results.map((r) => r.payload ? siBriefCompact(r.district, r.payload) : '<div class="card" style="margin-bottom:.6rem;border-color:rgba(230,57,70,.35);"><b>' + siEsc(r.district) + '</b><div style="font-size:.74rem;color:var(--red);margin-top:.2rem;">⚠ ' + siEsc(r.error) + '</div></div>').join('');
+  }
+  window.__siBatch = ok;
+}
+
+function siCopyBatch() {
+  const items = window.__siBatch || [];
+  if (!items.length) return;
+  const text = items.map((it) => it.payload.share_text || '').join('\n\n════════════════════\n\n');
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('Batch copied', items.length + ' districts ki briefings WhatsApp text me copy ho gayi', 'success'))
+    .catch(() => showToast('Copy failed', 'Manual select karke copy karo', 'warning'));
+}
+
+function siShowSingle(districtName) {
+  const it = (window.__siBatch || []).find((x) => x.district === districtName);
+  if (!it) return;
+  const p = it.payload;
+  renderGeneratedBrief(p.district, p.event_type, p.audience, p.topic, p);
+  const out = document.getElementById('si-brief-output');
+  if (out) out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+window.siToggleBatch = siToggleBatch;
+window.siCopyBatch = siCopyBatch;
+window.siShowSingle = siShowSingle;
+
 function siToggleCustomEvent() {
   const sel = document.getElementById('si-event-sel');
   const custom = document.getElementById('si-event-custom');
@@ -42,6 +132,7 @@ function siToggleCustomEvent() {
 }
 
 async function generateSpeechBrief() {
+  const batchOn = document.getElementById('si-batch-toggle')?.checked;
   const district = document.getElementById('si-district-sel')?.value;
   const eventSel = document.getElementById('si-event-sel')?.value;
   const eventCustom = document.getElementById('si-event-custom')?.value?.trim();
@@ -49,8 +140,24 @@ async function generateSpeechBrief() {
   const audience = document.getElementById('si-audience-sel')?.value;
   const topic = document.getElementById('si-topic-input')?.value?.trim();
 
-  if (!district || !event || !audience || !topic) {
-    showToast('Incomplete', 'District, Event, Audience aur Topic — chaaro bharna zaroori hai', 'warning');
+  if (!event || !audience || !topic) {
+    showToast('Incomplete', 'Event, Audience aur Topic — teeno bharna zaroori hai', 'warning');
+    return;
+  }
+
+  const tone = document.getElementById('si-tone-sel')?.value || 'Balanced (Vikas-focused)';
+  const duration = document.getElementById('si-duration-sel')?.value || '10 min';
+
+  if (batchOn) {
+    const picks = [...(document.getElementById('si-batch-districts')?.selectedOptions || [])].map((o) => o.value).slice(0, 5);
+    if (picks.length < 2) { showToast('Batch mode', 'Kam se kam 2 districts select karo (max 5)', 'warning'); return; }
+    await generateBatchBriefs(picks, event, audience, topic, tone, duration);
+    siLoadPastBriefs(true);
+    return;
+  }
+
+  if (!district) {
+    showToast('Incomplete', 'District select karo (ya Batch mode on karo)', 'warning');
     return;
   }
 
