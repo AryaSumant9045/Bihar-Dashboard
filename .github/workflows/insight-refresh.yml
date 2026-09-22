@@ -3,11 +3,13 @@ name: Insight Refresh (War Room AI summary)
 # War Room ka "Today AI Intelligence Insights" panel /api/cron/generate-insight se
 # bharta hai. Ye route LLM call karta hai (7-20s), isliye Vercel Hobby ke daily cron
 # se kaafi kam chalta tha aur 504 (FUNCTION_INVOCATION_TIMEOUT) de raha tha.
-# Ab ye workflow har 15 min me ek bounded call karta hai — insight taaza rehta hai.
+# Ab ye workflow har 30 min me ek bounded call karta hai — insight taaza rehta hai.
+# (15 min chahiye to cron '*/15 * * * *' kar do, par Groq free tier par quota jaldi
+#  khatam hota hai — quota bacha rakhne ke liye 30 min safe hai.)
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:

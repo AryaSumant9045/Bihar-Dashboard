@@ -13,8 +13,10 @@ const TIME_BUDGET_MS = Number(process.env.INSIGHT_TIME_BUDGET_MS) || 45000;
 const MAX_ITEMS_PER_FEED = 40;
 /* Groq free tier: 8000 TPM (prompt + max_tokens dono ginte hain) — isliye
    headlines aur output tokens dono cap karte hain, warna 413 aata hai. */
-const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 40;
-const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 2500;
+const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 30;
+const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 3500;
+/* Attempt 2 me headlines kam kar dete hain — chhote prompt se pura JSON aata hai */
+const RETRY_HEADLINE_STEPS = [MAX_HEADLINES_LLM, 18];
 
 const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
 
@@ -300,7 +302,7 @@ async function handleCron(request) {
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
 
     // Free-model token discipline: cap headlines sent for analysis
-    const analysisNews = uiNews.slice(0, Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM));
+    let analysisNews = uiNews.slice(0, Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM));
 
     const headlinesText = analysisNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
     const userContent = `${prevCycleContext}## इस Cycle की ${analysisNews.length} News Headlines:\n\n${headlinesText}`;
@@ -312,13 +314,19 @@ async function handleCron(request) {
     const deadlineMs = Date.now() + TIME_BUDGET_MS;
     let parsedJson = null;
     let aiProvider = 'groq';
-    const analyzedCount = analysisNews.length;
+    let analyzedCount = analysisNews.length;
     const llmErrors = [];
+    let llmUsage = null;
 
-    for (let attempt = 1; attempt <= 2 && !parsedJson; attempt++) {
+    for (let attempt = 0; attempt < RETRY_HEADLINE_STEPS.length && !parsedJson; attempt++) {
       if (Date.now() > deadlineMs) { llmErrors.push('time budget exceeded'); break; }
+      /* attempt 2 me kam headlines → chhota prompt → pura JSON fit ho jata hai */
+      const cap = Math.min(RETRY_HEADLINE_STEPS[attempt], analysisNews.length);
+      const batch = analysisNews.slice(0, cap);
+      const headlinesText = batch.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
+      const attemptContent = `${prevCycleContext}## इस Cycle की ${batch.length} News Headlines:\n\n${headlinesText}`;
       try {
-        const res = await callLLMQuick(SYSTEM_PROMPT, userContent, {
+        const res = await callLLMQuick(SYSTEM_PROMPT, attemptContent, {
           prefer: 'groq',
           model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
           retries: 1,
@@ -329,9 +337,17 @@ async function handleCron(request) {
         if (!isCompleteInsight(candidate)) throw new Error('JSON missing required sections');
         parsedJson = candidate;
         aiProvider = res.provider;
+        analyzedCount = batch.length;
+        llmUsage = { input_tokens: res.inputTokens, output_tokens: res.outputTokens };
       } catch (error) {
-        llmErrors.push(`attempt ${attempt}: ${String(error.message).slice(0, 120)}`);
-        console.warn(`[INSIGHT] LLM attempt ${attempt} failed: ${String(error.message).slice(0, 140)}`);
+        const msg = String(error.message);
+        llmErrors.push(`attempt ${attempt + 1} (${batch.length} headlines): ${msg.slice(0, 120)}`);
+        console.warn(`[INSIGHT] LLM attempt ${attempt + 1} failed: ${msg.slice(0, 140)}`);
+        /* Quota khatam (lamba retry-after) — dobara koshish bekaar hai, turant niklo */
+        if (/retry-after=(\d{3,})/.test(msg) || /quota/i.test(msg)) {
+          llmErrors.push('quota exhausted — next scheduled run me phir try hoga');
+          break;
+        }
       }
     }
 
@@ -379,6 +395,7 @@ async function handleCron(request) {
       inserted_articles: insertedCount,
       headlines_analyzed: analyzedCount,
       provider: aiProvider,
+      usage: llmUsage,
       elapsed_ms: Date.now() - (deadlineMs - TIME_BUDGET_MS),
       insight_generated: true,
     });
