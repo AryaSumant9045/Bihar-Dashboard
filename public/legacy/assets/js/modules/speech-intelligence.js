@@ -8,7 +8,6 @@ let siShowingLibrary = false;
 function initSpeechIntelligence() {
   siLoadStats();
   siLoadPastBriefs();
-  siLoadAskPanel();
   renderRecentCards();
   siRenderLibrary();
   siLibrarySelect(0);
@@ -99,8 +98,7 @@ function toggleSIView() {
     builder.style.display = 'none';
     library.style.display = 'block';
     if (btn) btn.textContent = '⚡ Brief Builder';
-    renderSpeechList(SPEECHES_DATA);
-    renderSpeechDetail(SPEECHES_DATA[0]);
+    siRenderLibrary();
   } else {
     builder.style.display = 'block';
     library.style.display = 'none';
@@ -537,27 +535,24 @@ function printBrief() {
 }
 
 /* ── Recent Cards (Brief Builder view) ───────────────────── */
-function renderRecentCards() {
+async function renderRecentCards() {
   const el = document.getElementById('si-recent-cards');
   if (!el) return;
-  const intensityColor = i => i >= 80 ? 'var(--red)' : i >= 60 ? 'var(--amber)' : 'var(--green)';
-  el.innerHTML = SPEECHES_DATA.map((s,i)=>`
-    <div class="card card-shine" style="cursor:pointer;animation:slideInUp 0.3s ease both;animation-delay:${i*0.07}s;" onclick="switchToLibrary(${s.id})">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;">
-        <span class="leader-party-badge party-${s.party.toLowerCase().replace(' ','-')}">${s.party}</span>
-        <span class="sentiment-badge sentiment-${s.sentiment}" style="font-size:0.62rem;">${s.sentiment}</span>
-      </div>
-      <div style="font-size:0.88rem;font-weight:600;color:var(--text-primary);margin-bottom:0.25rem;line-height:1.3;">${s.title}</div>
-      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:0.5rem;">${s.speaker} • ${s.date} • ${s.duration}</div>
-      <div class="progress-bar" style="height:4px;margin-bottom:0.3rem;">
-        <div class="progress-fill" style="width:${s.intensity}%;background:${intensityColor(s.intensity)};"></div>
-      </div>
-      <div style="font-size:0.68rem;color:${intensityColor(s.intensity)};">Intensity: ${s.intensity}/100</div>
-      <div style="display:flex;flex-wrap:wrap;gap:0.3rem;margin-top:0.5rem;">
-        ${s.topics.slice(0,3).map(t=>`<span class="tag" style="font-size:0.62rem;">${t}</span>`).join('')}
-      </div>
-    </div>
-  `).join('');
+  try {
+    const res = await fetch('/api/speech-brief?limit=3', { cache: 'no-store' });
+    const j = await res.json();
+    const items = j.items || [];
+    if (!items.length) {
+      el.innerHTML = '<div class="card" style="padding:1rem;grid-column:1/-1;"><div class="empty-state"><div class="empty-state-icon">🎙</div><p class="empty-state-text">Abhi koi AI briefing nahi — upar form se pehli briefing generate karo.</p></div></div>';
+      return;
+    }
+    el.innerHTML = items.map((it) => '<div class="card card-shine" style="border-left:3px solid var(--gold);">' +
+      '<div style="font-size:.62rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;">' + (it.created_at ? new Date(it.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
+      '<div style="font-size:.9rem;font-weight:700;color:var(--text-primary);margin:.25rem 0;">📍 ' + siEsc(it.district) + '</div>' +
+      '<div style="font-size:.72rem;color:var(--text-secondary);">' + siEsc(it.event_type) + ' · ' + siEsc(it.audience) + '</div>' +
+      '<div style="font-size:.72rem;color:var(--gold);margin-top:.2rem;">📌 ' + siEsc(it.topic) + '</div>' +
+      '<div style="font-size:.68rem;color:var(--text-muted);margin-top:.35rem;">🎯 ' + ((it.suggested_talking_points || []).length) + ' talking points</div></div>').join('');
+  } catch (e) { el.innerHTML = '<div style="font-size:.74rem;color:var(--text-muted);">Recent briefs load nahi hui.</div>'; }
 }
 
 function switchToLibrary(id) {
