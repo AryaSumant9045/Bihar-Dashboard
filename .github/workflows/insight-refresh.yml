@@ -1,0 +1,34 @@
+name: Insight Refresh (War Room AI summary)
+
+# War Room ka "Today AI Intelligence Insights" panel /api/cron/generate-insight se
+# bharta hai. Ye route LLM call karta hai (7-20s), isliye Vercel Hobby ke daily cron
+# se kaafi kam chalta tha aur 504 (FUNCTION_INVOCATION_TIMEOUT) de raha tha.
+# Ab ye workflow har 15 min me ek bounded call karta hai — insight taaza rehta hai.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger insight generation
+        env:
+          APP_URL: ${{ vars.APP_URL || 'https://bihar-dashboard-ojls.vercel.app' }}
+        run: |
+          url="$APP_URL/api/cron/generate-insight?secret=*** secrets.CRON_SECRET }}"
+          for attempt in 1 2 3; do
+            echo "::group::attempt $attempt"
+            if curl -sf --max-time 90 "$url"; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "attempt $attempt failed, retrying in 20s"
+            sleep 20
+          done
+          echo "::warning::insight refresh failed after 3 attempts"
+          exit 0

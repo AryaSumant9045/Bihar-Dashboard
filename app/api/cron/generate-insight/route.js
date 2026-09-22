@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import Parser from 'rss-parser';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenAI } from '@google/genai';
+import { callLLMQuick } from '../../../../lib/llm-providers.js';
 
 export const maxDuration = 60; // Allow up to 60 seconds for this function on Vercel
 export const dynamic = 'force-dynamic';
+
+/* Poora cycle is budget ke andar khatam karna hai, warna Vercel 504 de deta hai.
+   (Pehle ye route 100s+ le raha tha: har headline par select+insert + rate-limited
+   Groq model + bina timeout ke SDK calls.) */
+const TIME_BUDGET_MS = Number(process.env.INSIGHT_TIME_BUDGET_MS) || 45000;
+const MAX_ITEMS_PER_FEED = 40;
+/* Groq free tier: 8000 TPM (prompt + max_tokens dono ginte hain) — isliye
+   headlines aur output tokens dono cap karte hain, warna 413 aata hai. */
+const MAX_HEADLINES_LLM = Number(process.env.INSIGHT_MAX_HEADLINES) || 40;
+const MAX_OUTPUT_TOKENS_LLM = Number(process.env.INSIGHT_MAX_OUTPUT_TOKENS) || 2500;
 
 const SYSTEM_PROMPT = `आप BJP Bihar War Room के लिए एक Senior Political Intelligence Analyst AI हैं।
 
@@ -186,44 +196,54 @@ async function handleCron(request) {
     if (!supabaseUrl || !supabaseKey) throw new Error("Supabase credentials missing");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 3. Fetch RSS Feeds
-    const parser = new Parser();
+    // 3. Fetch RSS Feeds — parser timeout + parallel fetch + bulk DB write
+    const parser = new Parser({ timeout: 8000 });
     const feedSources = [
       { name: "Google News", url: process.env.GOOGLE_NEWS_RSS_URL },
       { name: "Dainik Bhaskar", url: process.env.BHASKAR_BIHAR_RSS_URL },
       { name: "Live Hindustan", url: process.env.HINDUSTAN_BIHAR_RSS_URL },
     ];
 
-    let insertedCount = 0;
-    
-    for (const source of feedSources) {
-      if (!source.url) continue;
-      try {
+    const feedResults = await Promise.allSettled(
+      feedSources.filter((source) => source.url).map(async (source) => {
         const feed = await parser.parseURL(source.url);
-        for (const item of feed.items) {
-          if (!item.title) continue;
-          
-          // Check if exists
-          const { data: existing } = await supabase
-            .from('bihar_news')
-            .select('id')
-            .eq('heading', item.title.trim())
-            .limit(1);
-
-          if (!existing || existing.length === 0) {
-            await supabase.from('bihar_news').insert({
+        return {
+          source,
+          items: (feed.items || [])
+            .filter((item) => item.title)
+            .slice(0, MAX_ITEMS_PER_FEED)
+            .map((item) => ({
               heading: item.title.trim(),
-              content: item.contentSnippet || item.content || item.summary || '',
-              district: source.name
-            });
-            insertedCount++;
-          }
-        }
-      } catch (err) {
-        console.error(`Error fetching RSS ${source.name}:`, err.message);
+              content: (item.contentSnippet || item.content || item.summary || '').slice(0, 1000),
+              district: source.name,
+            })),
+        };
+      })
+    );
+
+    const freshRows = [];
+    feedResults.forEach((r) => {
+      if (r.status === 'fulfilled') freshRows.push(...r.value.items);
+      else console.warn(`[INSIGHT] feed failed: ${String(r.reason?.message || r.reason).slice(0, 90)}`);
+    });
+
+    let insertedCount = 0;
+    if (freshRows.length) {
+      const uniqueRows = [...new Map(freshRows.map((r) => [r.heading, r])).values()];
+      const titles = uniqueRows.map((r) => r.heading);
+      const existing = new Set();
+      for (let i = 0; i < titles.length; i += 100) {
+        const { data } = await supabase.from('bihar_news').select('heading').in('heading', titles.slice(i, i + 100));
+        (data || []).forEach((row) => existing.add(row.heading));
+      }
+      const rows = uniqueRows.filter((r) => !existing.has(r.heading));
+      if (rows.length) {
+        const { data, error } = await supabase.from('bihar_news').insert(rows).select('id');
+        if (error) console.error('[INSIGHT] bulk insert failed:', error.message);
+        insertedCount = (data || []).length;
       }
     }
-    
+
     console.log(`[DB] ${insertedCount} new articles fetched and saved.`);
 
     // 4. Fetch last insight — used both for timing check AND as previous-cycle context
@@ -280,85 +300,50 @@ async function handleCron(request) {
     console.log("[GEMINI] Analyzing UI Rendered News via Gemini AI...");
 
     // Free-model token discipline: cap headlines sent for analysis
-    const analysisNews = uiNews.slice(0, MAX_HEADLINES_PRIMARY);
+    const analysisNews = uiNews.slice(0, Math.min(MAX_HEADLINES_PRIMARY, MAX_HEADLINES_LLM));
 
     const headlinesText = analysisNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
     const userContent = `${prevCycleContext}## इस Cycle की ${analysisNews.length} News Headlines:\n\n${headlinesText}`;
     const prompt = `${SYSTEM_PROMPT}\n\n${userContent}`;
 
+    /* 6b. LLM — hardened chain: Groq-first (fast model) + retries + time budget.
+       Pehla ad-hoc chain Groq ke slow/rate-limited model par girta tha aur
+       PlugSky 500 deta tha → poora request 100s+ chalta tha → Vercel 504. */
+    const deadlineMs = Date.now() + TIME_BUDGET_MS;
     let parsedJson = null;
-    let aiProvider = 'gemini';
-    let analyzedCount = analysisNews.length;
+    let aiProvider = 'groq';
+    const analyzedCount = analysisNews.length;
+    const llmErrors = [];
 
-    try {
-      const aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await aiClient.models.generateContent({
-        model: process.env.GEMINI_API_MODEL || 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-          temperature: 0.3,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      });
-      parsedJson = extractJson(response.text);
-      if (!parsedJson) throw new Error("Gemini returned invalid JSON");
-      if (!isCompleteInsight(parsedJson)) throw new Error("Gemini JSON missing required sections");
-      console.log("[GEMINI] Analysis completed successfully!");
-    } catch (geminiError) {
-      console.warn(`[GEMINI ERROR] ${geminiError.message}. Falling back to Groq...`);
+    for (let attempt = 1; attempt <= 2 && !parsedJson; attempt++) {
+      if (Date.now() > deadlineMs) { llmErrors.push('time budget exceeded'); break; }
       try {
-        const { Groq } = await import('groq-sdk');
-        const groqClient = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-        // Groq free tier ~6000 TPM — keep input+output well under it
-        const safeGroqNews = uiNews.slice(0, MAX_HEADLINES_GROQ);
-        const groqText = safeGroqNews.map(n => `- [${n.district || 'General'}] ${n.heading}`).join('\n');
-        const groqContent = `${prevCycleContext}## इस Cycle की ${safeGroqNews.length} News Headlines:\n\n${groqText}`;
-        const groqPrompt = `${SYSTEM_PROMPT}\n\n${groqContent}`;
-
-        const groqResponse = await groqClient.chat.completions.create({
-          messages: [{ role: 'user', content: groqPrompt }],
-          model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-          temperature: 0.3,
-          max_tokens: 4000,
-          response_format: { type: 'json_object' }
+        const res = await callLLMQuick(SYSTEM_PROMPT, userContent, {
+          prefer: 'groq',
+          model: process.env.INSIGHT_LLM_MODEL || 'openai/gpt-oss-20b',
+          retries: 1,
+          maxOutputTokens: MAX_OUTPUT_TOKENS_LLM,
         });
-        parsedJson = extractJson(groqResponse.choices[0].message.content);
-        if (!parsedJson) throw new Error("Groq returned invalid JSON");
-        if (!isCompleteInsight(parsedJson)) throw new Error("Groq JSON missing required sections");
-        aiProvider = 'groq';
-        analyzedCount = safeGroqNews.length;
-        console.log(`[GROQ] Analysis completed successfully for ${safeGroqNews.length} items via fallback!`);
-      } catch (groqError) {
-        console.error(`[GROQ ERROR] ${groqError.message}. Falling back to PlugSky...`);
-        try {
-          const plugskyRes = await fetch(`${process.env.PLUGSKY_API_URL || 'https://api.plugsky.com/v1'}/chat/completions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${process.env.PLUGSKY_API_KEY}`
-            },
-            body: JSON.stringify({
-              model: process.env.PLUGSKY_MODEL || 'plugsky-micro',
-              messages: [{ role: 'user', content: prompt }],
-              temperature: 0.3,
-              max_tokens: 4000,
-              response_format: { type: 'json_object' }
-            })
-          });
-          const plugskyData = await plugskyRes.json();
-          parsedJson = extractJson(plugskyData?.choices?.[0]?.message?.content || '');
-          if (!parsedJson) throw new Error("PlugSky returned invalid JSON");
-          if (!isCompleteInsight(parsedJson)) throw new Error("PlugSky JSON missing required sections");
-          aiProvider = 'plugsky';
-          console.log("[PLUGSKY] Analysis completed successfully via fallback!");
-        } catch (plugskyError) {
-          console.error(`[PLUGSKY ERROR] ${plugskyError.message}. No more fallbacks.`);
-          throw new Error("All AI engines (Gemini, Groq, PlugSky) failed to analyze the news.");
-        }
+        const candidate = extractJson(res.content);
+        if (!candidate) throw new Error('model returned invalid JSON');
+        if (!isCompleteInsight(candidate)) throw new Error('JSON missing required sections');
+        parsedJson = candidate;
+        aiProvider = res.provider;
+      } catch (error) {
+        llmErrors.push(`attempt ${attempt}: ${String(error.message).slice(0, 120)}`);
+        console.warn(`[INSIGHT] LLM attempt ${attempt} failed: ${String(error.message).slice(0, 140)}`);
       }
+    }
+
+    if (!parsedJson) {
+      console.error('[INSIGHT] LLM chain failed:', llmErrors.join(' | '));
+      return NextResponse.json({
+        status: 'llm_failed',
+        inserted_articles: insertedCount,
+        headlines_available: analyzedCount,
+        errors: llmErrors,
+        hint: 'Groq/LLM call fail hui — quota/rate-limit check karo (INSIGHT_LLM_MODEL).',
+      }, { status: 200 });
     }
 
     // 7. Save insight to Supabase
@@ -389,10 +374,13 @@ async function handleCron(request) {
 
     console.log("[DB] Structured insight saved to news_insights table!");
 
-    return NextResponse.json({ 
-      status: 'success', 
+    return NextResponse.json({
+      status: 'success',
       inserted_articles: insertedCount,
-      insight_generated: true 
+      headlines_analyzed: analyzedCount,
+      provider: aiProvider,
+      elapsed_ms: Date.now() - (deadlineMs - TIME_BUDGET_MS),
+      insight_generated: true,
     });
 
   } catch (err) {
