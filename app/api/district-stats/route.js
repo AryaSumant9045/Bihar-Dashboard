@@ -38,14 +38,39 @@ export async function GET() {
           .select('id', { count: 'exact', head: true });
         const summary = await supabase
           .from(districtSummaryTable(d.slug))
-          .select('created_at, news_count')
+          .select('created_at, news_count, political_risks, overall_situation')
           .order('created_at', { ascending: false })
           .limit(1);
+        const titles = await supabase
+          .from(districtNewsTable(d.slug))
+          .select('heading, published_at')
+          .order('published_at', { ascending: false })
+          .limit(3);
+
+        /* Risk level: latest summary ke political_risks me sabse ऊँचा level */
+        const risks = (summary.data?.[0]?.political_risks || []).filter(Boolean);
+        const rank = { critical: 4, high: 3, medium: 2, low: 1 };
+        let riskLevel = 'clear';
+        for (const r of risks) {
+          const lvl = String(r?.risk_level || '').toLowerCase();
+          if ((rank[lvl] || 0) > (rank[riskLevel] || 0)) riskLevel = lvl;
+        }
+        if (!risks.length && summary.data?.[0]) riskLevel = 'watch';
+
         return {
           slug: d.slug,
           articles: news.error ? 0 : news.count || 0,
           analysed: summary.error ? 0 : (summary.data?.[0]?.news_count || 0),
           last_summary_at: summary.error ? null : (summary.data?.[0]?.created_at || null),
+          risk_level: riskLevel,
+          risk_counts: {
+            critical: risks.filter((r) => /critical/i.test(r?.risk_level || '')).length,
+            high: risks.filter((r) => /high/i.test(r?.risk_level || '')).length,
+            medium: risks.filter((r) => /medium/i.test(r?.risk_level || '')).length,
+            low: risks.filter((r) => /low/i.test(r?.risk_level || '')).length,
+          },
+          risk_issues: risks.slice(0, 3).map((r) => r?.issue || '').filter(Boolean),
+          top_titles: (titles.data || []).map((t) => t.heading),
         };
       })
     );
@@ -66,6 +91,10 @@ export async function GET() {
         articles: s.articles,
         analysed: s.analysed,
         last_summary_at: s.last_summary_at,
+        risk_level: s.risk_level || 'clear',
+        risk_counts: s.risk_counts || { critical: 0, high: 0, medium: 0, low: 0 },
+        risk_issues: s.risk_issues || [],
+        top_titles: s.top_titles || [],
       };
     });
 
