@@ -30,6 +30,49 @@ const X_ACCOUNTS = [
   { handle: 'yadavtejashwi',   table: 'xtejwaniyd' },
 ];
 
+/* Har table ke liye fallback search query — RSSHub (X) fail/thanda ho to
+   Google News RSS se us party ki fresh khabar same table me daal dete hain. */
+const FALLBACK_QUERY = {
+  xjansuraaj:   'जन सुराज बिहार',
+  xinc:         'बिहार कांग्रेस',
+  xrahulgandi:  'राहुल गांधी बिहार',
+  xrjd:         'राजद बिहार',
+  xtejwaniyd:   'तेजस्वी यादव',
+};
+
+function parseItemsFromXml(xml) {
+  const out = [];
+  const re = /<item[\s>]([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = re.exec(xml))) {
+    const b = m[1];
+    const grab = (tag) => {
+      const r = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`);
+      const mm = b.match(r);
+      return mm ? mm[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : '';
+    };
+    const title = grab('title');
+    const link = grab('link');
+    if (title && link) out.push({ title, link, pubDate: grab('pubDate') });
+  }
+  return out;
+}
+
+async function googleNewsFallback(table, limit = 15) {
+  const q = FALLBACK_QUERY[table];
+  if (!q) return [];
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=hi-IN&gl=IN&ceid=IN:hi`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BiharDashboardBot/1.0)' }, signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`google-news HTTP ${res.status}`);
+  const xml = await res.text();
+  return parseItemsFromXml(xml).slice(0, limit).map((it) => ({
+    handle: `${table.replace(/^x/, '')}-news`,
+    heading: String(it.title).slice(0, 500),
+    url: it.link,
+    published_at: (() => { const t = Date.parse(it.pubDate); return isNaN(t) ? null : new Date(t).toISOString(); })(),
+  }));
+}
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -98,8 +141,27 @@ async function fetchOneAccount(handle, table, supabase, errors) {
       console.log(`[X-Social] @${handle}: got ${items.length} feed entries`);
 
       if (!items.length) {
-        return { handle, success: true, inserted: 0, note: 'empty feed' };
+        /* X feed khaali (RSSHub degraded) → Google News se fresh khabar same table me */
+        let fbInserted = 0;
+        let fbNote = 'empty feed';
+        try {
+          const fbRows = await googleNewsFallback(table);
+          if (fbRows.length) {
+            const { data: fbData, error: fbErr } = await supabase
+              .from(table)
+              .upsert(fbRows, { onConflict: 'handle,heading', ignoreDuplicates: true })
+              .select('id');
+            if (fbErr) fbNote = 'empty feed + news fallback error: ' + fbErr.message.slice(0, 60);
+            else { fbInserted = fbData?.length || 0; fbNote = `empty feed → news fallback (${fbInserted} new)`; }
+          }
+        } catch (e) { fbNote = 'empty feed + fallback failed: ' + String(e.message).slice(0, 60); }
+        return { handle, table, success: true, inserted: fbInserted, note: fbNote, source: 'google-news' };
       }
+
+      /* Feed items bhale hi aayein, par purane (stale) ho sakte hain — us case me bhi
+         news fallback chalate hain taaki table me fresh content rahe. */
+      const newestMs = Math.max(0, ...items.map((i) => Date.parse(i.isoDate || i.pubDate || '') || 0));
+      const staleFeed = newestMs > 0 && (Date.now() - newestMs) > 3 * 86400000;
 
       const rows = items.slice(0, 20).map(item => ({
         handle,
@@ -122,9 +184,21 @@ async function fetchOneAccount(handle, table, supabase, errors) {
         throw new Error(`Supabase upsert error: ${error.message}`);
       }
 
-      const inserted = data?.length || 0;
-      console.log(`[X-Social] @${handle} → ${table}: ${inserted} new rows`);
-      return { handle, table, success: true, inserted, total_fetched: rows.length };
+      let inserted = data?.length || 0;
+      let note = staleFeed ? 'feed stale (>3 din purana)' : undefined;
+      /* Stale feed + news fallback se fresh content bhi add karo */
+      if (staleFeed) {
+        try {
+          const fbRows = await googleNewsFallback(table);
+          if (fbRows.length) {
+            const { data: fbData } = await supabase.from(table).upsert(fbRows, { onConflict: 'handle,heading', ignoreDuplicates: true }).select('id');
+            inserted += fbData?.length || 0;
+            note = `feed stale → +${fbData?.length || 0} news`;
+          }
+        } catch (e) { note = 'feed stale, fallback failed'; }
+      }
+      console.log(`[X-Social] @${handle} → ${table}: ${inserted} new rows${note ? ' (' + note + ')' : ''}`);
+      return { handle, table, success: true, inserted, total_fetched: rows.length, note, newest_feed_item: newestMs ? new Date(newestMs).toISOString() : null };
 
     } catch (err) {
       lastError = err;
