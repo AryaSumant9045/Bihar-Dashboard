@@ -444,3 +444,21 @@ Note: `?fallback=0` / `?google=0` se tier 3/4 band kar sakte ho.
 | `DISTRICT_LLM_RETRIES` | `3` | Groq attempts per district |
 | `LLM_PRIMARY` | `auto` | `groq` = Gemini bilkul skip |
 | `GEMINI_DISABLED` | – | `1` = same |
+
+### RSS feed URLs — sab `.env` se
+
+Code me koi feed URL hardcoded nahi hai. `lib/districts.js` (JS) aur `backend/fetchers.py` (Python)
+dono yahi keys padhte hain; key na mile to built-in default (same URL) use hota hai:
+
+| Key | Kaam |
+|---|---|
+| `LH_BASE_URL` | Live Hindustan base (default `https://api.livehindustan.com/feeds/rss/bihar`) |
+| `LH_FEED_STATE` | State-level feed |
+| `LH_FEED_<FEED_SLUG>` | 36 district feeds — `.../bihar/ara/rssfeed.xml` → `LH_FEED_ARA` |
+| `GOOGLE_NEWS_RSS_TEMPLATE` | `{query}` placeholder wala Google News URL (district-wise search) |
+| `GOOGLE_NEWS_RSS_URL` / `BHASKAR_BIHAR_RSS_URL` / `HINDUSTAN_BIHAR_RSS_URL` | legacy keys (generate-insight, news_insight_worker) |
+| `LEADERSHIP_NEWS_RSS_URL` | leadership pipeline ka Google News query |
+| `NEWSDATA_URL` | NewsData.io API base |
+
+Feed badalni ho: local me `.env`, production me **Vercel → Project → Settings → Environment Variables**
+me wahi key set kar do (redeploy lag jayega). `.env.example` me poora block documented hai.
