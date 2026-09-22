@@ -20,7 +20,10 @@ export const dynamic = 'force-dynamic';
 const RSSHUB_BASE = 'https://rsshub-9o9d.onrender.com/twitter/user/';
 
 const X_ACCOUNTS = [
+  /* Jan Suraaj: official handle ka RSSHub feed khaali aata hai (0 items), isliye
+     party founder Prashant Kishor ka handle bhi usi table me bhej rahe hain. */
   { handle: 'jansuraajonline', table: 'xjansuraaj' },
+  { handle: 'PrashantKishor',  table: 'xjansuraaj' },
   { handle: 'INCBihar',        table: 'xinc' },
   { handle: 'RahulGandhi',     table: 'xrahulgandi' },
   { handle: 'RJDforIndia',     table: 'xrjd' },
