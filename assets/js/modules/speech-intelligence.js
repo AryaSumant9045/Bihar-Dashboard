@@ -6,12 +6,87 @@ let siActiveId = 1;
 let siShowingLibrary = false;
 
 function initSpeechIntelligence() {
+  siLoadStats();
   siLoadPastBriefs();
+  siLoadAskPanel();
   renderRecentCards();
-  renderSpeechList(SPEECHES_DATA);
-  renderSpeechDetail(SPEECHES_DATA[0]);
+  siRenderLibrary();
+  siLibrarySelect(0);
   setupSpeechSearch();
 }
+
+/* ── Library: real AI briefs (SPEECHES_DATA fake data ki jagah) ─────────── */
+let siLibraryItems = [];
+async function siRenderLibrary() {
+  const listEl = document.getElementById('si-speech-list');
+  const countEl = document.getElementById('si-count');
+  try {
+    const res = await fetch('/api/speech-brief?limit=20', { cache: 'no-store' });
+    const json = await res.json();
+    siLibraryItems = json.items || [];
+    if (countEl) countEl.textContent = siLibraryItems.length + ' AI briefs';
+    if (!siLibraryItems.length) {
+      if (listEl) listEl.innerHTML = '<div style="padding:1rem;font-size:.75rem;color:var(--text-muted);">Abhi koi AI briefing nahi — Brief Builder se pehli banao.</div>';
+      return;
+    }
+    if (listEl) {
+      listEl.innerHTML = siLibraryItems.map((it, i) =>
+        '<div style="padding:.7rem .8rem;border-bottom:1px solid var(--border-subtle);cursor:pointer;' + (i === 0 ? 'background:rgba(245,197,24,.06);' : '') + '" onclick="siLibrarySelect(' + i + ')">' +
+        '<div style="font-size:.8rem;font-weight:700;color:var(--text-primary);">📍 ' + siEsc(it.district) + '</div>' +
+        '<div style="font-size:.68rem;color:var(--text-muted);margin-top:.15rem;">' + siEsc(it.event_type) + ' · ' + siEsc(it.audience) + '</div>' +
+        '<div style="font-size:.66rem;color:var(--gold);margin-top:.15rem;">📌 ' + siEsc(it.topic) + '</div></div>'
+      ).join('');
+    }
+    siLibrarySelect(0);
+  } catch (e) {
+    if (listEl) listEl.innerHTML = '<div style="padding:1rem;font-size:.75rem;color:var(--red);">Load failed: ' + siEsc(e.message) + '</div>';
+  }
+}
+
+function siLibrarySelect(i) {
+  const it = siLibraryItems[i];
+  const detail = document.getElementById('si-detail');
+  if (!it || !detail) return;
+  detail.innerHTML = siBriefHtml(it.district, it.event_type, it.audience, it.topic, { brief: it, saved: true, created_at: it.created_at, sources: {} });
+  detail.querySelectorAll('[id^="si-fb-"]').forEach((el) => (el.style.display = 'none'));
+}
+
+/* ── Ask AI panel (free-text question, district data par) ───────────────── */
+async function siLoadStats() {
+  const set = (sel, v) => { const el = document.querySelector(sel); if (el) el.textContent = v; };
+  try {
+    const res = await fetch('/api/speech-brief?stats=1', { cache: 'no-store' });
+    const json = await res.json();
+    const st = json.stats || {};
+    set('#si-briefs-stat', String(st.total_briefs || 0));
+    set('#si-points-stat', String(st.total_talking_points || 0));
+    set('#si-districts-stat', String(st.districts_covered || 0) + '/38');
+    set('#si-last-stat', st.last_brief_at ? new Date(st.last_brief_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+    set('#si-today-stat', String(st.briefs_today || 0));
+    set('#si-top-stat', st.top_district ? st.top_district.name + ' (' + st.top_district.count + ')' : '—');
+  } catch (e) { console.warn('[speech] stats failed:', e.message); }
+}
+
+async function siAskAI() {
+  const district = document.getElementById('si-ask-district')?.value;
+  const question = document.getElementById('si-ask-input')?.value?.trim();
+  const out = document.getElementById('si-ask-answer');
+  if (!question) { if (out) out.innerHTML = '<div style="font-size:.74rem;color:var(--amber);">Pehle sawal type karo 🙂</div>'; return; }
+  if (out) out.innerHTML = '<div class="empty-state" style="padding:.8rem;"><div class="spinner"></div><p class="empty-state-text" style="font-size:.75rem;margin-top:.4rem;">🤖 ' + siEsc(district || 'Bihar') + ' के data देखकर जवाब तैयार हो रहा है…</p></div>';
+  try {
+    const res = await fetch('/api/speech-brief', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'ask', district: district || 'Bihar', question }),
+    });
+    const j = await res.json();
+    if (j.status !== 'success') throw new Error((j.errors || []).join(' | ') || j.error || 'failed');
+    if (out) out.innerHTML = '<div style="font-size:.82rem;color:var(--text-primary);line-height:1.6;">' + siEsc(j.answer).replace(/\n/g, '<br>') + '</div>' +
+      '<div style="font-size:.62rem;color:var(--text-muted);margin-top:.5rem;">via ' + siEsc(j.provider || 'AI') + ' · data: ' + (j.sources?.news || 0) + ' news + summary</div>';
+  } catch (e) {
+    if (out) out.innerHTML = '<div style="font-size:.75rem;color:var(--red);">Ask AI failed: ' + siEsc(e.message) + '</div>';
+  }
+}
+window.siAskAI = siAskAI;
 
 /* ── View Toggle ──────────────────────────────────────────── */
 function toggleSIView() {
@@ -211,7 +286,11 @@ function siEsc(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&
 
 function renderGeneratedBrief(district, event, audience, topic, payload) {
   const el = document.getElementById('si-brief-output');
-  if (!el) return;
+  if (el) { el.style.display = 'block'; el.innerHTML = siBriefHtml(district, event, audience, topic, payload); }
+  window.__siLastBrief = { district, event, audience, topic, brief: (payload.brief || {}), saved_id: payload.saved_id || null, share_text: payload.share_text || null };
+}
+
+function siBriefHtml(district, event, audience, topic, payload) {
   const b = payload.brief || {};
   const when = payload.created_at ? new Date(payload.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
   const src = payload.sources || {};
@@ -288,8 +367,7 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
       (obj.source ? '<div style="font-size:.66rem;color:var(--text-muted);margin-top:.15rem;">📎 ' + siEsc(obj.source) + '</div>' : '') + '</div></div>';
   }).join('') || '<p style="font-size:.74rem;color:var(--text-muted);">—</p>';
 
-  el.style.display = 'block';
-  el.innerHTML = `
+  return `
     <div class="card card-gold" style="margin-bottom:1rem;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
         <div>
@@ -344,32 +422,7 @@ function renderGeneratedBrief(district, event, audience, topic, payload) {
     </div>
 
     ${connect}
-    ${compare}
-
-    <div class="card" style="margin-top:1rem;border-color:rgba(38,222,129,.35);">
-      <div class="card-title" style="margin-bottom:0.55rem;">📝 Post-Event Feedback <span class="tag" style="font-size:.58rem;color:var(--green);border-color:var(--green);">LEARNING LOOP</span></div>
-      <div style="font-size:.7rem;color:var(--text-muted);margin-bottom:.6rem;">Speech ke baad bharna — agli briefing me iska learning use hota hai.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.6rem;">
-        <div>
-          <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Media coverage tone</label>
-          <select class="select-dropdown" id="si-fb-tone" style="width:100%;"><option value="">—</option><option>Positive</option><option>Neutral</option><option>Negative</option></select>
-        </div>
-        <div>
-          <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Kya achha chala</label>
-          <input type="text" id="si-fb-worked" class="search-input" placeholder="jaise: local connect points ka impact" style="width:100%;" />
-        </div>
-      </div>
-      <div style="margin-bottom:.6rem;">
-        <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Kya achha NAHI chala</label>
-        <input type="text" id="si-fb-didnt" class="search-input" placeholder="jaise: employment ke aakde par sawal hua" style="width:100%;" />
-      </div>
-      <div style="margin-bottom:.7rem;">
-        <label style="font-size:.65rem;color:var(--text-muted);display:block;margin-bottom:.25rem;">Outcome notes</label>
-        <textarea id="si-fb-notes" class="search-input" rows="2" placeholder="Crowd response, media questions, kuch aur..." style="width:100%;"></textarea>
-      </div>
-      <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="siSaveFeedback()">💾 Feedback Save Karo</button>
-      <div id="si-fb-status" style="font-size:.7rem;color:var(--text-muted);margin-top:.4rem;"></div>
-    </div>`;
+    ${compare}`;
   window.__siLastBrief = { district, event, audience, topic, brief: b, share_text: payload.share_text || null };
 }
 

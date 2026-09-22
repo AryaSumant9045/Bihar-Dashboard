@@ -22,21 +22,21 @@
   <!-- Stat Row -->
   <div class="stat-row stat-row-3" style="margin-bottom:1rem;">
     <div class="stat-card stat-card-gold card-shine">
-      <div class="stat-label">🎙 Speeches Logged</div>
-      <div class="stat-value">3</div>
-      <div class="stat-change">Last 30 days</div>
+      <div class="stat-label">🎙 AI Briefings</div>
+      <div class="stat-value" id="si-briefs-stat">—</div>
+      <div class="stat-change"><span id="si-today-stat">0</span> aaj · live DB se</div>
       <div class="stat-icon">🎙</div>
     </div>
     <div class="stat-card stat-card-amber card-shine">
-      <div class="stat-label">⚡ Avg Intensity</div>
-      <div class="stat-value">79</div>
-      <div class="stat-change up">High energy</div>
+      <div class="stat-label">🎯 Talking Points</div>
+      <div class="stat-value" id="si-points-stat">—</div>
+      <div class="stat-change">Sab briefings me total</div>
       <div class="stat-icon">📊</div>
     </div>
     <div class="stat-card stat-card-blue card-shine">
-      <div class="stat-label">📋 Promises Tracked</div>
-      <div class="stat-value">8</div>
-      <div class="stat-change">Across all speeches</div>
+      <div class="stat-label">📍 Districts Covered</div>
+      <div class="stat-value" id="si-districts-stat">—</div>
+      <div class="stat-change">Top: <span id="si-top-stat">—</span></div>
       <div class="stat-icon">✅</div>
     </div>
   </div>
@@ -154,6 +154,66 @@
         <input type="checkbox" id="si-batch-toggle" onchange="siToggleBatch()" /> 📋 Batch
       </label>
     </div>
+  </div>
+
+  <!-- AI Assistant (Ask AI) -->
+  <div class="card" style="margin-top:1rem;border-color:rgba(168,85,247,.35);">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem;">
+      <div style="width:34px;height:34px;border-radius:var(--radius-md);background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:.95rem;">🤖</div>
+      <div>
+        <div style="font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:700;color:var(--text-primary);">Ask AI — district intelligence se seedha jawab</div>
+        <div style="font-size:.68rem;color:var(--text-muted);">Free-text sawal poochho — jawab sirf us district ke live data (news + AI summary + opposition) se aayega</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:220px 1fr;gap:.6rem;margin-bottom:.6rem;">
+      <select class="select-dropdown" id="si-ask-district" style="width:100%;">
+        <option>Araria</option>
+        <option>Arwal</option>
+        <option>Aurangabad</option>
+        <option>Banka</option>
+        <option>Begusarai</option>
+        <option>Bhagalpur</option>
+        <option>Bhojpur</option>
+        <option>Buxar</option>
+        <option>Darbhanga</option>
+        <option>East Champaran</option>
+        <option>Gaya</option>
+        <option>Gopalganj</option>
+        <option>Jamui</option>
+        <option>Jehanabad</option>
+        <option>Kaimur</option>
+        <option>Katihar</option>
+        <option>Khagaria</option>
+        <option>Kishanganj</option>
+        <option>Lakhisarai</option>
+        <option>Madhepura</option>
+        <option>Madhubani</option>
+        <option>Munger</option>
+        <option>Muzaffarpur</option>
+        <option>Nalanda</option>
+        <option>Nawada</option>
+        <option selected>Patna</option>
+        <option>Purnia</option>
+        <option>Rohtas</option>
+        <option>Saharsa</option>
+        <option>Samastipur</option>
+        <option>Saran</option>
+        <option>Sheikhpura</option>
+        <option>Sheohar</option>
+        <option>Sitamarhi</option>
+        <option>Siwan</option>
+        <option>Supaul</option>
+        <option>Vaishali</option>
+        <option>West Champaran</option>
+      </select>
+      <input type="text" id="si-ask-input" class="search-input" placeholder="jaise: Youth rally me kaunse 3 points sabse strong hain?" style="width:100%;" onkeydown="if(event.key==='Enter')siAskAI()" />
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.7rem;">
+      <button class="btn btn-primary btn-sm" onclick="siAskAI()">🤖 Ask AI</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('si-ask-input').value='Flood relief par opposition ke claims ka factual jawab kya hai?';">↳ Sample sawal</button>
+      <span style="font-size:.66rem;color:var(--text-muted);">Data-grounded · ghatiya/kalpit jawab nahi</span>
+    </div>
+    <div id="si-ask-answer" style="padding:.6rem .7rem;border-radius:8px;background:var(--bg-elevated);border:1px solid var(--border-subtle);min-height:52px;font-size:.8rem;color:var(--text-muted);">Jawab yahan aayega…</div>
   </div>
 
   <!-- Generated Brief Output -->

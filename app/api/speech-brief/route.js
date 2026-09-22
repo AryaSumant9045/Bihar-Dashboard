@@ -324,7 +324,43 @@ function buildShareText(district, eventType, audience, topic, brief, freshness) 
 export async function POST(request) {
   let body = {};
   try { body = await request.json(); } catch { /* empty */ }
-  const { district: districtInput, event_type, audience, topic, tone, duration, compare_with } = body;
+  const { district: districtInput, event_type, audience, topic, tone, duration, compare_with, mode, question } = body;
+
+  /* ── Mode: 'ask' — district data par AI se seedha sawal ─────────────── */
+  if (mode === 'ask') {
+    const supabaseAsk = makeSupabase();
+    if (!supabaseAsk) return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+    if (!districtInput || !question) return Response.json({ error: 'district aur question zaroori hain' }, { status: 400 });
+    const askEntry = resolveDistrict(districtInput);
+    if (!askEntry) return Response.json({ error: `Unknown district: ${districtInput}` }, { status: 400 });
+
+    const d = await collectDistrictData(supabaseAsk, askEntry);
+    const ctx = buildUserPrompt(askEntry.en, question, d);
+    const askSystem = `आप BJP Bihar War Room के AI Assistant हैं। आपको ${askEntry.en} district का असली data (headlines, AI political summary, opposition news) दिया गया है।
+नियम:
+- सिर्फ़ दिए गए data पर आधारित जवाब दें — कोई तथ्य न गढ़ें। Data में न हो तो साफ़ कहें "इस बारे में data उपलब्ध नहीं"।
+- जवाब हिंदी (देवनागरी) में, concise (4-8 lines या 3-5 bullets), actionable रखें।
+- जहाँ आंकड़ा/तथ्य हो उसे quote करें। Opposition की बात हो तो neutral रहें।
+- सिर्फ़ plain text जवाब दें (कोई JSON नहीं)।`;
+    const askUser = `${ctx}\n\n## उपयोगकर्ता का सवाल:\n${question}\n\nउपरोक्त data के आधार पर सीधा जवाब दें।`;
+
+    const errorsAsk = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await callLLMQuick(askSystem, askUser, { retries: 1, json: false, geminiMaxOutputTokens: 2500, maxOutputTokens: 1500 });
+        const answer = String(res.content || '').trim();
+        if (answer.length > 20) {
+          return Response.json({
+            status: 'success', mode: 'ask', district: askEntry.en, question, answer,
+            provider: res.provider,
+            sources: { news: d.news.length, has_summary: !!d.summary, opposition: d.opposition.length },
+          });
+        }
+        throw new Error('empty answer');
+      } catch (e) { errorsAsk.push(String(e.message).slice(0, 120)); await new Promise((r) => setTimeout(r, 1200)); }
+    }
+    return Response.json({ status: 'llm_failed', mode: 'ask', district: askEntry.en, errors: errorsAsk }, { status: 200 });
+  }
 
   if (!districtInput || !event_type || !audience || !topic) {
     return Response.json({ error: 'district, event_type, audience aur topic — chaar fields zaroori hain' }, { status: 400 });
@@ -493,6 +529,33 @@ export async function GET(request) {
 
   const supabase = makeSupabase();
   if (!supabase) return Response.json({ error: 'Supabase not configured' }, { status: 500 });
+
+  /* ── stats=1 → real dashboard numbers (fake stat cards ki jagah) ────── */
+  if (searchParams.get('stats') === '1') {
+    const { data: rows } = await safeQuery(supabase.from('speech_briefs').select('district, topic, suggested_talking_points, created_at').order('created_at', { ascending: false }).limit(500));
+    const items = rows || [];
+    const byDistrict = {};
+    let points = 0;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let todayCount = 0;
+    for (const r of items) {
+      byDistrict[r.district] = (byDistrict[r.district] || 0) + 1;
+      points += Array.isArray(r.suggested_talking_points) ? r.suggested_talking_points.length : 0;
+      if (r.created_at && new Date(r.created_at) >= today) todayCount++;
+    }
+    const top = Object.entries(byDistrict).sort((a, b) => b[1] - a[1])[0] || null;
+    return Response.json({
+      status: 'success',
+      stats: {
+        total_briefs: items.length,
+        briefs_today: todayCount,
+        total_talking_points: points,
+        districts_covered: Object.keys(byDistrict).length,
+        top_district: top ? { name: top[0], count: top[1] } : null,
+        last_brief_at: items[0]?.created_at || null,
+      },
+    });
+  }
 
   let query = supabase
     .from('speech_briefs')
